@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Constants\HorarioReservaConstant;
+use Illuminate\Validation\Rule;
 
 class ReservaRequest extends FormRequest
 {
@@ -23,8 +25,8 @@ class ReservaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "horario_inicio" => ['required', 'date_format:Y-m-d H:i'],
-            "horario_fim" => ['required', 'date_format:Y-m-d H:i'],
+            "horario" => ['required', Rule::enum(HorarioReservaConstant::class)],
+            "date" => ['required', 'date_format:Y-m-d', 'after_or_equals:today'],
             "registro_academico" => ['required', 'string', 'size:10'],
             "status" => ['required', 'string', 'max:20'],
         ];
