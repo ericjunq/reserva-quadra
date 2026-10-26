@@ -14,6 +14,11 @@ class ReservaResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'horario_inicio' => $this->horario_inicio->format('Y-m-d H:i'),
+            'horario_fim' => $this->horario_fim->format('Y-m-d H:i'),
+            'aluno_id' => $this->aluno_id,
+        ];
     }
 }

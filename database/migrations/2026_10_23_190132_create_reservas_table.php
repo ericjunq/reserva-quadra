@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -13,8 +12,8 @@ return new class extends Migration
     {
         Schema::create('reservas', function (Blueprint $table) {
             $table->id();
-            $table->timestamp("horario_inicio");
-            $table->timestamp("horario_fim");
+            $table->timestamp("horario_inicio", 0);
+            $table->timestamp("horario_fim", 0);
             $table->foreignId("aluno_id")->constrained()->onDelete("cascade");
             $table->string("status");
             $table->timestamps();

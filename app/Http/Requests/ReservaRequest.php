@@ -23,8 +23,8 @@ class ReservaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "horario_inicio" => ['required', 'date_format:Y-m-d H:i:s'],
-            "horario_fim" => ['required', 'date_format:Y-m-d H:i:s'],
+            "horario_inicio" => ['required', 'date_format:Y-m-d H:i'],
+            "horario_fim" => ['required', 'date_format:Y-m-d H:i'],
             "registro_academico" => ['required', 'string', 'size:10'],
             "status" => ['required', 'string', 'max:20'],
         ];

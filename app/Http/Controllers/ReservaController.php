@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ReservaRequest;
 use App\Models\Reserva;
 use Illuminate\Http\Request;
+use App\Http\Resources\ReservaResource;
+use App\Services\ReservaService;
 
 class ReservaController extends Controller
 {
@@ -20,15 +23,17 @@ class ReservaController extends Controller
      */
     public function create()
     {
-        //
+        // TESTAR AS ROTAS 
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ReservaRequest $request, ReservaService $reservaService)
     {
-        //
+        $reserva = $reservaService->create($request->validated());
+
+        return new ReservaResource($reserva);
     }
 
     /**
