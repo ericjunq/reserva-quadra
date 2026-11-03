@@ -14,11 +14,16 @@ class ReservaResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $data = $this->data->format('Y-m-d');
+
         return [
-            'id' => $this->id,
-            'horario_inicio' => $this->horario_inicio->format('Y-m-d H:i'),
-            'horario_fim' => $this->horario_fim->format('Y-m-d H:i'),
-            'aluno_id' => $this->aluno_id,
+            'id'             => $this->id,
+            'data'           => $data,
+            'horario'        => $this->horario->value,
+            'horario_inicio' => "{$data} {$this->horario->inicio()}",
+            'horario_fim'    => "{$data} {$this->horario->fim()}",
+            'status'         => $this->status->value,
+            'aluno_id'       => $this->aluno_id,
         ];
     }
 }

@@ -1,51 +1,38 @@
 <?php
 
 namespace App\Services;
+
+use App\Constants\StatusConstant;
 use App\Models\Aluno;
 use App\Models\Reserva;
-use DateTime;
+use Exception;
+use Illuminate\Support\Facades\DB;
 
 class ReservaService
 {
-    public function create($data)
+    public function create(array $data): Reserva
     {
-        if (
-            Reserva::where('horaro_inicio', $data->horario_inicio)
-                ->where('horario_fim')
-                ->where('status', 'reservado')
-                ->exists()
-        ) {
-            throw new \Exception("Já existe uma reserva ativa para esse horário");
-        }
+        $aluno = Aluno::where('registro_academico', $data['registro_academico'])->firstOrFail();
 
-        $aluno = Aluno::whereRegistro_academico($data['registro_academico'])->first();
+        return DB::transaction(function () use ($aluno, $data) {
+            $this->verificarDisponibilidade($data);
 
-        if (!$aluno) {
-            throw new \Exception("Aluno não encontrado");
-        }
-
-        $this->validarData($data);
-
-        $dados_com_id = $data->safe()
-            ->merge(['aluno_id' => $aluno->id])
-            ->except(['registro_academico']);
-
-        $reserva = Reserva::create($dados_com_id);
-
-        return $reserva;
-
+            return $aluno->reservas()->create([
+                'data'    => $data['data'],
+                'horario' => $data['horario'],
+            ]);
+        });
     }
 
-
-    private function validarData($data)
+    private function verificarDisponibilidade(array $data): void
     {
-        $inicio = new DateTime($data['horario_inicio']->getTimestamp());
-        $fim = new DateTime($data['horario_fim']->getTimestamp());
-
-        $diferenca = $fim - $inicio;
-
-        if ($diferenca != 5400) {
-            throw new \Exception("Intervalo de tempo inserido é inválido");
+        if (Reserva::where('data', $data['data'])
+            ->where('horario', $data['horario'])
+            ->where('status', StatusConstant::RESERVADO)
+            ->lockForUpdate()
+            ->exists()
+        ) {
+            throw new Exception('Já existe uma reserva para esse horário');
         }
     }
 }

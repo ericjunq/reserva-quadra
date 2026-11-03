@@ -26,9 +26,9 @@ class ReservaRequest extends FormRequest
     {
         return [
             "horario" => ['required', Rule::enum(HorarioReservaConstant::class)],
-            "date" => ['required', 'date_format:Y-m-d', 'after_or_equals:today'],
-            "registro_academico" => ['required', 'string', 'size:10'],
-            "status" => ['required', 'string', 'max:20'],
+            "data" => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            "registro_academico" => ['required', 'string', 'size:10', 'exists:alunos,registro_academico'],
+
         ];
     }
 }

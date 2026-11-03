@@ -12,11 +12,13 @@ return new class extends Migration {
     {
         Schema::create('reservas', function (Blueprint $table) {
             $table->id();
-            $table->timestamp("horario_inicio", 0);
-            $table->timestamp("horario_fim", 0);
+            $table->date('data');
+            $table->timestamp("horario", 0);
             $table->foreignId("aluno_id")->constrained()->onDelete("cascade");
-            $table->string("status");
+            $table->string("status", 20)->default('RESERVADO');
             $table->timestamps();
+
+            $table->index(['data', 'horario']);
         });
     }
 

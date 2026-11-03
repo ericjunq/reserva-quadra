@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Constants\StatusConstant;
+namespace App\Constants;
 
-enum StatusConstat: string
+enum StatusConstant: string
 {
-    case Reservado = 'reservado';
-    case Cancelado = 'cancelado';
-    
+    case RESERVADO = 'RESERVADO';
+    case CANCELADO = 'CANCELADO';
+
 }
