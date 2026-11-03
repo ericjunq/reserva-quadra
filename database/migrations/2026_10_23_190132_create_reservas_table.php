@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->date('data');
             $table->timestamp("horario", 0);
-            $table->foreignId("aluno_id")->constrained()->onDelete("cascade");
+            $table->foreignId("aluno_id")->constrained()->nullOnDelete();
             $table->string("status", 20)->default('RESERVADO');
             $table->timestamps();
 
