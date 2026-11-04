@@ -2,17 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreEquipamentoRequest;
+use App\Http\Requests\UpdateEquipamentoRequest;
+use App\Http\Resources\EquipamentoResource;
 use App\Models\Equipamento;
+use App\Models\Espaco;
 use Illuminate\Http\Request;
+use App\Services\EquipamentoService;
 
 class EquipamentoController extends Controller
 {
+
+    public function __construct(private EquipamentoService $equipamentoService){}
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $porPagina = min((int) $request->query('per_page', 15), 100);
+
+        return EquipamentoResource::collection(
+            $this->equipamentoService->listarPaginado($porPagina)
+        );
+    }
+
+    public function ativos(Espaco $espaco){
+        return EquipamentoResource::collection($this->equipamentoService->listarAtivos($espaco));
     }
 
     /**
@@ -26,9 +41,11 @@ class EquipamentoController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreEquipamentoRequest $request)
     {
-        //
+        $equipamento = $this->equipamentoService->criar($request->validated());
+
+        return (new EquipamentoResource($equipamento))->response()->setStatusCode(201);
     }
 
     /**
@@ -36,7 +53,7 @@ class EquipamentoController extends Controller
      */
     public function show(Equipamento $equipamento)
     {
-        //
+        return new EquipamentoResource($equipamento);
     }
 
     /**
@@ -50,9 +67,11 @@ class EquipamentoController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Equipamento $equipamento)
+    public function update(UpdateEquipamentoRequest $request, Equipamento $equipamento)
     {
-        //
+        $equipamento = $this->equipamentoService->atualizar($equipamento, $request->validated());
+
+        return new EquipamentoResource($equipamento);
     }
 
     /**
@@ -60,6 +79,8 @@ class EquipamentoController extends Controller
      */
     public function destroy(Equipamento $equipamento)
     {
-        //
+        $this->equipamentoService->desativar($equipamento);
+
+        return response()->noContent();
     }
 }
