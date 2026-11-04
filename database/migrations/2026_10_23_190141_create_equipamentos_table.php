@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('equipamentos', function (Blueprint $table) {
             $table->id();
             $table->string("nome", 40);
-            $table->integer("quantidade");
+            $table->integer("quantidade_total");
+            $table->boolean('ativo')->default(true);
             $table->timestamps();
         });
     }

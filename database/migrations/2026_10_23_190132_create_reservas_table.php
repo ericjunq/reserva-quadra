@@ -14,11 +14,16 @@ return new class extends Migration {
             $table->id();
             $table->date('data');
             $table->timestamp("horario", 0);
-            $table->foreignId("aluno_id")->constrained()->nullOnDelete();
+            $table->foreignId('espaco_id')->constrained('espaco')->restrictOnDelete();
+            $table->foreignId("aluno_id")->nullable()->constrained('alunos')->nullOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string("status", 20)->default('RESERVADO');
+            $table->string('tipo', 30)->default('ALUNO');
+            $table->timestamp('confirmacao_enviada_em')->nullable();
+            $table->timestamp('confirmada_em')->nullable();
             $table->timestamps();
 
-            $table->index(['data', 'horario']);
+            $table->index(['data', 'horario', 'espaco_id']);
         });
     }
 

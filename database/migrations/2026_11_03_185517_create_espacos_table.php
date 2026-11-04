@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('espacos', function (Blueprint $table) {
             $table->id();
+            $table->string('nome', 50);
+            $table->string('tipo', 30);
+            $table->boolean('ativo')->default(true);
             $table->timestamps();
         });
     }
