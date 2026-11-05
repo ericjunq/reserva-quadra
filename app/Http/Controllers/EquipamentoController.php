@@ -12,7 +12,6 @@ use App\Services\EquipamentoService;
 
 class EquipamentoController extends Controller
 {
-
     public function __construct(private EquipamentoService $equipamentoService){}
 
     public function index(Request $request)
@@ -36,17 +35,10 @@ class EquipamentoController extends Controller
         return EquipamentoResource::collection($this->equipamentoService->listarAtivos($espaco));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreEquipamentoRequest $request)
     {
         $equipamento = $this->equipamentoService->criar($request->validated());
@@ -54,25 +46,15 @@ class EquipamentoController extends Controller
         return (new EquipamentoResource($equipamento))->response()->setStatusCode(201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Equipamento $equipamento)
     {
         return new EquipamentoResource($equipamento);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Equipamento $equipamento)
     {
-        //
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateEquipamentoRequest $request, Equipamento $equipamento)
     {
         $equipamento = $this->equipamentoService->atualizar($equipamento, $request->validated());
@@ -80,9 +62,6 @@ class EquipamentoController extends Controller
         return new EquipamentoResource($equipamento);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Equipamento $equipamento)
     {
         $this->equipamentoService->desativar($equipamento);

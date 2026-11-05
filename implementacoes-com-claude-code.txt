@@ -1,0 +1,307 @@
+IMPLEMENTAÇÕES COM CLAUDE CODE
+==============================
+
+Registro das alterações feitas com o Claude Code e dos comentários sobre o código.
+Os comentários ficam aqui, e não nos arquivos.
+
+
+------------------------------------------------------------
+1. CORREÇÕES INICIAIS
+------------------------------------------------------------
+
+app/Http/Requests/StoreAlunoRequest.php / StoreReservaRequest.php
+  - Nome da classe corrigido para bater com o nome do arquivo (PSR-4).
+  - AlunoController e ReservaController atualizados para usar as classes novas.
+
+database/migrations/*
+  - Migration de espaços renomeada para 2026_10_23_190130 (roda antes de reservas/equipamentos).
+  - reservas: FK para 'espacos' (estava 'espaco'); horario virou string (guarda o valor do enum).
+  - equipamentos: espaco_id adicionado; coluna quantidade_total (snake_case, igual ao resto da API).
+
+app/Services/EquipamentoService.php
+  - Collection correta (Illuminate\Database\Eloquent\Collection, não Ramsey).
+  - atualizar(): o update estava dentro do if; editar só o nome não salvava nada.
+
+app/Constants/HorarioReservaConstant.php
+  - label(): {$this->fim} -> {$this->fim()}.
+
+app/Services/ReservaService.php
+  - whereDate na checagem de conflito: o SQLite guarda a data como 'Y-m-d 00:00:00'
+    e a comparação com 'Y-m-d' falhava, permitindo reserva duplicada.
+
+
+------------------------------------------------------------
+2. INFRA E SEGURANÇA
+------------------------------------------------------------
+
+app/Exceptions/RegraNegocioException.php + bootstrap/app.php
+  - Exceção de regra de negócio. Responde JSON com 'message' e 'dados' (opcional).
+  - $status: 409 para conflitos (horário, estoque); 422 para as demais regras.
+  - $dados: informações extras devolvidas no JSON (ex.: id da reserva conflitante).
+
+config/app.php + .env / .env.example
+  - Timezone America/Sao_Paulo (APP_TIMEZONE). Necessário para regras de "hoje"
+    e para o scheduler.
+
+routes/api.php
+  - Rotas públicas (alunos, sem login): GET /cursos, GET /espacos,
+    GET /espacos/{espaco}/equipamentos, POST /alunos, POST /reservas, POST /login.
+  - Rotas autenticadas (admins): logout, me e o prefixo /admin.
+  - POST /alunos e POST /reservas com throttle de 10 req/min.
+  - GET /alunos passou para /admin/alunos (expunha nome, RA e email publicamente).
+  - Update de equipamentos, espaços e cursos apenas por PATCH (as regras dos
+    requests de update são 'sometimes', ou seja, atualização parcial).
+
+
+------------------------------------------------------------
+3. ESPAÇOS
+------------------------------------------------------------
+
+app/Services/EspacoService.php
+  - listarPaginado (admin, filtro ?tipo), listarAtivos (público, filtro ?tipo),
+    criar, atualizar, desativar.
+  - Não deixa desativar (nem por PATCH ativo=false) espaço com reservas futuras (409).
+
+app/Http/Controllers/EspacoController.php
+  - ativos(): pública, espaços ativos (filtro opcional ?tipo=QUADRA).
+
+
+------------------------------------------------------------
+4. CURSOS
+------------------------------------------------------------
+
+app/Models/Curso.php, CursoService, CursoController, Store/UpdateCursoRequest, CursoResource
+  - Tabela de cursos (pensando em reaproveitar o sistema em outras instituições).
+  - CursoController::ativos(): pública, cursos ativos para o cadastro de alunos.
+  - Aluno passou de 'curso' (texto) para 'curso_id' (FK).
+
+app/Services/AlunoService.php
+  - A unicidade do RA é garantida pelo StoreAlunoRequest e pelo índice unique da tabela
+    (a checagem manual com Exception foi removida).
+
+database/seeders/CursoSeeder.php
+  - Cursos da faculdade.
+
+
+------------------------------------------------------------
+5. REVOGAÇÃO E EVENTOS
+------------------------------------------------------------
+
+app/Http/Controllers/ReservaController.php
+  - store(): pública, reserva feita pelo aluno informando o RA.
+  - storeEvento(): admin, reserva de evento da faculdade.
+  - revogar(): admin, revoga uma reserva com justificativa e avisa o aluno.
+
+app/Services/ReservaService.php
+  - criarEvento(): se o horário estiver ocupado, só prossegue com justificativa;
+    a reserva conflitante é revogada (e o aluno avisado) na mesma transação.
+  - revogar(): o email entra na fila só depois do commit (afterCommit). Se a
+    transação falhar, o aluno não é avisado.
+  - travarEspaco(): trava a linha do espaço até o fim da transação. Assim,
+    reservas simultâneas no mesmo espaço são processadas uma de cada vez. O lock
+    nas reservas não basta: quando ainda não há reserva, não há linha para travar.
+
+app/Http/Requests/StoreEventoRequest.php
+  - 'justificativa' é obrigatória apenas se o horário já estiver reservado
+    (verificado no service, que responde 409 com reserva_conflitante_id).
+
+app/Models/Reserva.php
+  - criador(): admin que criou a reserva (eventos) — coluna user_id.
+  - revogador(): admin que revogou — coluna revogada_por.
+
+app/Mail/ReservaRevogadaMail.php + resources/views/emails/reserva-revogada.blade.php
+  - Email para o aluno com o motivo da revogação. Vai para a fila
+    (precisa de php artisan queue:work).
+
+
+------------------------------------------------------------
+6. EQUIPAMENTOS
+------------------------------------------------------------
+
+app/Http/Controllers/EquipamentoController.php
+  - index() (admin): filtros opcionais ?espaco_id=1, ?nome=bola, ?ativo=true|false.
+  - ativos() (pública): 404 se o espaço estiver inativo.
+
+app/Services/EquipamentoService.php
+  - listarAtivos(): equipamentos que podem ser reservados junto com o espaço:
+    os do próprio espaço + os compartilháveis de outros espaços.
+  - atualizar(): ao reduzir o estoque, trava o equipamento (mesmo lock usado na
+    reserva), para não reduzir enquanto uma reserva está sendo feita.
+
+database/migrations/2026_10_23_190141_create_equipamentos_table.php
+  - compartilhavel: se true, pode ser reservado junto com qualquer espaço
+    (ex.: microscópio usado numa sala). Padrão false.
+  - unique(espaco_id, nome).
+
+
+------------------------------------------------------------
+7. EQUIPAMENTOS NA RESERVA (item 3)
+------------------------------------------------------------
+
+app/Http/Requests/Concerns/ValidaEquipamentosDaReserva.php
+  - Trait usada por StoreReservaRequest e StoreEventoRequest.
+  - Validação estática (422): equipamento ativo e do próprio espaço OU
+    compartilhável; sem repetição; quantidade >= 1.
+  - after(): quantidade pedida não pode passar do estoque total.
+  - A disponibilidade por data/horário é verificada no ReservaService (409).
+
+app/Services/ReservaService.php
+  - verificarConflitoDeEspaco(): regra atual de espaço exclusivo (uma reserva por
+    espaço/horário). Se um dia o espaço puder ser compartilhado, basta remover as chamadas.
+  - verificarDisponibilidadeEquipamentos():
+      disponível = estoque total - soma do que já está reservado (status RESERVADO)
+      na mesma data/horário, em qualquer espaço (por causa dos compartilháveis).
+    Não existe coluna de "em uso/disponível": o valor é calculado na hora a partir
+    das reservas, então nunca fica desatualizado. quantidade_total nunca é alterado
+    pelas reservas.
+    Trava as linhas dos equipamentos (em ordem de id, para evitar deadlock) até o
+    fim da transação.
+  - criarEvento(): a disponibilidade é verificada depois da revogação, então os
+    equipamentos da reserva revogada já estão liberados para o evento.
+
+app/Models/Reserva.php + app/Http/Resources/ReservaResource.php
+  - Relação equipamentos() via item_reservas (com quantidade).
+  - Resposta da reserva inclui equipamentos: [{id, nome, quantidade}].
+
+
+------------------------------------------------------------
+8. RENOMEAÇÕES
+------------------------------------------------------------
+
+reservas.data -> reservas.data_reserva (coluna, requests, resource, email)
+  - Com um campo chamado 'data', o Laravel não envolvia o resource em {"data": {...}},
+    deixando a resposta de reservas diferente das demais.
+
+
+------------------------------------------------------------
+9. COMENTÁRIOS PADRÃO REMOVIDOS DO CÓDIGO
+------------------------------------------------------------
+
+Comentários que vieram dos stubs do Laravel (make:controller, make:request etc.)
+e que foram removidos dos arquivos. O config/ manteve os comentários, porque são
+a documentação do próprio framework para cada opção.
+Os placeholders '//' dentro de métodos vazios também foram removidos.
+
+app/Http/Controllers/AlunoController.php
+  - Display a listing of the resource.
+  - Show the form for creating a new resource.
+  - Store a newly created resource in storage.
+  - Display the specified resource.
+  - Show the form for editing the specified resource.
+  - Update the specified resource in storage.
+  - Remove the specified resource from storage.
+
+app/Http/Controllers/EquipamentoController.php
+  - Show the form for creating a new resource.
+  - Store a newly created resource in storage.
+  - Display the specified resource.
+  - Show the form for editing the specified resource.
+  - Update the specified resource in storage.
+  - Remove the specified resource from storage.
+
+app/Http/Controllers/ItemReservaController.php
+  - Display a listing of the resource.
+  - Show the form for creating a new resource.
+  - Store a newly created resource in storage.
+  - Display the specified resource.
+  - Show the form for editing the specified resource.
+  - Update the specified resource in storage.
+  - Remove the specified resource from storage.
+
+app/Http/Requests/LoginRequest.php
+  - Determine if the user is authorized to make this request.
+  - Get the validation rules that apply to the request.
+    @return array<string, ValidationRule|array<mixed>|string>
+
+app/Http/Requests/StoreAlunoRequest.php
+  - Determine if the user is authorized to make this request.
+  - Get the validation rules that apply to the request.
+    @return array<string, ValidationRule|array<mixed>|string>
+
+app/Http/Requests/StoreEquipamentoRequest.php
+  - Determine if the user is authorized to make this request.
+  - Get the validation rules that apply to the request.
+    @return array<string, ValidationRule|array<mixed>|string>
+
+app/Http/Requests/StoreEspacoRequest.php
+  - Determine if the user is authorized to make this request.
+  - Get the validation rules that apply to the request.
+    @return array<string, ValidationRule|array<mixed>|string>
+
+app/Http/Requests/StoreReservaRequest.php
+  - Determine if the user is authorized to make this request.
+  - Get the validation rules that apply to the request.
+    @return array<string, ValidationRule|array<mixed>|string>
+
+app/Http/Requests/UpdateEquipamentoRequest.php
+  - Determine if the user is authorized to make this request.
+  - Get the validation rules that apply to the request.
+    @return array<string, ValidationRule|array<mixed>|string>
+
+app/Http/Requests/UpdateEspacoRequest.php
+  - Determine if the user is authorized to make this request.
+  - Get the validation rules that apply to the request.
+    @return array<string, ValidationRule|array<mixed>|string>
+
+app/Http/Resources/EquipamentoResource.php
+  - Transform the resource into an array.
+    @return array<string, mixed>
+
+app/Models/User.php
+  - use Illuminate\Contracts\Auth\MustVerifyEmail;
+  - @use HasFactory<UserFactory>
+  - Get the attributes that should be cast.
+    @return array<string, string>
+
+app/Providers/AppServiceProvider.php
+  - Register any application services.
+  - Bootstrap any application services.
+
+database/factories/UserFactory.php
+  - @extends Factory<User>
+  - The current password being used by the factory.
+  - Define the model's default state.
+    @return array<string, mixed>
+  - Indicate that the model's email address should be unverified.
+
+database/migrations/0001_01_01_000000_create_users_table.php
+  - Run the migrations.
+  - Reverse the migrations.
+
+database/migrations/0001_01_01_000001_create_cache_table.php
+  - Run the migrations.
+  - Reverse the migrations.
+
+database/migrations/0001_01_01_000002_create_jobs_table.php
+  - Run the migrations.
+  - Reverse the migrations.
+
+database/migrations/2026_10_23_190128_create_alunos_table.php
+  - Run the migrations.
+  - Reverse the migrations.
+
+database/migrations/2026_10_23_190130_create_espacos_table.php
+  - Run the migrations.
+  - Reverse the migrations.
+
+database/migrations/2026_10_23_190132_create_reservas_table.php
+  - Run the migrations.
+  - Reverse the migrations.
+
+database/migrations/2026_10_23_190141_create_equipamentos_table.php
+  - Run the migrations.
+  - Reverse the migrations.
+
+database/migrations/2026_10_23_190205_create_item_reservas_table.php
+  - Run the migrations.
+  - Reverse the migrations.
+
+database/migrations/2026_10_23_194808_create_personal_access_tokens_table.php
+  - Run the migrations.
+  - Reverse the migrations.
+
+database/seeders/AdminSeeder.php
+  - Run the database seeds.
+
+database/seeders/DatabaseSeeder.php
+  - Seed the application's database.
