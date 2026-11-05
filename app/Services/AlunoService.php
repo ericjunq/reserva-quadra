@@ -1,27 +1,20 @@
 <?php
 
 namespace App\Services;
+
 use App\Models\Aluno;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class AlunoService
 {
-    public function create($data)
+    // A unicidade do RA é garantida pelo StoreAlunoRequest e pelo índice unique da tabela.
+    public function create(array $data): Aluno
     {
-        if (Aluno::whereRegistro_academico($data["registro_academico"])->exists())
-            {
-                throw new \Exception("Esse RA já foi cadastrado por outro aluno");
-            }
-
-        $aluno = Aluno::create($data);
-
-        return $aluno;
+        return Aluno::create($data)->load('curso');
     }
 
-
-    public function findAll()
+    public function findAll(int $porPagina = 15): LengthAwarePaginator
     {
-        $alunos = Aluno::paginate(10);
-
-        return $alunos;
+        return Aluno::with('curso')->orderBy('nome_completo')->paginate($porPagina);
     }
 }

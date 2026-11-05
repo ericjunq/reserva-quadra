@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Aluno;
 use Illuminate\Http\Request;
 use App\Services\AlunoService;
-use App\Http\Requests\AlunoRequest;
+use App\Http\Requests\StoreAlunoRequest;
 use App\Http\Resources\AlunoResource;
 
 class AlunoController extends Controller
@@ -13,9 +13,9 @@ class AlunoController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(AlunoService $alunoService)
+    public function index(Request $request, AlunoService $alunoService)
     {
-        $alunos = $alunoService->findAll();
+        $alunos = $alunoService->findAll(min((int) $request->query('per_page', 15), 100));
 
         return AlunoResource::collection($alunos);
     }
@@ -31,11 +31,11 @@ class AlunoController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(AlunoRequest $request, AlunoService $alunoService)
+    public function store(StoreAlunoRequest $request, AlunoService $alunoService)
     {
         $aluno = $alunoService->create($request->validated());
 
-        return new AlunoResource($aluno);
+        return (new AlunoResource($aluno))->response()->setStatusCode(201);
     }
 
     /**

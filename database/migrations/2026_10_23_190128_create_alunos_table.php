@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string("nome_completo", 150);
             $table->string("registro_academico", 10)->unique();
             $table->string("email", 100);
-            $table->string("curso", 30);
+            $table->foreignId('curso_id')->constrained('cursos')->restrictOnDelete();
             $table->timestamps();
         });
     }
