@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('espacos', function (Blueprint $table) {
             $table->id();
-            $table->string('nome', 50);
+            $table->string('nome', 100)->unique();
             $table->string('tipo', 30);
             $table->boolean('ativo')->default(true);
             $table->timestamps();
