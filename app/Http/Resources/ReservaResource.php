@@ -2,19 +2,16 @@
 
 namespace App\Http\Resources;
 
+use App\Constants\StatusConstant;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ReservaResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         $data = $this->data->format('Y-m-d');
+        $revogada = $this->status === StatusConstant::REVOGADO;
 
         return [
             'id'             => $this->id,
@@ -23,7 +20,12 @@ class ReservaResource extends JsonResource
             'horario_inicio' => "{$data} {$this->horario->inicio()}",
             'horario_fim'    => "{$data} {$this->horario->fim()}",
             'status'         => $this->status->value,
+            'tipo'           => $this->tipo->value,
+            'espaco_id'      => $this->espaco_id,
             'aluno_id'       => $this->aluno_id,
+            'descricao'      => $this->descricao,
+            'justificativa_revogacao' => $this->when($revogada, $this->justificativa_revogacao),
+            'revogada_em'    => $this->when($revogada, $this->revogada_em),
         ];
     }
 }

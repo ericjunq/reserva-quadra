@@ -2,69 +2,38 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ReservaRequest;
-use App\Models\Reserva;
-use Illuminate\Http\Request;
+use App\Http\Requests\RevogarReservaRequest;
+use App\Http\Requests\StoreEventoRequest;
+use App\Http\Requests\StoreReservaRequest;
 use App\Http\Resources\ReservaResource;
+use App\Models\Reserva;
 use App\Services\ReservaService;
 
 class ReservaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private ReservaService $reservaService) {}
+
+    /** Pública: reserva feita pelo aluno informando o RA. */
+    public function store(StoreReservaRequest $request)
     {
-        //
+        $reserva = $this->reservaService->create($request->validated());
+
+        return (new ReservaResource($reserva))->response()->setStatusCode(201);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    /** Admin: reserva de evento da faculdade. */
+    public function storeEvento(StoreEventoRequest $request)
     {
-        // TESTAR AS ROTAS 
+        $reserva = $this->reservaService->criarEvento($request->validated(), $request->user());
+
+        return (new ReservaResource($reserva))->response()->setStatusCode(201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(ReservaRequest $request, ReservaService $reservaService)
+    /** Admin: revoga uma reserva com justificativa e avisa o aluno. */
+    public function revogar(RevogarReservaRequest $request, Reserva $reserva)
     {
-        $reserva = $reservaService->create($request->validated());
+        $reserva = $this->reservaService->revogar($reserva, $request->user(), $request->validated('justificativa'));
 
         return new ReservaResource($reserva);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Reserva $reserva)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Reserva $reserva)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Reserva $reserva)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Reserva $reserva)
-    {
-        //
     }
 }

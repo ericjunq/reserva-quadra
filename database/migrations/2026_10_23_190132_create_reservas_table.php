@@ -13,14 +13,18 @@ return new class extends Migration {
         Schema::create('reservas', function (Blueprint $table) {
             $table->id();
             $table->date('data');
-            $table->timestamp("horario", 0);
-            $table->foreignId('espaco_id')->constrained('espaco')->restrictOnDelete();
+            $table->string('horario', 20);
+            $table->foreignId('espaco_id')->constrained('espacos')->restrictOnDelete();
             $table->foreignId("aluno_id")->nullable()->constrained('alunos')->nullOnDelete();
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string("status", 20)->default('RESERVADO');
             $table->string('tipo', 30)->default('ALUNO');
             $table->timestamp('confirmacao_enviada_em')->nullable();
             $table->timestamp('confirmada_em')->nullable();
+            $table->string('descricao', 255)->nullable();
+            $table->text('justificativa_revogacao')->nullable();
+            $table->timestamp('revogada_em')->nullable();
+            $table->foreignId('revogada_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->index(['data', 'horario', 'espaco_id']);
