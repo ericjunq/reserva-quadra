@@ -13,7 +13,6 @@ class CursoController extends Controller
 {
     public function __construct(private CursoService $cursoService) {}
 
-    /** Pública: cursos ativos para o cadastro de alunos. */
     public function ativos()
     {
         return CursoResource::collection($this->cursoService->listarAtivos());

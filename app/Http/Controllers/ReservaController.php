@@ -13,7 +13,6 @@ class ReservaController extends Controller
 {
     public function __construct(private ReservaService $reservaService) {}
 
-    /** Pública: reserva feita pelo aluno informando o RA. */
     public function store(StoreReservaRequest $request)
     {
         $reserva = $this->reservaService->create($request->validated());
@@ -21,7 +20,6 @@ class ReservaController extends Controller
         return (new ReservaResource($reserva))->response()->setStatusCode(201);
     }
 
-    /** Admin: reserva de evento da faculdade. */
     public function storeEvento(StoreEventoRequest $request)
     {
         $reserva = $this->reservaService->criarEvento($request->validated(), $request->user());
@@ -29,7 +27,6 @@ class ReservaController extends Controller
         return (new ReservaResource($reserva))->response()->setStatusCode(201);
     }
 
-    /** Admin: revoga uma reserva com justificativa e avisa o aluno. */
     public function revogar(RevogarReservaRequest $request, Reserva $reserva)
     {
         $reserva = $this->reservaService->revogar($reserva, $request->user(), $request->validated('justificativa'));

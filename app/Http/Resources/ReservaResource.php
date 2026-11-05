@@ -10,12 +10,12 @@ class ReservaResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $data = $this->data->format('Y-m-d');
+        $data = $this->data_reserva->format('Y-m-d');
         $revogada = $this->status === StatusConstant::REVOGADO;
 
         return [
             'id'             => $this->id,
-            'data'           => $data,
+            'data_reserva'   => $data,
             'horario'        => $this->horario->value,
             'horario_inicio' => "{$data} {$this->horario->inicio()}",
             'horario_fim'    => "{$data} {$this->horario->fim()}",
@@ -24,6 +24,11 @@ class ReservaResource extends JsonResource
             'espaco_id'      => $this->espaco_id,
             'aluno_id'       => $this->aluno_id,
             'descricao'      => $this->descricao,
+            'equipamentos'   => $this->whenLoaded('equipamentos', fn () => $this->equipamentos->map(fn ($e) => [
+                'id'         => $e->id,
+                'nome'       => $e->nome,
+                'quantidade' => $e->pivot->quantidade,
+            ])),
             'justificativa_revogacao' => $this->when($revogada, $this->justificativa_revogacao),
             'revogada_em'    => $this->when($revogada, $this->revogada_em),
         ];

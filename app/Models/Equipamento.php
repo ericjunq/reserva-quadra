@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Equipamento extends Model
 {
-    protected $fillable = ['espaco_id','nome', 'quantidade_total', 'ativo'];
+    protected $fillable = ['espaco_id', 'nome', 'quantidade_total', 'ativo', 'compartilhavel'];
 
     public function casts(): array{
         return [
             'quantidade_total' => 'integer',
             'ativo' => 'boolean',
+            'compartilhavel' => 'boolean',
         ];
     }
 

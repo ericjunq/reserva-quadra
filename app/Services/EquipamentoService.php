@@ -14,16 +14,23 @@ class EquipamentoService
 {
     public function listarAtivos(Espaco $espaco): Collection
     {
-        return $espaco->equipamentos()
+        return Equipamento::query()
         ->where('ativo', true)
+        ->where(fn ($q) => $q->where('espaco_id', $espaco->id)->orWhere('compartilhavel', true))
         ->orderBy('nome')
         ->get();
     }
 
-    public function listarPaginado(int $porPagina = 15, ?int $espacoId = null): LengthAwarePaginator
-    {
+    public function listarPaginado(
+        int $porPagina = 15,
+        ?int $espacoId = null,
+        ?string $nome = null,
+        ?bool $ativo = null,
+    ): LengthAwarePaginator {
         return Equipamento::query()
         ->when($espacoId, fn ($q) => $q->where('espaco_id', $espacoId))
+        ->when($nome, fn ($q) => $q->where('nome', 'like', "%{$nome}%"))
+        ->when(! is_null($ativo), fn ($q) => $q->where('ativo', $ativo))
         ->orderBy('nome')
         ->paginate($porPagina);
     }
@@ -35,13 +42,16 @@ class EquipamentoService
 
     public function atualizar(Equipamento $equipamento, array $data): Equipamento
     {
-        if (isset($data['quantidade_total'])) {
-            $this->verificarNovaQuantidade($equipamento, $data['quantidade_total']);
-        }
+        return DB::transaction(function () use ($equipamento, $data) {
+            if (isset($data['quantidade_total'])) {
+                Equipamento::whereKey($equipamento->id)->lockForUpdate()->first();
+                $this->verificarNovaQuantidade($equipamento, $data['quantidade_total']);
+            }
 
-        $equipamento->update($data);
+            $equipamento->update($data);
 
-        return $equipamento;
+            return $equipamento;
+        });
     }
 
     public function desativar (Equipamento $equipamento):void
@@ -55,8 +65,8 @@ class EquipamentoService
         ->join('reservas', 'reservas.id', '=', 'item_reservas.reserva_id')
         ->where('item_reservas.equipamento_id', $equipamento->id)
         ->where('reservas.status', StatusConstant::RESERVADO->value)
-        ->where('reservas.data', '>=', today())
-        ->groupBy('reservas.data', 'reservas.horario')
+        ->where('reservas.data_reserva', '>=', today())
+        ->groupBy('reservas.data_reserva', 'reservas.horario')
         ->selectRaw('SUM(item_reservas.quantidade) as total')
         ->orderByDesc('total')
         ->value('total') ?? 0;

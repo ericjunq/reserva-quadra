@@ -28,8 +28,9 @@ class StoreEquipamentoRequest extends FormRequest
             'nome' => [
                 'required', 'string', 'max:100', Rule::unique('equipamentos', 'nome')
                     ->where('espaco_id', $this->input('espaco_id')),
-                    ],
-                    'quantidade_total' => ['required', 'integer', 'min:1'],
+            ],
+            'quantidade_total' => ['required', 'integer', 'min:1'],
+            'compartilhavel' => ['sometimes', 'boolean'],
         ];
     }
 }

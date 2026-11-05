@@ -20,6 +20,7 @@ class EquipamentoResource extends JsonResource
             'nome' => $this->nome,
             'quantidade_total' => $this->quantidade_total,
             'ativo' => $this->ativo,
+            'compartilhavel' => $this->compartilhavel,
         ];
     }
 }

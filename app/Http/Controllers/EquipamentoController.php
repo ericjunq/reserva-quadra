@@ -14,19 +14,21 @@ class EquipamentoController extends Controller
 {
 
     public function __construct(private EquipamentoService $equipamentoService){}
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
         $porPagina = min((int) $request->query('per_page', 15), 100);
 
         return EquipamentoResource::collection(
-            $this->equipamentoService->listarPaginado($porPagina, $request->integer('espaco_id') ?: null)
+            $this->equipamentoService->listarPaginado(
+                $porPagina,
+                $request->integer('espaco_id') ?: null,
+                $request->string('nome')->trim()->value() ?: null,
+                $request->has('ativo') ? $request->boolean('ativo') : null,
+            )
         );
     }
 
-    /** Pública: equipamentos ativos de um espaço ativo. */
     public function ativos(Espaco $espaco)
     {
         abort_unless($espaco->ativo, 404);

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('nome', 100);
             $table->integer("quantidade_total");
             $table->boolean('ativo')->default(true);
+            $table->boolean('compartilhavel')->default(false);
             $table->timestamps();
 
             $table->unique(['espaco_id', 'nome']);

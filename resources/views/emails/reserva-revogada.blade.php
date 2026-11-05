@@ -3,7 +3,7 @@
 
 Olá, {{ $reserva->aluno->nome_completo }}.
 
-Sua reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data->format('d/m/Y') }}**, no horário **{{ $reserva->horario->label() }}**, foi revogada pela administração.
+Sua reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_reserva->format('d/m/Y') }}**, no horário **{{ $reserva->horario->label() }}**, foi revogada pela administração.
 
 **Motivo:** {{ $reserva->justificativa_revogacao }}
 

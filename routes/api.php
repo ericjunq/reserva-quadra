@@ -8,7 +8,6 @@ use App\Http\Controllers\EspacoController;
 use App\Http\Controllers\ReservaController;
 use Illuminate\Support\Facades\Route;
 
-// ---------- Públicas (alunos, sem login) ----------
 Route::get('/cursos', [CursoController::class, 'ativos']);
 Route::get('/espacos', [EspacoController::class, 'ativos']);
 Route::get('/espacos/{espaco}/equipamentos', [EquipamentoController::class, 'ativos']);
@@ -18,14 +17,12 @@ Route::post('/reservas', [ReservaController::class, 'store'])->middleware('throt
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
-// ---------- Autenticadas (admins) ----------
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/logout-geral', [AuthController::class, 'logoutGeral']);
     Route::get('/me', [AuthController::class, 'me']);
 
     Route::prefix('admin')->group(function () {
-        // Update apenas por PATCH.
         foreach ([
             'equipamentos' => EquipamentoController::class,
             'espacos'      => EspacoController::class,

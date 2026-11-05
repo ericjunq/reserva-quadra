@@ -34,6 +34,7 @@ class UpdateEquipamentoRequest extends FormRequest
             ],
             'quantidade_total' => ['sometimes', 'integer', 'min:1'],
             'ativo' => ['sometimes', 'boolean'],
+            'compartilhavel' => ['sometimes', 'boolean'],
         ];
     }
 }

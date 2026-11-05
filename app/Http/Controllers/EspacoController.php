@@ -14,7 +14,6 @@ class EspacoController extends Controller
 {
     public function __construct(private EspacoService $espacoService) {}
 
-    /** Pública: espaços ativos (filtro opcional ?tipo=QUADRA). */
     public function ativos(Request $request)
     {
         $tipo = TipoEspacoConstant::tryFrom((string) $request->query('tipo'));

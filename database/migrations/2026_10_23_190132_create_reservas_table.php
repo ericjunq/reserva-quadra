@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::create('reservas', function (Blueprint $table) {
             $table->id();
-            $table->date('data');
+            $table->date('data_reserva');
             $table->string('horario', 20);
             $table->foreignId('espaco_id')->constrained('espacos')->restrictOnDelete();
             $table->foreignId("aluno_id")->nullable()->constrained('alunos')->nullOnDelete();
@@ -27,7 +27,7 @@ return new class extends Migration {
             $table->foreignId('revogada_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['data', 'horario', 'espaco_id']);
+            $table->index(['data_reserva', 'horario', 'espaco_id']);
         });
     }
 

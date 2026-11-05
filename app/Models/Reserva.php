@@ -7,11 +7,12 @@ use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Reserva extends Model
 {
     protected $fillable = [
-        'data',
+        'data_reserva',
         'horario',
         'espaco_id',
         'aluno_id',
@@ -32,7 +33,7 @@ class Reserva extends Model
     protected function casts(): array
     {
         return [
-            'data'        => 'date',
+            'data_reserva' => 'date',
             'horario'     => HorarioReservaConstant::class,
             'status'      => StatusConstant::class,
             'tipo'        => TipoReservaConstant::class,
@@ -50,7 +51,13 @@ class Reserva extends Model
         return $this->belongsTo(Espaco::class);
     }
 
-    /** Admin que criou a reserva (eventos). */
+    public function equipamentos(): BelongsToMany
+    {
+        return $this->belongsToMany(Equipamento::class, 'item_reservas')
+            ->withPivot('quantidade')
+            ->withTimestamps();
+    }
+
     public function criador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
