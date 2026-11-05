@@ -27,6 +27,6 @@ enum HorarioReservaConstant: string
 
     public function label(): string
     {
-        return "{$this->inicio()} - {$this->fim}";
+        return "{$this->inicio()} - {$this->fim()}";
     }
 }

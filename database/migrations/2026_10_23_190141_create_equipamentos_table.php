@@ -13,10 +13,13 @@ return new class extends Migration
     {
         Schema::create('equipamentos', function (Blueprint $table) {
             $table->id();
-            $table->string("nome", 40);
+            $table->foreignId('espaco_id')->constrained('espacos')->restrictOnDelete();
+            $table->string('nome', 100);
             $table->integer("quantidade_total");
             $table->boolean('ativo')->default(true);
             $table->timestamps();
+
+            $table->unique(['espaco_id', 'nome']);
         });
     }
 

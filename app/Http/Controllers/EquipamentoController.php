@@ -22,11 +22,15 @@ class EquipamentoController extends Controller
         $porPagina = min((int) $request->query('per_page', 15), 100);
 
         return EquipamentoResource::collection(
-            $this->equipamentoService->listarPaginado($porPagina)
+            $this->equipamentoService->listarPaginado($porPagina, $request->integer('espaco_id') ?: null)
         );
     }
 
-    public function ativos(Espaco $espaco){
+    /** Pública: equipamentos ativos de um espaço ativo. */
+    public function ativos(Espaco $espaco)
+    {
+        abort_unless($espaco->ativo, 404);
+
         return EquipamentoResource::collection($this->equipamentoService->listarAtivos($espaco));
     }
 

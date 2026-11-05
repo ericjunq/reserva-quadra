@@ -16,8 +16,9 @@ class EquipamentoResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'espaco_id' => $this->espaco_id,
             'nome' => $this->nome,
-            'quantidadeTotal' => $this->quantidadeTotal,
+            'quantidade_total' => $this->quantidade_total,
             'ativo' => $this->ativo,
         ];
     }

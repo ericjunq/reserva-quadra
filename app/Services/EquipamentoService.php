@@ -5,10 +5,10 @@ namespace App\Services;
 use App\Constants\StatusConstant;
 use App\Models\Equipamento;
 use App\Models\Espaco;
-use Exception;
+use App\Exceptions\RegraNegocioException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Ramsey\Collection\Collection;
+use Illuminate\Database\Eloquent\Collection;
 
 class EquipamentoService
 {
@@ -35,13 +35,13 @@ class EquipamentoService
 
     public function atualizar(Equipamento $equipamento, array $data): Equipamento
     {
-        if (isset($data['quantidadeTotal'])) {
-            $this->verificarNovaQuantidade($equipamento, $data['quantidadeTotal']);
-
-            $equipamento->update($data);
-
-            return $equipamento;
+        if (isset($data['quantidade_total'])) {
+            $this->verificarNovaQuantidade($equipamento, $data['quantidade_total']);
         }
+
+        $equipamento->update($data);
+
+        return $equipamento;
     }
 
     public function desativar (Equipamento $equipamento):void
@@ -49,7 +49,7 @@ class EquipamentoService
         $equipamento->update(['ativo' => false]);
     }
 
-    private function verificarNovaQuantidade(Equipamento $equipamento, int $novaQuantidde): void
+    private function verificarNovaQuantidade(Equipamento $equipamento, int $novaQuantidade): void
     {
         $maiorUso = DB::table('item_reservas')
         ->join('reservas', 'reservas.id', '=', 'item_reservas.reserva_id')
@@ -61,10 +61,11 @@ class EquipamentoService
         ->orderByDesc('total')
         ->value('total') ?? 0;
 
-        if ($novaQuantidde < $maiorUso)
+        if ($novaQuantidade < $maiorUso)
         {
-            throw new Exception(
-                "Já existem {$maiorUso} unidades reservadas em um mesmo horário. A quantidade não pode ser menor que isso."
+            throw new RegraNegocioException(
+                "Já existem {$maiorUso} unidades reservadas em um mesmo horário. A quantidade não pode ser menor que isso.",
+                409,
             );
         }
     }

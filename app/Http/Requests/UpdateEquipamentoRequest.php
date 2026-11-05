@@ -32,7 +32,7 @@ class UpdateEquipamentoRequest extends FormRequest
                     ->where('espaco_id', $this->route('equipamento')->espaco_id)
                     ->ignore($this->route('equipamento')),
             ],
-            'quantidadeTotal' => ['sometimes', 'integer', 'min:1'],
+            'quantidade_total' => ['sometimes', 'integer', 'min:1'],
             'ativo' => ['sometimes', 'boolean'],
         ];
     }
