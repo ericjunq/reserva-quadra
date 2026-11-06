@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Constants\HorarioReservaConstant;
 use App\Constants\PeriodoConstant;
+use App\Constants\SituacaoDevolucaoConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoEspacoConstant;
 use App\Constants\TipoReservaConstant;
@@ -30,6 +31,7 @@ class ListarReservasRequest extends FormRequest
             'status'      => ['nullable', Rule::enum(StatusConstant::class)],
             'tipo'        => ['nullable', Rule::enum(TipoReservaConstant::class)],
             'horario'     => ['nullable', Rule::enum(HorarioReservaConstant::class)],
+            'devolucao'   => ['nullable', Rule::enum(SituacaoDevolucaoConstant::class)],
             'ordem'       => ['nullable', 'in:asc,desc'],
             'per_page'    => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
@@ -43,7 +45,7 @@ class ListarReservasRequest extends FormRequest
             [$filtros['de'], $filtros['ate']] = PeriodoConstant::from($periodo)->intervalo();
         }
 
-        if (empty($filtros['de']) && empty($filtros['ate'])) {
+        if (empty($filtros['de']) && empty($filtros['ate']) && empty($filtros['devolucao'])) {
             $filtros['de'] = today()->toDateString();
         }
 

@@ -27,6 +27,7 @@ class ExportacaoReservasService
         'email'              => ['Email'],
         'curso'              => ['Curso'],
         'equipamentos'       => ['Equipamentos'],
+        'devolucao'          => ['Devolução'],
         'descricao'          => ['Descrição'],
         'criada_em'          => ['Criada em'],
         'revogacao'          => ['Revogada por', 'Revogada em', 'Justificativa'],
@@ -72,7 +73,7 @@ class ExportacaoReservasService
             $relacoes[] = 'aluno.curso';
         }
 
-        if (in_array('equipamentos', $colunas, true)) {
+        if (array_intersect(['equipamentos', 'devolucao'], $colunas)) {
             $relacoes[] = 'equipamentos';
         }
 
@@ -116,6 +117,11 @@ class ExportacaoReservasService
                 'curso'              => [$reserva->aluno?->curso?->nome],
                 'equipamentos'       => [$reserva->equipamentos
                     ->map(fn ($e) => "{$e->nome} x{$e->pivot->quantidade}")->implode(', ')],
+                'devolucao' => [$reserva->equipamentos
+                    ->map(fn ($e) => "{$e->nome}: {$e->pivot->situacao_devolucao->label()} "
+                        .($e->pivot->quantidade_devolvida ?? 0)."/{$e->pivot->quantidade}"
+                        .($e->pivot->observacao_devolucao ? " ({$e->pivot->observacao_devolucao})" : ''))
+                    ->implode('; ')],
                 'descricao' => [$reserva->descricao],
                 'criada_em' => [$reserva->created_at?->format('d/m/Y H:i')],
                 'revogacao' => [

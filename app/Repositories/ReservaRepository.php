@@ -22,6 +22,10 @@ class ReservaRepository
             ->when($filtros['horario'] ?? null, fn ($q, $horario) => $q->where('horario', $horario))
             ->when($filtros['tipo_espaco'] ?? null, fn ($q, $tipo) => $q->whereHas('espaco', fn ($e) => $e->where('tipo', $tipo)))
             ->when($filtros['curso_id'] ?? null, fn ($q, $curso) => $q->whereHas('aluno', fn ($a) => $a->where('curso_id', $curso)))
+            ->when($filtros['devolucao'] ?? null, fn ($q, $situacao) => $q
+                ->where('status', StatusConstant::RESERVADO)
+                ->jaIniciadas()
+                ->whereHas('equipamentos', fn ($e) => $e->where('item_reservas.situacao_devolucao', $situacao)))
             ->when($filtros['busca'] ?? null, fn ($q, $busca) => $q->whereHas('aluno', fn ($a) => $a->where(fn ($w) => $w
                 ->whereLike('nome_completo', "%{$busca}%", caseSensitive: false)
                 ->orWhereLike('registro_academico', "%{$busca}%", caseSensitive: false))));
