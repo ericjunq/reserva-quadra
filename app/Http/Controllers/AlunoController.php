@@ -17,30 +17,10 @@ class AlunoController extends Controller
         return AlunoResource::collection($alunos);
     }
 
-    public function create()
-    {
-    }
-
     public function store(StoreAlunoRequest $request, AlunoService $alunoService)
     {
         $aluno = $alunoService->criar($request->validated());
 
         return (new AlunoResource($aluno))->response()->setStatusCode(201);
-    }
-
-    public function show(Aluno $aluno)
-    {
-    }
-
-    public function edit(Aluno $aluno)
-    {
-    }
-
-    public function update(Request $request, Aluno $aluno)
-    {
-    }
-
-    public function destroy(Aluno $aluno)
-    {
     }
 }

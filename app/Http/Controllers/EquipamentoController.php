@@ -36,10 +36,6 @@ class EquipamentoController extends Controller
         return EquipamentoResource::collection($this->equipamentoService->listarAtivos($espaco));
     }
 
-    public function create()
-    {
-    }
-
     public function store(StoreEquipamentoRequest $request)
     {
         $equipamento = $this->equipamentoService->criar($request->validated());
@@ -50,10 +46,6 @@ class EquipamentoController extends Controller
     public function show(Equipamento $equipamento)
     {
         return new EquipamentoResource($equipamento->load(Auditoria::RELACOES));
-    }
-
-    public function edit(Equipamento $equipamento)
-    {
     }
 
     public function update(UpdateEquipamentoRequest $request, Equipamento $equipamento)
