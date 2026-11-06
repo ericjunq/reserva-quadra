@@ -89,6 +89,11 @@ erDiagram
         bigint reserva_id FK
         bigint equipamento_id FK
         int quantidade
+        string situacao_devolucao "PENDENTE, DEVOLVIDO, ..."
+        int quantidade_devolvida
+        string observacao_devolucao
+        timestamp devolvido_em
+        bigint devolvido_por FK
     }
 
     datas_bloqueadas {
@@ -160,6 +165,9 @@ Revogar e cancelar só trocam o status (`REVOGADO`, `CANCELADO`). O histórico f
 
 **11. Equipamentos da reserva em `item_reservas`, com quantidade.**
 Uma reserva pode pedir vários equipamentos e um equipamento aparece em várias reservas (N:N). A tabela intermediária guarda a quantidade pedida. Um equipamento não se repete na mesma reserva (chave única `reserva_id + equipamento_id`).
+
+**11b. A devolução fica na própria `item_reservas`.**
+Cada linha já é "este equipamento, nesta reserva", então a devolução de cada item (situação, quantidade devolvida, observação, quem registrou e quando) mora nela, sem tabela extra. O model `ItemReserva` (um *pivot* do Laravel) dá regras e auditoria à linha sem mudar as relações. O índice `(situacao_devolucao, reserva_id)` atende a busca de pendências.
 
 **12. Colunas de confirmação já existem (`confirmacao_enviada_em`, `confirmada_em`).**
 Elas foram criadas para o item 9, para o agendador saber a quem já pediu confirmação e quem já confirmou.

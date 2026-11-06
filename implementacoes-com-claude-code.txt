@@ -824,3 +824,56 @@ tests/Feature/AlunoAdminTest.php (novo) — 12 testes (124 no total).
 
 Padrões aplicados: compatibilidade (whereLike, datas sem whereDate), organização (service +
 requests + scope reaproveitado), desempenho (loadCount, eager loading) e LGPD.
+
+========================================================================
+23. DEVOLUÇÃO DE EQUIPAMENTOS
+========================================================================
+
+Decisões do usuário: só devolução (sem retirada); avaria/falta não mexe no estoque; item não
+devolvido NÃO bloqueia o aluno (recomendação recusada); email ao aluno em avaria/falta.
+
+database/migrations/..._create_item_reservas_table.php (editada; exige migrate:fresh)
+  - situacao_devolucao (default PENDENTE), quantidade_devolvida, observacao_devolucao (500),
+    devolvido_em, devolvido_por (FK users), criado_por/atualizado_por, índice
+    (situacao_devolucao, reserva_id).
+
+app/Constants/SituacaoDevolucaoConstant.php (novo)
+  - PENDENTE, DEVOLVIDO, DEVOLVIDO_COM_AVARIA, NAO_DEVOLVIDO; temPendencia(), label().
+
+app/Models/ItemReserva.php (recriado, agora com uso real)
+  - extends Pivot, $incrementing = true (a tabela tem id), Auditavel, cast da situação,
+    COLUNAS para withPivot. Reserva::equipamentos() e Equipamento::reservas() usam
+    ->using(ItemReserva::class): o attach() passa pelo model (eventos e auditoria).
+
+app/Models/Reserva.php
+  - scopeJaIniciadas() e iniciada(): data passada, ou hoje com hora_inicio <= agora.
+
+app/Services/DevolucaoService.php (novo)
+  - registrar(reserva, itens, admin): transação + lock da reserva; 409 se não RESERVADO;
+    422 se não iniciada; valida que cada equipamento é da reserva e a coerência
+    quantidade x situação (422 com dados.itens_invalidos); atualiza cada ItemReserva;
+    email DevolucaoComPendenciaMail (afterCommit) só para itens com pendência que mudaram
+    (wasChanged), para não reenviar o mesmo aviso.
+
+app/Http/Requests/RegistrarDevolucaoRequest.php (novo)
+  - itens[] com equipamento_id distinct, quantidade_devolvida >= 0, situacao (enum sem
+    PENDENTE), observacao obrigatória em avaria/não devolvido.
+
+app/Mail/DevolucaoComPendenciaMail.php + resources/views/emails/devolucao-com-pendencia.blade.php
+  - Tabela com equipamento, reservado, devolvido, situação e observação.
+
+app/Http/Resources/ReservaResource.php
+  - Cada equipamento traz "devolucao" (situacao, quantidade_devolvida, observacao,
+    devolvido_em, devolvido_por).
+
+ListarReservasRequest / ReservaRepository
+  - Filtro devolucao (enum): RESERVADO + já iniciadas + whereHas no item com a situação. Sem
+    de/ate, não aplica o padrão "de hoje em diante" (pendências são do passado).
+
+ExportacaoReservasService
+  - Coluna opcional devolucao: "Bola: Devolvido com avaria 2/2 (Furada); Rede: Pendente 0/1".
+
+ReservaController + routes: POST /api/admin/reservas/{reserva}/devolucao.
+
+tests/Feature/DevolucaoTest.php (novo) — 13 testes; ExportacaoReservasTest ajustado
+(137 no total).

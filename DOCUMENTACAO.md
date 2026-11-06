@@ -139,7 +139,7 @@ users (admins) ──< reservas (criador de eventos / quem revogou)
 | `espacos` | `nome` (único), `tipo` (QUADRA, LABORATORIO, SALA), `ativo`, `limite_semanal_por_curso` (vazio = sem limite) |
 | `equipamentos` | `espaco_id`, `nome` (único dentro do espaço), `quantidade_total`, `ativo`, `compartilhavel` |
 | `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `confirmacao_enviada_em`, `confirmada_em` |
-| `item_reservas` | `reserva_id`, `equipamento_id`, `quantidade` |
+| `item_reservas` | `reserva_id`, `equipamento_id`, `quantidade`, `situacao_devolucao` (PENDENTE, DEVOLVIDO, DEVOLVIDO_COM_AVARIA, NAO_DEVOLVIDO), `quantidade_devolvida`, `observacao_devolucao`, `devolvido_em`, `devolvido_por` (model `ItemReserva`, pivot auditado) |
 | `datas_bloqueadas` | `data_inicio`, `data_fim`, `hora_inicio`/`hora_fim` (vazias = dia inteiro), `espaco_id` (vazio = todos), `motivo`, `origem` (MANUAL, FERIADO) |
 | `auditorias` | `auditavel_type`/`auditavel_id` (registro alterado), `acao` (CRIACAO, ATUALIZACAO, EXCLUSAO), `antes`, `depois` (JSON), `user_id` (admin), `created_at` |
 
@@ -208,10 +208,11 @@ POST /api/reservas
 | GET | `/api/admin/reservas/{id}` | Detalhe de uma reserva |
 | POST | `/api/admin/reservas/eventos` | Reserva de evento da faculdade |
 | POST | `/api/admin/reservas/{id}/revogar` | Revoga uma reserva (`justificativa` obrigatória) |
+| POST | `/api/admin/reservas/{id}/devolucao` | Registra (ou corrige) a devolução dos equipamentos da reserva |
 
 **Listagem de reservas:** `GET /api/admin/reservas?de=2026-11-01&ate=2026-11-30&curso_id=2&status=RESERVADO`
 
-- Filtros opcionais e combináveis: `periodo` (atalho: `HOJE`, `SEMANA_ATUAL`, `PROXIMA_SEMANA`, `MES_ATUAL`, `MES_ANTERIOR`, `ANO_ATUAL`; não combina com `de`/`ate`), `de`, `ate`, `espaco_id`, `tipo_espaco`, `curso_id`, `busca` (nome ou RA do aluno, busca parcial), `status`, `tipo`, `horario`.
+- Filtros opcionais e combináveis: `periodo` (atalho: `HOJE`, `SEMANA_ATUAL`, `PROXIMA_SEMANA`, `MES_ATUAL`, `MES_ANTERIOR`, `ANO_ATUAL`; não combina com `de`/`ate`), `de`, `ate`, `espaco_id`, `tipo_espaco`, `curso_id`, `busca` (nome ou RA do aluno, busca parcial), `status`, `tipo`, `horario`, `devolucao` (situação de algum item: só reservas ativas que já começaram; sem `de`/`ate`, não aplica o padrão de hoje em diante, para achar pendências antigas).
 - Sem `de` e `ate`, lista de hoje em diante. `ordem=asc|desc` (padrão `asc`, por data e horário). `per_page` até 100 (padrão 15).
 - Cada reserva traz `aluno` (nome, RA, email e curso), `espaco`, `equipamentos`, `criado_por` (eventos), `revogada_por` e a justificativa (revogadas).
 - `totais_por_status` traz a contagem de cada status com os mesmos filtros, menos o de status.
@@ -221,7 +222,7 @@ POST /api/reservas
 - Aceita os mesmos filtros da listagem (inclusive `periodo` e `ordem`). Período de no máximo 366 dias.
 - Gera um CSV que abre direto no Excel em português (separador `;`, UTF-8 com BOM, datas em dd/mm/aaaa), com nome conforme o período (ex.: `reservas_2026-10-01_a_2026-10-31.csv`).
 - **Colunas obrigatórias** (sempre saem): ID, data, horário, espaço, tipo, status e responsável (aluno ou admin do evento).
-- **Colunas opcionais** (`colunas[]=...`, ou `colunas[]=todas`): `tipo_espaco`, `registro_academico`, `email`, `curso`, `equipamentos`, `descricao`, `criada_em`, `revogacao` (revogada por, em e justificativa). Relações só são carregadas quando a coluna é pedida.
+- **Colunas opcionais** (`colunas[]=...`, ou `colunas[]=todas`): `tipo_espaco`, `registro_academico`, `email`, `curso`, `equipamentos`, `devolucao` (ex.: `Bola: Devolvido com avaria 2/2 (Furada); Rede: Pendente 0/1`), `descricao`, `criada_em`, `revogacao` (revogada por, em e justificativa). Relações só são carregadas quando a coluna é pedida.
 - Gerado em *stream*, em lotes de 500 reservas, sem carregar tudo na memória.
 - Valores que começam com `=`, `+`, `-` ou `@` ganham um `'` na frente, para o Excel não executá-los como fórmula.
 
@@ -294,6 +295,27 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 - O preenchimento é automático, pelo trait `App\Models\Concerns\Auditavel`, nos eventos do Eloquent. Por isso as alterações precisam passar pelo model (`$model->update()`); um `update` em massa direto no query builder não é auditado.
 - Nas rotas do admin, as respostas trazem `criado_por` e `atualizado_por` (id e nome), `criado_em` e `atualizado_em`. As rotas públicas não mostram esses campos.
 
+### Devolução de equipamentos (admin)
+
+- Todo item de reserva nasce `PENDENTE`. Depois que a reserva começa, o admin registra cada item:
+
+```json
+POST /api/admin/reservas/15/devolucao
+{
+  "itens": [
+    { "equipamento_id": 1, "quantidade_devolvida": 2, "situacao": "DEVOLVIDO" },
+    { "equipamento_id": 2, "quantidade_devolvida": 0, "situacao": "NAO_DEVOLVIDO", "observacao": "Rede não foi entregue" }
+  ]
+}
+```
+
+- Só reservas **ativas** (409 se revogada/cancelada) e **já iniciadas** (422 antes do horário de início).
+- Quantidade coerente com a situação: `DEVOLVIDO` = quantidade inteira; `DEVOLVIDO_COM_AVARIA` = de 1 até a reservada; `NAO_DEVOLVIDO` = menos que a reservada. Itens inválidos voltam em `dados.itens_invalidos` (422). `observacao` é obrigatória em avaria e não devolvido.
+- Chamar de novo **corrige** o registro; cada alteração fica no histórico de auditoria (`ItemReserva`).
+- Avaria ou falta **avisa o aluno por email** (uma vez por mudança; repetir o mesmo registro não reenvia). Eventos não têm aluno, então não há email.
+- **Não** mexe no estoque: o admin decide se reduz a `quantidade_total`. **Não** bloqueia o aluno de novas reservas.
+- Pendências: `GET /api/admin/reservas?devolucao=PENDENTE` (ou `NAO_DEVOLVIDO`, `DEVOLVIDO_COM_AVARIA`).
+
 ### Alunos (admin)
 
 - **Desativar** (DELETE ou PATCH com `ativo: false`) revoga as reservas ativas que ainda não terminaram, com a justificativa "Cadastro do aluno desativado." e email para o aluno. Reativar é PATCH com `ativo: true`.
@@ -332,6 +354,11 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 | Desativar aluno revoga as reservas futuras | Normalmente o aluno saiu da faculdade; manter as reservas só prenderia horários |
 | Anonimizar em vez de apagar o aluno | Atende o pedido de exclusão da LGPD sem perder as estatísticas de uso; o histórico de auditoria também é limpo |
 | Anonimização exige `confirmar: true` | É irreversível; evita execução acidental |
+| Devolução registrada por item, na própria `item_reservas` | Cada equipamento pode voltar de um jeito; a intermediária já é a linha "item da reserva" |
+| Model `ItemReserva` como *pivot* (`->using()`) | A intermediária ganhou regras e auditoria; o `attach()` e as relações continuam iguais |
+| Só a devolução, sem registro de retirada | A retirada é implícita no horário da reserva; pode entrar depois |
+| Avaria/falta não reduz o estoque sozinha | O item pode ser consertado; o admin ajusta a `quantidade_total` se for perda |
+| Item não devolvido **não** bloqueia o aluno | Decisão do usuário: o controle fica no registro, na listagem de pendências e no email |
 | Listagem de reservas sem filtro de data mostra **de hoje em diante** | É o que o admin mais consulta; o histórico vem com `de`/`ate` |
 | Totais por status **ignoram o filtro de status** | O painel mostra quantas estão ativas, revogadas e canceladas mesmo quando a lista exibe só uma delas |
 | Consulta com filtros de reservas em `ReservaRepository` | Começou no service; foi para o repositório quando a exportação passou a reaproveitá-la |
@@ -378,6 +405,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `DevolucaoTest` | Itens pendentes, devolução completa, avaria/falta com email, estoque e aluno não afetados, correção com histórico, coerência de quantidades, item fora da reserva, validações, reserva ativa e iniciada, evento sem email, filtro de pendências, coluna na exportação |
 | `AlunoAdminTest` | Filtros, detalhe, edição, desativação com revogação e email, reativação, aluno inativo sem reservar, mudança de curso no limite semanal, anonimização (confirmação, dados e histórico limpos, sem email, bloqueio de alterações, RA liberado) |
 | `EspacoTest` | CRUD, PATCH, filtros, bloqueio de desativação com reservas futuras, paginação padronizada |
 | `EquipamentoTest` | Nome único por espaço, filtros, compartilháveis, redução de estoque |
@@ -413,6 +441,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Devolução de equipamentos | Situação por item, registro e correção, email em avaria/falta, filtro de pendências, coluna na exportação, model `ItemReserva` |
 | Gestão de alunos e LGPD | Filtros, detalhe, edição, desativação com revogação das reservas futuras, anonimização com limpeza do histórico |
 | Limpeza do código | Índices para o Postgres, contagem semanal e totais por status no `ReservaRepository`, paginação no controller base, nomes do `AlunoService`, código morto removido, Laravel Pint |
 | Compatibilidade de bancos | Buscas com `whereLike` (ilike no Postgres), regra `NomeUnico`, datas comparadas sem `whereDate` |
@@ -440,6 +469,7 @@ Na ordem combinada:
 | Email | Para quem | Quando | Situação |
 |---|---|---|---|
 | Reserva revogada | Aluno | Admin revoga, evento ocupa o horário ou data é bloqueada | ✅ Pronto |
+| Pendência na devolução | Aluno | Item registrado como devolvido com avaria ou não devolvido | ✅ Pronto |
 | Reserva criada (com link de cancelamento) | Aluno | Ao reservar | Item 8 |
 | Reserva cancelada | Aluno | Ao cancelar pelo link | Item 8 |
 | Pedido de confirmação | Aluno | 2 dias antes da reserva | Item 9 |

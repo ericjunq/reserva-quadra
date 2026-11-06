@@ -40,6 +40,8 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Editar alunos (nome, RA, email, curso)
 - [x] Desativar e reativar alunos (desativar revoga as reservas futuras e avisa o aluno)
 - [x] Anonimizar aluno a pedido (LGPD), inclusive no histórico
+- [x] Registrar e corrigir a devolução de cada equipamento da reserva (devolvido, com avaria, não devolvido)
+- [x] Listar reservas com devolução pendente, com avaria ou não devolvida
 - [x] Listar reservas com filtros (data, espaço, tipo de espaço, curso, nome/RA do aluno, status, tipo, horário) e totais por status
 - [x] Ver o detalhe de uma reserva (aluno, curso, equipamentos, quem criou, quem revogou)
 - [x] Usar atalhos de período na listagem (hoje, semana atual, próxima semana, mês atual, mês anterior, ano)
@@ -62,7 +64,7 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Código compatível com SQLite, MySQL e Postgres (buscas e nomes únicos sem diferenciar maiúsculas)
 - [x] Código formatado no padrão do Laravel (Pint)
 - [x] Aluno inativo não consegue reservar
-- [x] 124 testes automáticos passando
+- [x] 137 testes automáticos passando
 
 ---
 
@@ -70,6 +72,7 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 
 - [ ] **Rota para o admin consultar o histórico de alterações** (os dados já são gravados)
 - [ ] **Rodar os testes no banco de produção** (MySQL ou Postgres) quando ele for escolhido
+- [ ] **Registro de retirada dos equipamentos** (opcional; hoje só a devolução é registrada)
 - [ ] **Aluno ver as próprias reservas** informando RA + email
 - [ ] **Item 8 — Cancelamento pelo aluno:** email ao reservar, com link para cancelar
 - [ ] **Item 9 — Confirmação:** email 2 dias antes; reserva não confirmada é revogada sozinha
@@ -84,6 +87,7 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 ## ✉️ Emails
 
 - [x] Reserva revogada (pelo admin, por evento ou por data bloqueada)
+- [x] Pendência na devolução de equipamentos (avaria ou não devolvido)
 - [ ] Reserva criada, com link de cancelamento (item 8)
 - [ ] Reserva cancelada (item 8)
 - [ ] Pedido de confirmação 2 dias antes (item 9)
