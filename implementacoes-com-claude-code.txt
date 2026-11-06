@@ -554,3 +554,16 @@ config/reservas.php
 tests/Feature/DisponibilidadeTest.php (novo) — 12 testes
 tests/Feature/RegrasDeDataTest.php — antecedência agora em dias úteis (seg 09/11 → até qua 18/11).
   - 72 testes no total.
+
+========================================================================
+15. ANTECEDÊNCIA DE 10 DIAS ÚTEIS
+========================================================================
+
+config/reservas.php
+  - antecedencia_maxima_dias_uteis passa de 7 para 10 (pedido do usuário).
+  - Decisão: feriados e bloqueios CONTAM como dia útil na contagem. A janela fica previsível
+    (não encolhe/estica quando um bloqueio é cadastrado) e o calendário já mostra esses dias
+    como BLOQUEADO.
+
+tests/Feature/RegrasDeDataTest.php / DisponibilidadeTest.php
+  - Datas ajustadas: seg 09/11 → reservas até seg 23/11.

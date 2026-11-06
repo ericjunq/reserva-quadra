@@ -83,7 +83,7 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 
 | Variável | Padrão | O que controla |
 |---|---|---|
-| `RESERVA_ANTECEDENCIA_MAXIMA_DIAS_UTEIS` | 7 | Até quantos dias úteis à frente o aluno pode reservar |
+| `RESERVA_ANTECEDENCIA_MAXIMA_DIAS_UTEIS` | 10 | Até quantos dias úteis à frente o aluno pode reservar |
 | `RESERVA_MINUTOS_ANTES_DO_FIM` | 20 | Até quantos minutos antes do fim um horário de hoje pode ser reservado |
 | `RESERVA_CONFIRMACAO_DIAS_ANTES` | 2 | Quantos dias antes o pedido de confirmação é enviado (item 9) |
 | `APP_TIMEZONE` | America/Sao_Paulo | Fuso usado nas regras de "hoje" e no agendador |
@@ -161,7 +161,7 @@ users (admins) ──< reservas (criador de eventos / quem revogou)
 
 - `de` é obrigatório. `ate` é opcional (sem ele, a consulta é de um dia) e o período pode ter até 31 dias, para o front navegar pelo calendário.
 - Opcional: `registro_academico` **ou** `curso_id`. Com eles, a resposta mostra todas as reservas igualmente e acrescenta os dados do curso: quantas reservas ele já tem em cada semana, quantas restam, `do_curso` em cada reserva e `disponivel_para_o_curso` em cada horário.
-- `reservas_ate`: último dia que aceita reservas de alunos (7 dias úteis à frente).
+- `reservas_ate`: último dia que aceita reservas de alunos (10 dias úteis à frente).
 - Cada dia tem `reservavel` e `motivo` (data passada, fim de semana, fora da antecedência ou bloqueio do dia inteiro).
 - Cada horário tem `situacao`: `LIVRE`, `RESERVADO`, `EVENTO`, `BLOQUEADO`, `INDISPONIVEL` (o dia não aceita reservas) ou `ENCERRADO` (horário de hoje passou do limite). Também traz `motivo`, `reserva` (com `reservado_por`: nome e curso do aluno, ou nome do admin; RA e email nunca aparecem) e `equipamentos` (`total` e `disponivel` naquele horário, incluindo os compartilháveis).
 
@@ -203,7 +203,7 @@ POST /api/reservas
 |---|---|
 | RA cadastrado, espaço ativo | 422 |
 | Data não pode ser passada nem cair em fim de semana | 422 |
-| No máximo **7 dias úteis** à frente (fins de semana não contam) | 422 |
+| No máximo **10 dias úteis** à frente (fins de semana não contam) | 422 |
 | Horário de **hoje**: aceito até **20 minutos antes do término** (ex.: 19:00–20:30 até as 20:10) | 422 |
 | Um espaço aceita **uma reserva por horário** | 409 |
 | Espaço com `limite_semanal_por_curso` (quadra = 3): no máximo N reservas do mesmo curso de **segunda a sexta** | 409 |
@@ -271,9 +271,9 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 | Espaço exclusivo por horário | Regra atual da quadra. Está isolada em `verificarConflitoDeEspaco()` e pode ser removida se um dia o espaço for compartilhado |
 | Reserva guarda `hora_inicio` e `hora_fim`; conflito por **sobreposição** | Preparação para horários livres (ex.: 7h–22h com duração máxima por espaço). A quadra continua com horários fixos |
 | Regras de entrada em `app/Rules` (uma linha no request) | Fáceis de ligar e desligar quando a regra mudar |
-| Números do negócio em `config/reservas.php` | Mudar 7 dias, 20 minutos ou 2 dias sem mexer no código |
-| Antecedência em **dias úteis** | Com dias corridos, quem reservava na sexta só alcançava 5 dias úteis; contando dias úteis, a janela é a mesma qualquer dia da semana. Feriados contam como dia útil na contagem (só ficam bloqueados) |
-| Disponibilidade como **calendário** (até 31 dias) | O front navega por semanas/meses; reservas continuam limitadas a 7 dias úteis, e os dias fora da janela vêm com o motivo |
+| Números do negócio em `config/reservas.php` | Mudar 10 dias úteis, 20 minutos ou 2 dias sem mexer no código |
+| Antecedência em **dias úteis** | Com dias corridos, quem reservava na sexta só alcançava 5 dias úteis; contando dias úteis, a janela é a mesma qualquer dia da semana. Feriados contam como dia útil na contagem e aparecem no calendário como bloqueados: a janela fica previsível e não muda quando um bloqueio é cadastrado. Prazo de 10 dias úteis |
+| Disponibilidade como **calendário** (até 31 dias) | O front navega por semanas/meses; reservas continuam limitadas a 10 dias úteis, e os dias fora da janela vêm com o motivo |
 | Consulta mostra **quem reservou** (nome e curso) | Facilita o mapeamento do uso. Por ser pública, não mostra RA nem email (LGPD) |
 | Consulta com RA ou curso **não filtra** as reservas | Mostra o espaço inteiro e apenas aponta o limite e a disponibilidade do curso |
 | Eventos podem revogar reservas de alunos | Eventos da faculdade têm prioridade; justificativa obrigatória e aluno avisado |
@@ -304,7 +304,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `ReservaTest` | Reserva, conflito de horário, RA/espaço inválidos |
 | `ReservaEquipamentosTest` | Validações dos itens, disponibilidade entre espaços, revogação liberando estoque |
 | `EventoERevogacaoTest` | Eventos com e sem conflito, revogação, email |
-| `RegrasDeDataTest` | Fim de semana, 7 dias úteis, data passada, horário de hoje |
+| `RegrasDeDataTest` | Fim de semana, 10 dias úteis, data passada, horário de hoje |
 | `LimiteSemanalTest` | Limite por curso na quadra, semana seguinte, revogadas e eventos não contam |
 | `DatasBloqueadasTest` | Dia inteiro, por espaço, janela de horas, eventos ignorando, revogação automática com email, validações, edição e filtros |
 | `ImportarFeriadosTest` | Importação sem duplicar, facultativos, revogação de reservas em feriado |
@@ -329,7 +329,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
-| Item 5 — Consulta de disponibilidade | Calendário público por espaço (até 31 dias), situação de cada horário, quem reservou, equipamentos por horário, limite semanal do curso por RA/curso; antecedência passa a contar dias úteis |
+| Item 5 — Consulta de disponibilidade | Calendário público por espaço (até 31 dias), situação de cada horário, quem reservou, equipamentos por horário, limite semanal do curso por RA/curso; antecedência passa a 10 dias úteis |
 
 ---
 

@@ -103,17 +103,17 @@ class DisponibilidadeTest extends TestCase
 
     public function test_calendario_mostra_motivos_fora_da_janela_de_reserva(): void
     {
-        $resposta = $this->consultar(['de' => '2026-11-06', 'ate' => '2026-11-20'])->assertOk()
-            ->assertJsonCount(15, 'data.dias')
-            ->assertJsonPath('data.reservas_ate', '2026-11-18');
+        $resposta = $this->consultar(['de' => '2026-11-06', 'ate' => '2026-11-24'])->assertOk()
+            ->assertJsonCount(19, 'data.dias')
+            ->assertJsonPath('data.reservas_ate', '2026-11-23');
 
         $dias = collect($resposta->json('data.dias'))->keyBy('data');
 
         $this->assertSame('Data passada.', $dias['2026-11-06']['motivo']);
         $this->assertSame('Fim de semana.', $dias['2026-11-14']['motivo']);
         $this->assertSame('INDISPONIVEL', $dias['2026-11-14']['horarios'][0]['situacao']);
-        $this->assertTrue($dias['2026-11-18']['reservavel']);
-        $this->assertSame('Reservas abertas até 18/11/2026.', $dias['2026-11-19']['motivo']);
+        $this->assertTrue($dias['2026-11-23']['reservavel']);
+        $this->assertSame('Reservas abertas até 23/11/2026.', $dias['2026-11-24']['motivo']);
     }
 
     public function test_horario_de_hoje_encerrado_apos_o_limite(): void
