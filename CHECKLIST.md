@@ -57,7 +57,8 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
 - [x] Histórico de cada criação, alteração e exclusão, com o antes e o depois, quem fez e quando
 - [x] Código compatível com SQLite, MySQL e Postgres (buscas e nomes únicos sem diferenciar maiúsculas)
-- [x] 111 testes automáticos passando
+- [x] Código formatado no padrão do Laravel (Pint)
+- [x] 112 testes automáticos passando
 
 ---
 

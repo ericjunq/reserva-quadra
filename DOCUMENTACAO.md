@@ -64,6 +64,7 @@ O `--seed` cria:
 php artisan serve          # API em http://localhost:8000
 php artisan queue:work     # envia os emails (em dev eles aparecem em storage/logs/laravel.log)
 php artisan test           # roda os testes
+./vendor/bin/pint          # formata o código no padrão do projeto (pint.json)
 php artisan feriados:importar 2027                 # importa os feriados nacionais como datas bloqueadas
 php artisan feriados:importar 2027 --facultativos  # inclui Carnaval, Quarta de Cinzas e Corpus Christi
 ```
@@ -117,6 +118,8 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 - Update só por **PATCH** (atualização parcial).
 - Exclusão de espaços, equipamentos e cursos = **desativação** (`ativo = false`), para não perder o histórico.
 - Sem comentários no código: as explicações ficam no `implementacoes-com-claude-code.txt` e neste documento.
+- Formatação pelo **Laravel Pint** (preset `laravel`, mantendo o alinhamento de `=>`). Rodar `./vendor/bin/pint` antes de commitar.
+- Todas as listagens do admin usam a mesma paginação: `per_page` padrão 15, máximo 100 (valor acima vira 100; inválido vira 15).
 
 ---
 
@@ -353,7 +356,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
-| `EspacoTest` | CRUD, PATCH, filtros, bloqueio de desativação com reservas futuras |
+| `EspacoTest` | CRUD, PATCH, filtros, bloqueio de desativação com reservas futuras, paginação padronizada |
 | `EquipamentoTest` | Nome único por espaço, filtros, compartilháveis, redução de estoque |
 | `ReservaTest` | Reserva, conflito de horário, RA/espaço inválidos |
 | `ReservaEquipamentosTest` | Validações dos itens, disponibilidade entre espaços, revogação liberando estoque |
@@ -387,6 +390,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Limpeza do código | Índices para o Postgres, contagem semanal e totais por status no `ReservaRepository`, paginação no controller base, nomes do `AlunoService`, código morto removido, Laravel Pint |
 | Compatibilidade de bancos | Buscas com `whereLike` (ilike no Postgres), regra `NomeUnico`, datas comparadas sem `whereDate` |
 | Auditoria | `criado_por`/`atualizado_por` nas tabelas principais, tabela `auditorias` com antes/depois, trait `Auditavel`, campos nas respostas do admin |
 | Exportação de reservas | CSV com os filtros da listagem, atalhos de período, colunas opcionais, stream em lotes e proteção contra fórmulas; consulta movida para `ReservaRepository` |
@@ -421,6 +425,10 @@ Na ordem combinada:
 | Recuperação de senha | Admin | Pedido de "esqueci a senha" | Passo 9 |
 
 Todos vão pela fila (`php artisan queue:work`). Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
+
+### Melhorias anotadas para quando o volume justificar
+
+- **Exportação muito grande:** o `lazy()` busca os lotes por OFFSET, e cada lote fica um pouco mais lento. Só pesa com dezenas de milhares de linhas num arquivo; a solução seria paginar por chave (keyset) na ordem de data/horário/id.
 
 ### Implementação final: API para terceiros autorizados
 

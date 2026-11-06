@@ -180,6 +180,7 @@ Espaços, equipamentos e cursos não são apagados: são desativados. As chaves 
 - `reservas (data_reserva, status)`: reservas ativas de um dia ou período.
 - `item_reservas (equipamento_id, reserva_id)`: uso de um equipamento.
 - `datas_bloqueadas (data_inicio, data_fim)`: bloqueios que atingem uma data.
+- `reservas (aluno_id, data_reserva)` e `alunos (curso_id)`: busca por aluno, filtro por curso e limite semanal. O MySQL cria índice para chaves estrangeiras sozinho; o Postgres não, por isso eles são explícitos.
 
 **17. Concorrência resolvida com travas de linha, não com colunas de controle.**
 Ao reservar, o sistema trava a linha do espaço e dos equipamentos (`lockForUpdate`) durante a transação. Duas reservas simultâneas no mesmo horário ficam em fila e a segunda vê a primeira.

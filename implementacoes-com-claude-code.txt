@@ -736,3 +736,40 @@ Não testado em MySQL/Postgres: a máquina não tem esses servidores nem o drive
 O SQL gerado foi conferido com toSql() nas três gramáticas.
 
 tests/Feature/MaiusculasEMinusculasTest.php (novo) — 5 testes (111 no total).
+
+========================================================================
+21. LIMPEZA DO CÓDIGO (AVALIAÇÃO GERAL)
+========================================================================
+
+Comportamento da API inalterado (exceto per_page, abaixo). Um commit por correção.
+
+database/migrations (reservas, alunos) — perf
+  - Índices reservas(aluno_id, data_reserva) e alunos(curso_id). O Postgres não indexa chave
+    estrangeira sozinho; são usados na busca por aluno, no filtro por curso e no limite semanal.
+
+app/Repositories/ReservaRepository.php — refactor
+  - contarPorSemanaDoCurso(cursoId, espacoId, de, ate): [segunda => total]. Antes a mesma
+    consulta estava duplicada em ReservaService (limite semanal) e DisponibilidadeService.
+  - totaisPorStatus(filtros): saiu do ReservaService (o service só remove o filtro de status).
+
+app/Services/AlunoService.php — refactor
+  - create -> criar, findAll -> listarPaginado (padrão dos outros services).
+  - AlunoController passou a injetar o service no construtor, como os demais.
+
+Código morto — chore
+  - Removidos ItemReservaController (vazio, sem rota), model ItemReserva (não usado; o pivot
+    item_reservas é acessado pelo belongsToMany) e métodos vazios create/show/edit/update/destroy
+    gerados pelo artisan em AlunoController e EquipamentoController.
+
+app/Http/Controllers/Controller.php — refactor
+  - porPagina(request): padrão 15, máximo 100; valor < 1 ou inválido volta para 15. Substitui o
+    min((int) ...) repetido em 6 controllers (que aceitava 0/negativo).
+
+pint.json + formatação — chore/style
+  - Preset laravel, mantendo o alinhamento de => (estilo já usado na maior parte do código).
+  - 72 arquivos formatados: imports ordenados e sem não usados, chaves, aspas simples,
+    concatenação sem espaços, espaços em funções/operadores.
+
+Anotado para depois (não feito): exportação com OFFSET em volumes muito grandes (keyset).
+
+tests/Feature/EspacoTest.php — teste de paginação (112 no total).
