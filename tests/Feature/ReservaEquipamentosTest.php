@@ -14,6 +14,7 @@ class ReservaEquipamentosTest extends TestCase
     use RefreshDatabase;
 
     private Espaco $quadra;
+
     private Equipamento $bola;
 
     protected function setUp(): void

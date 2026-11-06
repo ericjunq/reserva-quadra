@@ -5,9 +5,9 @@ namespace App\Models;
 use App\Constants\HorarioReservaConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
+use App\Models\Concerns\Auditavel;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use App\Models\Concerns\Auditavel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,17 +35,17 @@ class Reserva extends Model
 
     protected $attributes = [
         'status' => 'RESERVADO',
-        'tipo' => 'ALUNO',
+        'tipo'   => 'ALUNO',
     ];
 
     protected function casts(): array
     {
         return [
             'data_reserva' => 'date',
-            'horario'     => HorarioReservaConstant::class,
-            'status'      => StatusConstant::class,
-            'tipo'        => TipoReservaConstant::class,
-            'revogada_em' => 'datetime',
+            'horario'      => HorarioReservaConstant::class,
+            'status'       => StatusConstant::class,
+            'tipo'         => TipoReservaConstant::class,
+            'revogada_em'  => 'datetime',
         ];
     }
 
@@ -70,7 +70,6 @@ class Reserva extends Model
             ->withPivot('quantidade')
             ->withTimestamps();
     }
-
 
     public function revogador(): BelongsTo
     {

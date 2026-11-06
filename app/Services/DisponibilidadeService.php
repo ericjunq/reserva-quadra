@@ -44,10 +44,10 @@ class DisponibilidadeService
             $restantesNaSemana = $semanas[$dia->copy()->startOfWeek(Carbon::MONDAY)->toDateString()]['restantes'] ?? null;
 
             $dias[] = [
-                'data'        => $data,
-                'reservavel'  => $motivo === null,
-                'motivo'      => $motivo,
-                'horarios'    => array_map(
+                'data'       => $data,
+                'reservavel' => $motivo === null,
+                'motivo'     => $motivo,
+                'horarios'   => array_map(
                     fn (HorarioReservaConstant $horario) => $this->montarHorario(
                         $horario, $dia, $motivo, $reservas[$data] ?? collect(), $bloqueiosDoDia,
                         $equipamentos, $uso[$data] ?? collect(), $curso, $restantesNaSemana,
@@ -63,12 +63,12 @@ class DisponibilidadeService
             'ate'          => $ate,
             'reservas_ate' => AntecedenciaMaxima::dataLimite()->toDateString(),
             'curso'        => $curso ? [
-                'id'                => $curso->id,
-                'nome'              => $curso->nome,
-                'limite_semanal'    => $espaco->limite_semanal_por_curso,
-                'semanas'           => $semanas ? array_values($semanas) : [],
+                'id'             => $curso->id,
+                'nome'           => $curso->nome,
+                'limite_semanal' => $espaco->limite_semanal_por_curso,
+                'semanas'        => $semanas ? array_values($semanas) : [],
             ] : null,
-            'dias'         => $dias,
+            'dias' => $dias,
         ];
     }
 
@@ -90,21 +90,20 @@ class DisponibilidadeService
         $bloqueio = $bloqueios->first(fn (DataBloqueada $b) => $b->diaInteiro() || ($b->hora_inicio < $fim && $b->hora_fim > $inicio));
 
         [$situacao, $motivo] = match (true) {
-            $reserva !== null => [$reserva->tipo === TipoReservaConstant::EVENTO ? 'EVENTO' : 'RESERVADO', null],
-            $bloqueio !== null => ['BLOQUEADO', $bloqueio->motivo],
-            $motivoDoDia !== null => ['INDISPONIVEL', $motivoDoDia],
-            $dia->isToday() && now()->gt(HorarioAindaReservavel::limiteParaHoje($horario))
-                => ['ENCERRADO', 'Reservas para hoje são aceitas até ' . HorarioAindaReservavel::limiteParaHoje($horario)->format('H:i') . '.'],
-            default => ['LIVRE', null],
+            $reserva !== null                                                              => [$reserva->tipo === TipoReservaConstant::EVENTO ? 'EVENTO' : 'RESERVADO', null],
+            $bloqueio !== null                                                             => ['BLOQUEADO', $bloqueio->motivo],
+            $motivoDoDia !== null                                                          => ['INDISPONIVEL', $motivoDoDia],
+            $dia->isToday() && now()->gt(HorarioAindaReservavel::limiteParaHoje($horario)) => ['ENCERRADO', 'Reservas para hoje são aceitas até '.HorarioAindaReservavel::limiteParaHoje($horario)->format('H:i').'.'],
+            default                                                                        => ['LIVRE', null],
         };
 
         $resultado = [
-            'horario'    => $horario->value,
-            'inicio'     => $horario->inicio(),
-            'fim'        => $horario->fim(),
-            'situacao'   => $situacao,
-            'motivo'     => $motivo,
-            'reserva'    => $reserva ? $this->montarReserva($reserva, $curso) : null,
+            'horario'  => $horario->value,
+            'inicio'   => $horario->inicio(),
+            'fim'      => $horario->fim(),
+            'situacao' => $situacao,
+            'motivo'   => $motivo,
+            'reserva'  => $reserva ? $this->montarReserva($reserva, $curso) : null,
         ];
 
         if ($curso) {
@@ -153,7 +152,7 @@ class DisponibilidadeService
         return match (true) {
             $dia->lt(today())                          => 'Data passada.',
             $dia->isWeekend()                          => 'Fim de semana.',
-            $dia->gt(AntecedenciaMaxima::dataLimite()) => 'Reservas abertas até ' . AntecedenciaMaxima::dataLimite()->format('d/m/Y') . '.',
+            $dia->gt(AntecedenciaMaxima::dataLimite()) => 'Reservas abertas até '.AntecedenciaMaxima::dataLimite()->format('d/m/Y').'.',
             $diaInteiro !== null                       => $diaInteiro->motivo,
             default                                    => null,
         };

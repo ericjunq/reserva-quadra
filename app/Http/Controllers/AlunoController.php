@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Aluno;
-use Illuminate\Http\Request;
-use App\Services\AlunoService;
 use App\Http\Requests\StoreAlunoRequest;
 use App\Http\Resources\AlunoResource;
+use App\Services\AlunoService;
+use Illuminate\Http\Request;
 
 class AlunoController extends Controller
 {

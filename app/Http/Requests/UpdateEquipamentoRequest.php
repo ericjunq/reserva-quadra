@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Rules\NomeUnico;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateEquipamentoRequest extends FormRequest
@@ -27,8 +26,8 @@ class UpdateEquipamentoRequest extends FormRequest
                 ),
             ],
             'quantidade_total' => ['sometimes', 'integer', 'min:1'],
-            'ativo' => ['sometimes', 'boolean'],
-            'compartilhavel' => ['sometimes', 'boolean'],
+            'ativo'            => ['sometimes', 'boolean'],
+            'compartilhavel'   => ['sometimes', 'boolean'],
         ];
     }
 }

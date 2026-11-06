@@ -15,6 +15,7 @@ class LimiteSemanalTest extends TestCase
     use RefreshDatabase;
 
     private Espaco $quadra;
+
     private Curso $ti;
 
     protected function setUp(): void

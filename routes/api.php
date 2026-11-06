@@ -32,7 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
             'cursos'       => CursoController::class,
         ] as $nome => $controller) {
             Route::apiResource($nome, $controller)->except('update');
-            Route::patch("{$nome}/{" . str($nome)->singular() . "}", [$controller, 'update'])->name("{$nome}.update");
+            Route::patch("{$nome}/{".str($nome)->singular().'}', [$controller, 'update'])->name("{$nome}.update");
         }
 
         Route::get('/alunos', [AlunoController::class, 'index']);

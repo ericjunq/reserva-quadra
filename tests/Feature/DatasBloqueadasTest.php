@@ -106,7 +106,7 @@ class DatasBloqueadasTest extends TestCase
             ->assertJsonPath('data.espaco.id', $this->quadra->id);
 
         $this->assertDatabaseHas('reservas', [
-            'id' => $atingida->id, 'status' => 'REVOGADO', 'revogada_por' => $admin->id,
+            'id'                      => $atingida->id, 'status' => 'REVOGADO', 'revogada_por' => $admin->id,
             'justificativa_revogacao' => 'Data bloqueada: Manutenção da quadra',
         ]);
         foreach ([$outroHorario, $outroEspaco, $evento] as $reserva) {

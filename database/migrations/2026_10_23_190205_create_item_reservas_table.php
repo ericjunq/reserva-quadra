@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('item_reservas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("equipamento_id")->constrained('equipamentos')->restrictOnDelete();
-            $table->foreignId("reserva_id")->constrained('reservas')->cascadeOnDelete();
-            $table->unsignedInteger("quantidade");
+            $table->foreignId('equipamento_id')->constrained('equipamentos')->restrictOnDelete();
+            $table->foreignId('reserva_id')->constrained('reservas')->cascadeOnDelete();
+            $table->unsignedInteger('quantidade');
             $table->timestamps();
 
             $table->unique(['reserva_id', 'equipamento_id']);

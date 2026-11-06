@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Auditoria;
 use App\Constants\TipoEspacoConstant;
 use App\Http\Requests\ConsultarDisponibilidadeRequest;
 use App\Http\Requests\StoreEspacoRequest;
 use App\Http\Requests\UpdateEspacoRequest;
 use App\Http\Resources\EspacoResource;
+use App\Models\Auditoria;
 use App\Models\Espaco;
 use App\Services\DisponibilidadeService;
 use App\Services\EspacoService;

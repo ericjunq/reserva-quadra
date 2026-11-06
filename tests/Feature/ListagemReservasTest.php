@@ -19,7 +19,7 @@ class ListagemReservasTest extends TestCase
 
     private function listar(array $params = [])
     {
-        return $this->getJson('/api/admin/reservas?' . http_build_query($params));
+        return $this->getJson('/api/admin/reservas?'.http_build_query($params));
     }
 
     private function ids($resposta): array

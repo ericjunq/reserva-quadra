@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Auditoria;
 use App\Http\Requests\StoreEquipamentoRequest;
 use App\Http\Requests\UpdateEquipamentoRequest;
 use App\Http\Resources\EquipamentoResource;
+use App\Models\Auditoria;
 use App\Models\Equipamento;
 use App\Models\Espaco;
-use Illuminate\Http\Request;
 use App\Services\EquipamentoService;
+use Illuminate\Http\Request;
 
 class EquipamentoController extends Controller
 {
-    public function __construct(private EquipamentoService $equipamentoService){}
+    public function __construct(private EquipamentoService $equipamentoService) {}
 
     public function index(Request $request)
     {

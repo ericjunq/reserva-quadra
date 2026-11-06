@@ -39,7 +39,7 @@ class DataNaoBloqueada implements DataAwareRule, ValidationRule
 
         $fail($bloqueio->diaInteiro()
             ? "Data indisponível em {$dia}: {$bloqueio->motivo}."
-            : 'Horário indisponível em ' . $dia . ' (' . substr($bloqueio->hora_inicio, 0, 5) . '–' . substr($bloqueio->hora_fim, 0, 5) . "): {$bloqueio->motivo}."
+            : 'Horário indisponível em '.$dia.' ('.substr($bloqueio->hora_inicio, 0, 5).'–'.substr($bloqueio->hora_fim, 0, 5)."): {$bloqueio->motivo}."
         );
     }
 }

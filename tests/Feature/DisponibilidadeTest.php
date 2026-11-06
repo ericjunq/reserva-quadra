@@ -29,7 +29,7 @@ class DisponibilidadeTest extends TestCase
 
     private function consultar(array $params, ?Espaco $espaco = null)
     {
-        return $this->getJson('/api/espacos/' . ($espaco ?? $this->quadra)->id . '/disponibilidade?' . http_build_query($params));
+        return $this->getJson('/api/espacos/'.($espaco ?? $this->quadra)->id.'/disponibilidade?'.http_build_query($params));
     }
 
     private function reservar(string $data, ?Aluno $aluno = null, HorarioReservaConstant $horario = HorarioReservaConstant::PRIMEIRO_HORARIO): Reserva

@@ -39,7 +39,7 @@ class ExportacaoReservasService
         return [
             'obrigatorias' => collect(self::COLUNAS_OBRIGATORIAS)
                 ->map(fn ($titulo, $chave) => ['chave' => $chave, 'titulo' => $titulo])->values()->all(),
-            'opcionais'    => collect(self::COLUNAS_OPCIONAIS)
+            'opcionais' => collect(self::COLUNAS_OPCIONAIS)
                 ->map(fn ($titulos, $chave) => ['chave' => $chave, 'titulo' => implode(', ', $titulos)])->values()->all(),
         ];
     }
@@ -99,7 +99,7 @@ class ExportacaoReservasService
         $linha = [
             $reserva->id,
             $reserva->data_reserva->format('d/m/Y'),
-            substr($reserva->hora_inicio, 0, 5) . '–' . substr($reserva->hora_fim, 0, 5),
+            substr($reserva->hora_inicio, 0, 5).'–'.substr($reserva->hora_fim, 0, 5),
             $reserva->espaco->nome,
             $reserva->tipo->value,
             $reserva->status->value,
@@ -116,9 +116,9 @@ class ExportacaoReservasService
                 'curso'              => [$reserva->aluno?->curso?->nome],
                 'equipamentos'       => [$reserva->equipamentos
                     ->map(fn ($e) => "{$e->nome} x{$e->pivot->quantidade}")->implode(', ')],
-                'descricao'          => [$reserva->descricao],
-                'criada_em'          => [$reserva->created_at?->format('d/m/Y H:i')],
-                'revogacao'          => [
+                'descricao' => [$reserva->descricao],
+                'criada_em' => [$reserva->created_at?->format('d/m/Y H:i')],
+                'revogacao' => [
                     $revogada ? $reserva->revogador?->name : null,
                     $revogada ? $reserva->revogada_em?->format('d/m/Y H:i') : null,
                     $revogada ? $reserva->justificativa_revogacao : null,

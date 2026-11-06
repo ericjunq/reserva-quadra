@@ -33,7 +33,7 @@ class ExportarReservasRequest extends ListarReservasRequest
                 $dias = Carbon::parse($this->input('de'))->diffInDays(Carbon::parse($this->input('ate'))) + 1;
 
                 if ($dias > self::MAXIMO_DIAS) {
-                    $validator->errors()->add('ate', 'O período exportado pode ter no máximo ' . self::MAXIMO_DIAS . ' dias.');
+                    $validator->errors()->add('ate', 'O período exportado pode ter no máximo '.self::MAXIMO_DIAS.' dias.');
                 }
             },
         ];

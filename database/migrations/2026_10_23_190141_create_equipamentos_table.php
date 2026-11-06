@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('espaco_id')->constrained('espacos')->restrictOnDelete();
             $table->string('nome', 100);
-            $table->integer("quantidade_total");
+            $table->integer('quantidade_total');
             $table->boolean('ativo')->default(true);
             $table->boolean('compartilhavel')->default(false);
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();

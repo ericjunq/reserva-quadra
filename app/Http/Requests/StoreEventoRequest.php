@@ -4,8 +4,8 @@ namespace App\Http\Requests;
 
 use App\Constants\HorarioReservaConstant;
 use App\Http\Requests\Concerns\ValidaEquipamentosDaReserva;
-use Illuminate\Foundation\Http\FormRequest;
 use App\Rules\HorarioAindaReservavel;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreEventoRequest extends FormRequest

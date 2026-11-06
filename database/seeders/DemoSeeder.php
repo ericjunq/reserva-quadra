@@ -53,7 +53,7 @@ class DemoSeeder extends Seeder
                 ['registro_academico' => $ra],
                 [
                     'nome_completo' => $nome,
-                    'email'         => strtolower(strtok($nome, ' ')) . ".{$ra}@exemplo.com",
+                    'email'         => strtolower(strtok($nome, ' ')).".{$ra}@exemplo.com",
                     'curso_id'      => Curso::firstOrCreate(['nome' => $curso])->id,
                 ],
             );

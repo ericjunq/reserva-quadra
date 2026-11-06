@@ -38,7 +38,7 @@ class ConsultarDisponibilidadeRequest extends FormRequest
                 $dias = Carbon::parse($this->input('de'))->diffInDays(Carbon::parse($this->ate())) + 1;
 
                 if ($dias > self::MAXIMO_DIAS) {
-                    $validator->errors()->add('ate', 'O período consultado pode ter no máximo ' . self::MAXIMO_DIAS . ' dias.');
+                    $validator->errors()->add('ate', 'O período consultado pode ter no máximo '.self::MAXIMO_DIAS.' dias.');
                 }
             },
         ];

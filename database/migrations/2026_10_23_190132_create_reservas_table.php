@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('reservas', function (Blueprint $table) {
@@ -14,10 +15,10 @@ return new class extends Migration {
             $table->time('hora_inicio');
             $table->time('hora_fim');
             $table->foreignId('espaco_id')->constrained('espacos')->restrictOnDelete();
-            $table->foreignId("aluno_id")->nullable()->constrained('alunos')->nullOnDelete();
+            $table->foreignId('aluno_id')->nullable()->constrained('alunos')->nullOnDelete();
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
-            $table->string("status", 20)->default('RESERVADO');
+            $table->string('status', 20)->default('RESERVADO');
             $table->string('tipo', 30)->default('ALUNO');
             $table->timestamp('confirmacao_enviada_em')->nullable();
             $table->timestamp('confirmada_em')->nullable();

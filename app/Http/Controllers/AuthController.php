@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    public function __construct(private AuthService $authService){}
+    public function __construct(private AuthService $authService) {}
 
     public function login(LoginRequest $request)
     {
@@ -18,12 +18,14 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $this->authService->logout($request->user());
+
         return response()->noContent();
     }
 
     public function logoutGeral(Request $request)
     {
         $this->authService->logoutGeral($request->user());
+
         return response()->noContent();
     }
 
@@ -31,5 +33,4 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
-
 }

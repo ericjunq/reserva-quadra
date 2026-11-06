@@ -21,7 +21,7 @@ class HorarioAindaReservavel implements DataAwareRule, ValidationRule
 
     public static function limiteParaHoje(HorarioReservaConstant $horario): Carbon
     {
-        return Carbon::parse(today()->toDateString() . " {$horario->fim()}")
+        return Carbon::parse(today()->toDateString()." {$horario->fim()}")
             ->subMinutes(config('reservas.minutos_antes_do_fim'));
     }
 

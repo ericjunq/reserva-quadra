@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class AdminSeeder extends Seeder
@@ -13,8 +12,8 @@ class AdminSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'admin@email.com'],
             [
-                'name' => 'Eric',
-                'password' => 'Admin'
+                'name'     => 'Eric',
+                'password' => 'Admin',
             ]
         );
     }

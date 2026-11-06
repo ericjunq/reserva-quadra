@@ -17,8 +17,8 @@ class Espaco extends Model
     protected function casts(): array
     {
         return [
-            'tipo' => TipoEspacoConstant::class,
-            'ativo' => 'boolean',
+            'tipo'                     => TipoEspacoConstant::class,
+            'ativo'                    => 'boolean',
             'limite_semanal_por_curso' => 'integer',
         ];
     }

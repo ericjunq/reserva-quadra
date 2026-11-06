@@ -12,7 +12,7 @@ class Aluno extends Model
 {
     use Auditavel, HasFactory;
 
-    protected $fillable = ["nome_completo", "registro_academico", "email", "curso_id"];
+    protected $fillable = ['nome_completo', 'registro_academico', 'email', 'curso_id'];
 
     public function curso(): BelongsTo
     {

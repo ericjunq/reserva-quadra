@@ -15,7 +15,7 @@ class UpdateCursoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nome' => ['sometimes', 'string', 'max:100', new NomeUnico('cursos', $this->route('curso')->id)],
+            'nome'  => ['sometimes', 'string', 'max:100', new NomeUnico('cursos', $this->route('curso')->id)],
             'ativo' => ['sometimes', 'boolean'],
         ];
     }

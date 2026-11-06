@@ -18,7 +18,7 @@ class AntecedenciaMaxima implements ValidationRule
         if (Carbon::canBeCreatedFromFormat($value, 'Y-m-d')
             && Carbon::createFromFormat('Y-m-d', $value)->startOfDay()->gt(self::dataLimite())) {
             $dias = config('reservas.antecedencia_maxima_dias_uteis');
-            $fail("As reservas podem ser feitas com no máximo {$dias} dias úteis de antecedência (até " . self::dataLimite()->format('d/m/Y') . ').');
+            $fail("As reservas podem ser feitas com no máximo {$dias} dias úteis de antecedência (até ".self::dataLimite()->format('d/m/Y').').');
         }
     }
 }

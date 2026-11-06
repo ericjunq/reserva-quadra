@@ -14,7 +14,9 @@ class DisponibilidadeEquipamentoRepositoryTest extends TestCase
     use RefreshDatabase;
 
     private DisponibilidadeEquipamentoRepository $repositorio;
+
     private Equipamento $bola;
+
     private Equipamento $colete;
 
     protected function setUp(): void

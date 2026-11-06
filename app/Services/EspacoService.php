@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Auditoria;
 use App\Constants\StatusConstant;
 use App\Constants\TipoEspacoConstant;
 use App\Exceptions\RegraNegocioException;
+use App\Models\Auditoria;
 use App\Models\Espaco;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;

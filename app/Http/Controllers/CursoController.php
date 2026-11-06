@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Auditoria;
 use App\Http\Requests\StoreCursoRequest;
 use App\Http\Requests\UpdateCursoRequest;
 use App\Http\Resources\CursoResource;
+use App\Models\Auditoria;
 use App\Models\Curso;
 use App\Services\CursoService;
 use Illuminate\Http\Request;

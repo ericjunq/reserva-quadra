@@ -1,24 +1,25 @@
 <?php
 
 namespace App\Constants;
+
 use Carbon\CarbonImmutable;
 
 enum HorarioReservaConstant: string
 {
-    case PRIMEIRO_HORARIO = "PRIMEIRO_HORARIO";
-    case SEGUNDO_HORARIO = "SEGUNDO_HORARIO";
+    case PRIMEIRO_HORARIO = 'PRIMEIRO_HORARIO';
+    case SEGUNDO_HORARIO = 'SEGUNDO_HORARIO';
 
     public const DURACAO_MINUTOS = 90;
 
-    public function inicio (): string
+    public function inicio(): string
     {
         return match ($this) {
-             self::PRIMEIRO_HORARIO => '19:00',
-             self::SEGUNDO_HORARIO => '20:30',
+            self::PRIMEIRO_HORARIO => '19:00',
+            self::SEGUNDO_HORARIO  => '20:30',
         };
     }
 
-    public function fim (): string
+    public function fim(): string
     {
         return CarbonImmutable::createFromFormat('H:i', $this->inicio())
             ->addMinutes(self::DURACAO_MINUTOS)
@@ -27,12 +28,12 @@ enum HorarioReservaConstant: string
 
     public function horaInicio(): string
     {
-        return $this->inicio() . ':00';
+        return $this->inicio().':00';
     }
 
     public function horaFim(): string
     {
-        return $this->fim() . ':00';
+        return $this->fim().':00';
     }
 
     public function label(): string

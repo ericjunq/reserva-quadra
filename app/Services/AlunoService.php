@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Auditoria;
 use App\Models\Aluno;
+use App\Models\Auditoria;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class AlunoService

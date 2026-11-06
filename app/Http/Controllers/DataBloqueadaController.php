@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Auditoria;
 use App\Http\Requests\StoreDataBloqueadaRequest;
 use App\Http\Requests\UpdateDataBloqueadaRequest;
 use App\Http\Resources\DataBloqueadaResource;
+use App\Models\Auditoria;
 use App\Models\DataBloqueada;
 use App\Services\DataBloqueadaService;
 use Illuminate\Http\Request;

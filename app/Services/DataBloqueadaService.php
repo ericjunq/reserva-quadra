@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Auditoria;
 use App\Constants\OrigemBloqueioConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
+use App\Models\Auditoria;
 use App\Models\DataBloqueada;
 use App\Models\Reserva;
 use App\Models\User;

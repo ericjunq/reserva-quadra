@@ -11,8 +11,8 @@ trait ValidaEquipamentosDaReserva
     protected function regrasEquipamentos(): array
     {
         return [
-            'equipamentos'              => ['sometimes', 'array'],
-            'equipamentos.*.id'         => [
+            'equipamentos'      => ['sometimes', 'array'],
+            'equipamentos.*.id' => [
                 'required', 'integer', 'distinct',
                 Rule::exists('equipamentos', 'id')
                     ->where('ativo', true)

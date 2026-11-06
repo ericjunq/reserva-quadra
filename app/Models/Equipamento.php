@@ -14,19 +14,20 @@ class Equipamento extends Model
 
     protected $fillable = ['espaco_id', 'nome', 'quantidade_total', 'ativo', 'compartilhavel'];
 
-    public function casts(): array{
+    public function casts(): array
+    {
         return [
             'quantidade_total' => 'integer',
-            'ativo' => 'boolean',
-            'compartilhavel' => 'boolean',
+            'ativo'            => 'boolean',
+            'compartilhavel'   => 'boolean',
         ];
     }
 
     public function reservas(): BelongsToMany
     {
         return $this->belongsToMany(Reserva::class, 'item_reservas')
-        ->withPivot('quantidade')
-        ->withTimestamps();
+            ->withPivot('quantidade')
+            ->withTimestamps();
     }
 
     public function espaco(): BelongsTo

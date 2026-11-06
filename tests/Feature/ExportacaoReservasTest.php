@@ -17,7 +17,7 @@ class ExportacaoReservasTest extends TestCase
 
     private function exportar(array $params = [])
     {
-        return $this->get('/api/admin/reservas/exportar?' . http_build_query($params), ['Accept' => 'application/json']);
+        return $this->get('/api/admin/reservas/exportar?'.http_build_query($params), ['Accept' => 'application/json']);
     }
 
     private function linhas($resposta): array

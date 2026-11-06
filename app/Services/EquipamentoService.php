@@ -2,14 +2,14 @@
 
 namespace App\Services;
 
+use App\Exceptions\RegraNegocioException;
 use App\Models\Auditoria;
 use App\Models\Equipamento;
 use App\Models\Espaco;
-use App\Exceptions\RegraNegocioException;
 use App\Repositories\DisponibilidadeEquipamentoRepository;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Collection;
 
 class EquipamentoService
 {
@@ -18,10 +18,10 @@ class EquipamentoService
     public function listarAtivos(Espaco $espaco): Collection
     {
         return Equipamento::query()
-        ->where('ativo', true)
-        ->where(fn ($q) => $q->where('espaco_id', $espaco->id)->orWhere('compartilhavel', true))
-        ->orderBy('nome')
-        ->get();
+            ->where('ativo', true)
+            ->where(fn ($q) => $q->where('espaco_id', $espaco->id)->orWhere('compartilhavel', true))
+            ->orderBy('nome')
+            ->get();
     }
 
     public function listarPaginado(
@@ -31,11 +31,11 @@ class EquipamentoService
         ?bool $ativo = null,
     ): LengthAwarePaginator {
         return Equipamento::with(Auditoria::RELACOES)
-        ->when($espacoId, fn ($q) => $q->where('espaco_id', $espacoId))
-        ->when($nome, fn ($q) => $q->whereLike('nome', "%{$nome}%", caseSensitive: false))
-        ->when(! is_null($ativo), fn ($q) => $q->where('ativo', $ativo))
-        ->orderBy('nome')
-        ->paginate($porPagina);
+            ->when($espacoId, fn ($q) => $q->where('espaco_id', $espacoId))
+            ->when($nome, fn ($q) => $q->whereLike('nome', "%{$nome}%", caseSensitive: false))
+            ->when(! is_null($ativo), fn ($q) => $q->where('ativo', $ativo))
+            ->orderBy('nome')
+            ->paginate($porPagina);
     }
 
     public function criar(array $data): Equipamento
@@ -57,7 +57,7 @@ class EquipamentoService
         });
     }
 
-    public function desativar (Equipamento $equipamento):void
+    public function desativar(Equipamento $equipamento): void
     {
         $equipamento->update(['ativo' => false]);
     }
@@ -66,8 +66,7 @@ class EquipamentoService
     {
         $maiorUso = $this->disponibilidade->maiorUsoFuturo($equipamento);
 
-        if ($novaQuantidade < $maiorUso)
-        {
+        if ($novaQuantidade < $maiorUso) {
             throw new RegraNegocioException(
                 "Já existem {$maiorUso} unidades reservadas em um mesmo horário. A quantidade não pode ser menor que isso.",
                 409,

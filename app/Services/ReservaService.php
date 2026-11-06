@@ -95,9 +95,9 @@ class ReservaService
                 'hora_inicio'  => $data['hora_inicio'],
                 'hora_fim'     => $data['hora_fim'],
                 'espaco_id'    => $data['espaco_id'],
-                'descricao' => $data['descricao'],
-                'criado_por' => $admin->id,
-                'tipo'      => TipoReservaConstant::EVENTO,
+                'descricao'    => $data['descricao'],
+                'criado_por'   => $admin->id,
+                'tipo'         => TipoReservaConstant::EVENTO,
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
@@ -206,10 +206,10 @@ class ReservaService
 
             if ($item['quantidade'] > $disponiveis[$equipamento->id]) {
                 $indisponiveis[] = [
-                    'id'          => $equipamento->id,
-                    'nome'        => $equipamento->nome,
-                    'solicitado'  => $item['quantidade'],
-                    'disponivel'  => $disponiveis[$equipamento->id],
+                    'id'         => $equipamento->id,
+                    'nome'       => $equipamento->nome,
+                    'solicitado' => $item['quantidade'],
+                    'disponivel' => $disponiveis[$equipamento->id],
                 ];
             }
         }
