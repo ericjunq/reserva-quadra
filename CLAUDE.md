@@ -1,3 +1,7 @@
+# Projeto: sistema de reservas
+
+**Antes de qualquer tarefa, leia o [`CHECKLIST.md`](CHECKLIST.md):** ele traz as regras de trabalho combinadas com o usuário (proposta antes de implementar, commits separados sem coautoria, comentários no txt e não no código, padrões de compatibilidade, desempenho e LGPD), as decisões já tomadas e o plano até a finalização.
+
 <laravel-boost-guidelines>
 # Laravel Application
 
