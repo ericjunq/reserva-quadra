@@ -14,6 +14,8 @@ return new class extends Migration
             $table->string('registro_academico', 10)->unique();
             $table->string('email', 100);
             $table->foreignId('curso_id')->constrained('cursos')->restrictOnDelete();
+            $table->boolean('ativo')->default(true);
+            $table->timestamp('anonimizado_em')->nullable();
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

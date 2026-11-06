@@ -6,6 +6,7 @@ use App\Models\Aluno;
 use App\Models\Curso;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class ConsultarDisponibilidadeRequest extends FormRequest
@@ -22,7 +23,7 @@ class ConsultarDisponibilidadeRequest extends FormRequest
         return [
             'de'                 => ['required', 'date_format:Y-m-d'],
             'ate'                => ['nullable', 'date_format:Y-m-d', 'after_or_equal:de'],
-            'registro_academico' => ['nullable', 'string', 'exists:alunos,registro_academico', 'prohibits:curso_id'],
+            'registro_academico' => ['nullable', 'string', Rule::exists('alunos', 'registro_academico')->where('ativo', true), 'prohibits:curso_id'],
             'curso_id'           => ['nullable', 'integer', 'exists:cursos,id'],
         ];
     }
@@ -52,7 +53,7 @@ class ConsultarDisponibilidadeRequest extends FormRequest
     public function curso(): ?Curso
     {
         if ($ra = $this->input('registro_academico')) {
-            return Aluno::where('registro_academico', $ra)->first()?->curso;
+            return Aluno::where('registro_academico', $ra)->where('ativo', true)->first()?->curso;
         }
 
         return $this->input('curso_id') ? Curso::find($this->input('curso_id')) : null;

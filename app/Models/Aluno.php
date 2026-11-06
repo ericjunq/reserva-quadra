@@ -12,7 +12,24 @@ class Aluno extends Model
 {
     use Auditavel, HasFactory;
 
-    protected $fillable = ['nome_completo', 'registro_academico', 'email', 'curso_id'];
+    protected $fillable = ['nome_completo', 'registro_academico', 'email', 'curso_id', 'ativo', 'anonimizado_em'];
+
+    protected $attributes = [
+        'ativo' => true,
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'ativo'          => 'boolean',
+            'anonimizado_em' => 'datetime',
+        ];
+    }
+
+    public function anonimizado(): bool
+    {
+        return $this->anonimizado_em !== null;
+    }
 
     public function curso(): BelongsTo
     {

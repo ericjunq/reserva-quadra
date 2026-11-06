@@ -16,4 +16,9 @@ class AlunoFactory extends Factory
             'curso_id'           => Curso::factory(),
         ];
     }
+
+    public function inativo(): static
+    {
+        return $this->state(['ativo' => false]);
+    }
 }
