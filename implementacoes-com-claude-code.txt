@@ -567,3 +567,22 @@ config/reservas.php
 
 tests/Feature/RegrasDeDataTest.php / DisponibilidadeTest.php
   - Datas ajustadas: seg 09/11 → reservas até seg 23/11.
+
+========================================================================
+16. DOCUMENTAÇÃO: CHECKLIST, DATABASE E ROADMAP AMPLIADO
+========================================================================
+
+CHECKLIST.md (novo)
+  - O que o sistema faz, o que falta (roadmap) e mapa dos emails, em linguagem simples.
+    Atualizado a cada etapa.
+
+DATABASE.md (novo)
+  - Diagrama ER em Mermaid (cursos, alunos, users, espacos, equipamentos, reservas,
+    item_reservas, datas_bloqueadas) e 17 decisões de modelagem com o porquê de cada uma.
+  - Tabela de mudanças planejadas no banco.
+
+DOCUMENTACAO.md
+  - Roadmap ampliado: exportação CSV, auditoria (criado_por/atualizado_por), gestão de alunos
+    (desativar em vez de apagar), consulta de reservas pelo aluno, convite de admin,
+    recuperação de senha, front-end em Angular.
+  - Nova tabela "Emails do sistema".

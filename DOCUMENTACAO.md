@@ -5,6 +5,7 @@ API (backend) em Laravel para reservar os espaços da faculdade (quadra, laborat
 > Este documento descreve **o que o sistema faz, como rodar, as decisões tomadas e o que vem pela frente**.
 > O registro detalhado de cada alteração, arquivo por arquivo, fica em [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt).
 > Um resumo simples do que o sistema já faz e do que falta fica em [`CHECKLIST.md`](CHECKLIST.md).
+> O modelo de dados (diagrama) e as decisões de modelagem ficam em [`DATABASE.md`](DATABASE.md).
 
 ---
 
@@ -338,11 +339,31 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada:
 
-1. **Item 7 — Listagem de reservas (admin):** paginada, com filtros por data, espaço, status, aluno, curso e tipo.
-2. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
-3. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired`).
-4. **Item 10 — Pendências:** `UserResource` no `/me`; rota para um admin cadastrar outros admins.
-5. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
+1. **Item 7 — Listagem de reservas (admin):** paginada, com filtros por data, espaço, tipo de espaço, curso, aluno (nome/RA), status, tipo e horário.
+2. **Exportação de reservas (admin):** `GET /api/admin/reservas/exportar` com os mesmos filtros da listagem, gerando um **CSV** (separador `;` e UTF-8 com BOM, para abrir direto no Excel em português). Uma linha por reserva: data, horário, espaço, tipo do espaço, tipo, status, aluno, RA, curso, equipamentos, descrição, criado por, revogado por e justificativa. Sem paginação, gerado em *stream* para não estourar memória.
+3. **Auditoria:** colunas `criado_por` e `atualizado_por` (admin que criou/alterou; vazio quando foi o aluno pela rota pública) nas tabelas principais, preenchidas automaticamente. O "quando" já vem de `created_at`/`updated_at`.
+4. **Gestão de alunos (admin):** editar e desativar alunos. Desativar em vez de apagar, para manter o histórico de reservas.
+5. **Consulta das próprias reservas pelo aluno:** rota pública pelo RA (proteção a definir na proposta).
+6. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
+7. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired` e importa os feriados do ano seguinte).
+8. **Item 10 — Admins:** `UserResource` no `/me`; um admin cadastra outros admins (convite por email para definir a senha).
+9. **Recuperação de senha do admin:** link por email para redefinir a senha.
+10. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
+11. **Front-end em Angular:** projeto separado consumindo esta API (não será feito com Blade).
+
+### Emails do sistema
+
+| Email | Para quem | Quando | Situação |
+|---|---|---|---|
+| Reserva revogada | Aluno | Admin revoga, evento ocupa o horário ou data é bloqueada | ✅ Pronto |
+| Reserva criada (com link de cancelamento) | Aluno | Ao reservar | Item 8 |
+| Reserva cancelada | Aluno | Ao cancelar pelo link | Item 8 |
+| Pedido de confirmação | Aluno | 2 dias antes da reserva | Item 9 |
+| Reserva revogada por falta de confirmação | Aluno | Prazo de confirmação vencido (reaproveita o email de revogação) | Item 9 |
+| Convite de novo admin | Admin novo | Admin cadastra outro admin | Item 10 |
+| Recuperação de senha | Admin | Pedido de "esqueci a senha" | Passo 9 |
+
+Todos vão pela fila (`php artisan queue:work`). Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
 
 ### Implementação final: API para terceiros autorizados
 

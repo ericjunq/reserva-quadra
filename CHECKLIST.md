@@ -2,6 +2,8 @@
 
 Lista simples do que o sistema já faz e do que falta. Atualizada a cada etapa concluída.
 
+Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
+
 Última atualização: 06/11/2026
 
 ---
@@ -55,19 +57,30 @@ Lista simples do que o sistema já faz e do que falta. Atualizada a cada etapa c
 ## ⬜ O que falta (na ordem combinada)
 
 - [ ] **Item 7 — Listagem de reservas para o admin**, com filtros (data, espaço, curso, aluno, status, tipo)
+- [ ] **Exportação de reservas** em CSV (abre no Excel), com os mesmos filtros da listagem
+- [ ] **Auditoria:** registrar quem criou e quem alterou cada registro
+- [ ] **Admin editar e desativar alunos**
+- [ ] **Aluno ver as próprias reservas** pelo RA
 - [ ] **Item 8 — Cancelamento pelo aluno:** email ao reservar, com link para cancelar
 - [ ] **Item 9 — Confirmação:** email 2 dias antes; reserva não confirmada é revogada sozinha
 - [ ] **Agendador de tarefas:** roda a confirmação, limpa tokens vencidos e importa feriados todo ano
 - [ ] **Item 10 — `/me` com dados do admin formatados**
-- [ ] **Item 10 — Admin cadastrar outros admins**
+- [ ] **Item 10 — Admin cadastrar outros admins** (convite por email)
+- [ ] **Recuperação de senha do admin** por email
 - [ ] **Horários livres:** espaços com horário flexível (ex.: 7h–22h) além dos horários fixos
+- [ ] **Front-end em Angular** (projeto separado; não será com Blade)
 - [ ] **Final — API para terceiros autorizados** (portal da faculdade, atléticas, outras unidades)
+
+## ✉️ Emails
+
+- [x] Reserva revogada (pelo admin, por evento ou por data bloqueada)
+- [ ] Reserva criada, com link de cancelamento (item 8)
+- [ ] Reserva cancelada (item 8)
+- [ ] Pedido de confirmação 2 dias antes (item 9)
+- [ ] Reserva revogada por falta de confirmação (item 9)
+- [ ] Convite de novo admin (item 10)
+- [ ] Recuperação de senha do admin
 
 ## ❔ O que não faz e ainda não está no plano
 
-- [ ] Admin editar ou remover um aluno
-- [ ] Aluno ver a lista das próprias reservas
-- [ ] Recuperação de senha do admin
-- [ ] Exportar reservas (CSV/planilha)
-- [ ] Histórico de quem alterou o quê (auditoria)
-- [ ] Interface (front-end): o sistema é só a API
+- Nada no momento.
