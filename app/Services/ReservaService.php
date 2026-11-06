@@ -12,12 +12,15 @@ use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Models\Reserva;
 use App\Models\User;
+use App\Repositories\DisponibilidadeEquipamentoRepository;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class ReservaService
 {
+    public function __construct(private DisponibilidadeEquipamentoRepository $disponibilidade) {}
+
     public function create(array $data): Reserva
     {
         $aluno = Aluno::where('registro_academico', $data['registro_academico'])->firstOrFail();
@@ -177,29 +180,21 @@ class ReservaService
 
         $equipamentos = Equipamento::whereIn('id', $ids)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
 
-        $emUso = DB::table('item_reservas')
-            ->join('reservas', 'reservas.id', '=', 'item_reservas.reserva_id')
-            ->whereIn('item_reservas.equipamento_id', $ids)
-            ->whereDate('reservas.data_reserva', $data['data_reserva'])
-            ->where('reservas.hora_inicio', '<', $data['hora_fim'])
-            ->where('reservas.hora_fim', '>', $data['hora_inicio'])
-            ->where('reservas.status', StatusConstant::RESERVADO->value)
-            ->groupBy('item_reservas.equipamento_id')
-            ->selectRaw('item_reservas.equipamento_id, SUM(item_reservas.quantidade) as total')
-            ->pluck('total', 'equipamento_id');
+        $disponiveis = $this->disponibilidade->disponiveis(
+            $equipamentos, $data['data_reserva'], $data['hora_inicio'], $data['hora_fim'],
+        );
 
         $indisponiveis = [];
 
         foreach ($itens as $item) {
             $equipamento = $equipamentos[$item['id']];
-            $disponivel = $equipamento->quantidade_total - (int) ($emUso[$item['id']] ?? 0);
 
-            if ($item['quantidade'] > $disponivel) {
+            if ($item['quantidade'] > $disponiveis[$equipamento->id]) {
                 $indisponiveis[] = [
                     'id'          => $equipamento->id,
                     'nome'        => $equipamento->nome,
                     'solicitado'  => $item['quantidade'],
-                    'disponivel'  => max($disponivel, 0),
+                    'disponivel'  => $disponiveis[$equipamento->id],
                 ];
             }
         }

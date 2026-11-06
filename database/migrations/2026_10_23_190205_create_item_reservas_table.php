@@ -16,6 +16,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['reserva_id', 'equipamento_id']);
+            $table->index(['equipamento_id', 'reserva_id']);
         });
     }
 

@@ -98,6 +98,7 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `app/Http/Requests/Concerns` | Validações compartilhadas entre requests (ex.: equipamentos da reserva) |
 | `app/Rules` | Regras de validação reutilizáveis (dia útil, antecedência, horário ainda reservável) |
 | `app/Services` | Regras de negócio que dependem do banco (conflitos, estoque, limites), dentro de transações |
+| `app/Repositories` | Consultas complexas ou reaproveitadas em vários lugares (ex.: disponibilidade de equipamentos) |
 | `app/Http/Resources` | Formato das respostas JSON (sempre dentro de `data`) |
 | `app/Exceptions` | `RegraNegocioException` (respostas 409/422 com mensagem e dados extras) |
 | `app/Mail` + `resources/views/emails` | Emails (revogação) |
@@ -199,6 +200,7 @@ POST /api/reservas
 | Quantidade ≤ **disponível** naquela data/horário | 409 (lista o que faltou e quanto há) |
 
 **Disponível** = `quantidade_total` − soma do que está reservado (status `RESERVADO`) em horários que se sobrepõem, **em qualquer espaço**.
+O cálculo fica todo em `DisponibilidadeEquipamentoRepository`: uma única consulta agrupada por equipamento, independente de quantos itens forem pedidos.
 Exemplo: 2 microscópios compartilháveis e 3 labs no mesmo horário → o terceiro recebe 409.
 
 ### Eventos (admin)
@@ -236,7 +238,9 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 | Listagem de alunos só para admin | Evita expor nome, RA e email publicamente |
 | Cursos em **tabela**, não enum | Permitir reaproveitar o sistema em outras instituições da rede |
 | Equipamento pertence a um espaço + flag `compartilhavel` | Por padrão a bola da quadra fica restrita à quadra; o microscópio pode ser marcado para uso em salas |
-| Disponibilidade **calculada** a partir das reservas | Ela muda por data e horário; um número fixo no equipamento não representa isso. Em discussão: concentrar o cálculo numa classe dedicada ou manter uma tabela de ocupação |
+| Disponibilidade **calculada** a partir das reservas, num repositório | Ela muda por data e horário; um número fixo no equipamento não representa isso. Uma tabela de ocupação teria que ser atualizada em cada operação e poderia ficar errada. O repositório concentra a consulta (uma ida ao banco, com índices) |
+| Repositórios **só para consultas complexas** | Entidades com operações simples usam o Eloquent direto nos services; repositório onde a query é complexa ou reaproveitada |
+| Data da reserva gravada como `Y-m-d` | Permite comparar a coluna diretamente e usar índices (o `whereDate` impede o uso de índice) |
 | Espaço exclusivo por horário | Regra atual da quadra. Está isolada em `verificarConflitoDeEspaco()` e pode ser removida se um dia o espaço for compartilhado |
 | Reserva guarda `hora_inicio` e `hora_fim`; conflito por **sobreposição** | Preparação para horários livres (ex.: 7h–22h com duração máxima por espaço). A quadra continua com horários fixos |
 | Regras de entrada em `app/Rules` (uma linha no request) | Fáceis de ligar e desligar quando a regra mudar |
@@ -267,6 +271,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `EventoERevogacaoTest` | Eventos com e sem conflito, revogação, email |
 | `RegrasDeDataTest` | Fim de semana, 7 dias, data passada, horário de hoje |
 | `LimiteSemanalTest` | Limite por curso na quadra, semana seguinte, revogadas e eventos não contam |
+| `DisponibilidadeEquipamentoRepositoryTest` | Disponível por data/horário, soma entre espaços, revogadas, sobreposição, maior uso futuro |
 
 ---
 
@@ -283,6 +288,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Item 6 — Eventos e revogação | Revogação com justificativa e email; evento revoga conflito com justificativa |
 | Item 3 — Equipamentos na reserva | Itens no payload, disponibilidade por data/horário, flag `compartilhavel`, filtros no admin |
 | Item 4 — Regras de data | Fim de semana, 7 dias, horário de hoje, limite semanal por curso, `hora_inicio`/`hora_fim`, `config/reservas.php`, factories, `DemoSeeder` e testes permanentes |
+| Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 
 ---
 

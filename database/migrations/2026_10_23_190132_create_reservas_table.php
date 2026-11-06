@@ -27,6 +27,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->index(['espaco_id', 'data_reserva']);
+            $table->index(['data_reserva', 'status']);
         });
     }
 

@@ -382,3 +382,43 @@ tests/Feature/*
 DOCUMENTACAO.md
   - Visão geral, como rodar, estrutura, modelo de dados, endpoints, regras, decisões,
     testes, histórico e próximos passos (incluindo a API para terceiros).
+
+
+------------------------------------------------------------
+11. REPOSITÓRIO DE DISPONIBILIDADE DE EQUIPAMENTOS
+------------------------------------------------------------
+
+Decisão: repositórios só para entidades/consultas complexas ou reaproveitadas.
+O resto continua com Eloquent direto nos services.
+
+app/Repositories/DisponibilidadeEquipamentoRepository.php
+  - emUso(array $ids, string $data, string $inicio, string $fim): Collection
+      Retorna [equipamento_id => quantidade em uso] no intervalo. Uma única consulta,
+      agrupada por equipamento, só com reservas RESERVADO e horários sobrepostos.
+  - disponiveis(iterable $equipamentos, string $data, string $inicio, string $fim): Collection
+      Retorna [equipamento_id => disponível] = quantidade_total - em uso (mínimo 0).
+      Recebe os models já carregados (e travados pelo service), para não buscá-los de novo.
+  - maiorUsoFuturo(Equipamento $equipamento): int
+      Maior soma reservada num mesmo data/horário, de hoje em diante. Usado para impedir
+      que o admin reduza o estoque abaixo do que já está reservado.
+  - reservasAtivas(): base comum (item_reservas + reservas com status RESERVADO).
+  - Quando houver horários livres, o cálculo de pico de uso muda só aqui.
+
+app/Services/ReservaService.php / EquipamentoService.php
+  - Recebem o repositório no construtor (injeção automática do Laravel) e deixaram de
+    ter queries próprias de disponibilidade.
+
+app/Models/Reserva.php
+  - Mutator de data_reserva: grava sempre 'Y-m-d'. Antes o SQLite gravava
+    'Y-m-d 00:00:00', o que obrigava a usar whereDate(); whereDate envolve a coluna numa
+    função e o banco não consegue usar índice.
+
+database/migrations/..._create_reservas_table.php
+  - Índice (data_reserva, status).
+
+database/migrations/..._create_item_reservas_table.php
+  - Índice (equipamento_id, reserva_id): o filtro do repositório começa pelo equipamento.
+
+tests/Feature/DisponibilidadeEquipamentoRepositoryTest.php
+  - Disponível por data/horário, soma entre espaços, revogadas não contam,
+    sobreposição de intervalos, maior uso futuro, data gravada sem hora.

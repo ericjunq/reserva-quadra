@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Constants\HorarioReservaConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,6 +46,11 @@ class Reserva extends Model
             'tipo'        => TipoReservaConstant::class,
             'revogada_em' => 'datetime',
         ];
+    }
+
+    protected function dataReserva(): Attribute
+    {
+        return Attribute::set(fn ($valor) => Carbon::parse($valor)->toDateString());
     }
 
     public function aluno(): BelongsTo

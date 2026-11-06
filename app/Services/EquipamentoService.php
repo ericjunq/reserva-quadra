@@ -2,16 +2,18 @@
 
 namespace App\Services;
 
-use App\Constants\StatusConstant;
 use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Exceptions\RegraNegocioException;
+use App\Repositories\DisponibilidadeEquipamentoRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Collection;
 
 class EquipamentoService
 {
+    public function __construct(private DisponibilidadeEquipamentoRepository $disponibilidade) {}
+
     public function listarAtivos(Espaco $espaco): Collection
     {
         return Equipamento::query()
@@ -61,15 +63,7 @@ class EquipamentoService
 
     private function verificarNovaQuantidade(Equipamento $equipamento, int $novaQuantidade): void
     {
-        $maiorUso = DB::table('item_reservas')
-        ->join('reservas', 'reservas.id', '=', 'item_reservas.reserva_id')
-        ->where('item_reservas.equipamento_id', $equipamento->id)
-        ->where('reservas.status', StatusConstant::RESERVADO->value)
-        ->where('reservas.data_reserva', '>=', today())
-        ->groupBy('reservas.data_reserva', 'reservas.hora_inicio')
-        ->selectRaw('SUM(item_reservas.quantidade) as total')
-        ->orderByDesc('total')
-        ->value('total') ?? 0;
+        $maiorUso = $this->disponibilidade->maiorUsoFuturo($equipamento);
 
         if ($novaQuantidade < $maiorUso)
         {
