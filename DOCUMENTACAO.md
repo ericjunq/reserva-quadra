@@ -62,6 +62,8 @@ O `--seed` cria:
 php artisan serve          # API em http://localhost:8000
 php artisan queue:work     # envia os emails (em dev eles aparecem em storage/logs/laravel.log)
 php artisan test           # roda os testes
+php artisan feriados:importar 2027                 # importa os feriados nacionais como datas bloqueadas
+php artisan feriados:importar 2027 --facultativos  # inclui Carnaval, Quarta de Cinzas e Corpus Christi
 ```
 
 Depois de alterar migrations, rode `php artisan migrate:fresh --seed` (**apaga os dados locais**).
@@ -102,6 +104,7 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `app/Http/Resources` | Formato das respostas JSON (sempre dentro de `data`) |
 | `app/Exceptions` | `RegraNegocioException` (respostas 409/422 com mensagem e dados extras) |
 | `app/Mail` + `resources/views/emails` | Emails (revogação) |
+| `app/Console/Commands` | Comandos de terminal (importação de feriados) |
 | `database/factories` + `database/seeders` | Dados de teste e de demonstração |
 | `tests/Feature` | Testes da API, separados por assunto |
 
@@ -132,6 +135,7 @@ users (admins) ──< reservas (criador de eventos / quem revogou)
 | `equipamentos` | `espaco_id`, `nome` (único dentro do espaço), `quantidade_total`, `ativo`, `compartilhavel` |
 | `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `user_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `confirmacao_enviada_em`, `confirmada_em` |
 | `item_reservas` | `reserva_id`, `equipamento_id`, `quantidade` |
+| `datas_bloqueadas` | `data_inicio`, `data_fim`, `hora_inicio`/`hora_fim` (vazias = dia inteiro), `espaco_id` (vazio = todos), `motivo`, `origem` (MANUAL, FERIADO), `criado_por` |
 
 ---
 
@@ -173,6 +177,7 @@ POST /api/reservas
 | GET/POST/PATCH/DELETE | `/api/admin/equipamentos` | CRUD de equipamentos (`?espaco_id=`, `?nome=`, `?ativo=`) |
 | GET/POST/PATCH/DELETE | `/api/admin/cursos` | CRUD de cursos |
 | GET | `/api/admin/alunos` | Lista de alunos |
+| GET/POST/PATCH/DELETE | `/api/admin/datas-bloqueadas` | Bloqueios (`?de=`, `?ate=`, `?espaco_id=`); PATCH altera só o motivo |
 | POST | `/api/admin/reservas/eventos` | Reserva de evento da faculdade |
 | POST | `/api/admin/reservas/{id}/revogar` | Revoga uma reserva (`justificativa` obrigatória) |
 
@@ -190,6 +195,7 @@ POST /api/reservas
 | Horário de **hoje**: aceito até **20 minutos antes do término** (ex.: 19:00–20:30 até as 20:10) | 422 |
 | Um espaço aceita **uma reserva por horário** | 409 |
 | Espaço com `limite_semanal_por_curso` (quadra = 3): no máximo N reservas do mesmo curso de **segunda a sexta** | 409 |
+| Data/horário não pode estar numa **data bloqueada** (mensagem traz o motivo) | 422 |
 
 ### Equipamentos na reserva
 
@@ -208,6 +214,15 @@ Exemplo: 2 microscópios compartilháveis e 3 labs no mesmo horário → o terce
 - Podem ser em fim de semana e não têm limite de antecedência.
 - Se o horário estiver ocupado: sem `justificativa` → 409 com `reserva_conflitante_id`; com `justificativa` → a reserva do aluno é revogada, o aluno recebe email e o evento é criado, tudo na mesma transação.
 - Podem reservar equipamentos (os da reserva revogada já ficam liberados).
+
+### Datas bloqueadas (admin)
+
+- Um dia ou um período; para todos os espaços ou um só; o dia inteiro ou uma janela de horas (que vale em cada dia do período).
+- A janela usa **sobreposição**: um bloqueio das 20:00 às 21:00 atinge os dois horários da quadra.
+- Bloqueiam **reservas de alunos**. **Eventos ignoram** bloqueios (a faculdade pode fazer evento num feriado ou recesso).
+- Ao criar um bloqueio, as reservas ativas de alunos atingidas são **revogadas automaticamente**, com o motivo como justificativa, e cada aluno recebe o email. A resposta traz `reservas_revogadas`.
+- Só o motivo pode ser editado. Para mudar o período, exclui e cria outro. Excluir não devolve as reservas revogadas.
+- **Feriados:** `feriados:importar` usa a biblioteca Yasumi. Por padrão importa os 9 feriados oficiais + Sexta-feira Santa; `--facultativos` inclui Carnaval (seg e ter), Quarta de Cinzas e Corpus Christi. Rodar de novo não duplica. Feriados estaduais/municipais são cadastrados pelo admin.
 
 ### Revogação (admin)
 
@@ -247,7 +262,11 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 | Números do negócio em `config/reservas.php` | Mudar 7 dias, 20 minutos ou 2 dias sem mexer no código |
 | Eventos podem revogar reservas de alunos | Eventos da faculdade têm prioridade; justificativa obrigatória e aluno avisado |
 | Reservas não confirmadas serão revogadas automaticamente | Libera horários de quem não vai usar (item 9) |
-| Datas bloqueadas em tabela própria | Feriados nacionais podem ser importados (biblioteca Yasumi); recesso e manutenção são cadastrados pelo admin |
+| Datas bloqueadas em tabela própria | Uma fonte só para feriados (importados pela Yasumi), recesso e manutenção (cadastrados pelo admin) |
+| Bloqueios valem só para alunos | Eventos da faculdade podem acontecer em feriados e recessos |
+| Bloqueio de parte do dia | Manutenções pontuais sem fechar o dia inteiro; reaproveita a verificação por sobreposição |
+| Bloqueio só edita o motivo | Mudar o período levantaria a dúvida de devolver ou não reservas já revogadas; excluir e criar de novo é explícito |
+| Sexta-feira Santa importada por padrão | É feriado nacional por lei, embora a Yasumi a classifique como "observância" |
 | Campo `data_reserva` (e não `data`) | Com um campo `data`, o Laravel não envolvia a resposta em `{"data": ...}` |
 | Update só por PATCH; exclusão = desativação | Atualização parcial e preservação do histórico |
 
@@ -271,6 +290,8 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `EventoERevogacaoTest` | Eventos com e sem conflito, revogação, email |
 | `RegrasDeDataTest` | Fim de semana, 7 dias, data passada, horário de hoje |
 | `LimiteSemanalTest` | Limite por curso na quadra, semana seguinte, revogadas e eventos não contam |
+| `DatasBloqueadasTest` | Dia inteiro, por espaço, janela de horas, eventos ignorando, revogação automática com email, validações, edição e filtros |
+| `ImportarFeriadosTest` | Importação sem duplicar, facultativos, revogação de reservas em feriado |
 | `DisponibilidadeEquipamentoRepositoryTest` | Disponível por data/horário, soma entre espaços, revogadas, sobreposição, maior uso futuro |
 
 ---
@@ -289,6 +310,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Item 3 — Equipamentos na reserva | Itens no payload, disponibilidade por data/horário, flag `compartilhavel`, filtros no admin |
 | Item 4 — Regras de data | Fim de semana, 7 dias, horário de hoje, limite semanal por curso, `hora_inicio`/`hora_fim`, `config/reservas.php`, factories, `DemoSeeder` e testes permanentes |
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
+| Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 
 ---
 
@@ -296,7 +318,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada:
 
-1. **Datas bloqueadas:** tabela (`data_inicio`, `data_fim`, espaço ou todos, motivo); importação de feriados nacionais (Yasumi); reservas existentes no período são revogadas com o motivo.
+1. **Atualizar dependências do Symfony:** o `composer audit` aponta vulnerabilidades em componentes usados pelo Laravel.
 2. **Item 5 — Consulta de disponibilidade (pública):** horários livres de um espaço numa data, com o disponível de cada equipamento por horário.
 3. **Item 7 — Listagem de reservas (admin):** paginada, com filtros por data, espaço, status, aluno e tipo.
 4. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.

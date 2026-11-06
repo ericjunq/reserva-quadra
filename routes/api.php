@@ -3,6 +3,7 @@
 use App\Http\Controllers\AlunoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CursoController;
+use App\Http\Controllers\DataBloqueadaController;
 use App\Http\Controllers\EquipamentoController;
 use App\Http\Controllers\EspacoController;
 use App\Http\Controllers\ReservaController;
@@ -33,6 +34,12 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         Route::get('/alunos', [AlunoController::class, 'index']);
+
+        Route::get('/datas-bloqueadas', [DataBloqueadaController::class, 'index']);
+        Route::post('/datas-bloqueadas', [DataBloqueadaController::class, 'store']);
+        Route::get('/datas-bloqueadas/{dataBloqueada}', [DataBloqueadaController::class, 'show']);
+        Route::patch('/datas-bloqueadas/{dataBloqueada}', [DataBloqueadaController::class, 'update']);
+        Route::delete('/datas-bloqueadas/{dataBloqueada}', [DataBloqueadaController::class, 'destroy']);
 
         Route::post('/reservas/eventos', [ReservaController::class, 'storeEvento']);
         Route::post('/reservas/{reserva}/revogar', [ReservaController::class, 'revogar']);

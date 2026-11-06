@@ -85,7 +85,7 @@ class ReservaService
         });
     }
 
-    public function revogar(Reserva $reserva, User $admin, string $justificativa): Reserva
+    public function revogar(Reserva $reserva, ?User $admin, string $justificativa): Reserva
     {
         return DB::transaction(function () use ($reserva, $admin, $justificativa) {
             $reserva = Reserva::whereKey($reserva->id)->lockForUpdate()->firstOrFail();
@@ -102,7 +102,7 @@ class ReservaService
                 'status'                  => StatusConstant::REVOGADO,
                 'justificativa_revogacao' => $justificativa,
                 'revogada_em'             => now(),
-                'revogada_por'            => $admin->id,
+                'revogada_por'            => $admin?->id,
             ]);
 
             if ($reserva->aluno) {

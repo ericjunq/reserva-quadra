@@ -422,3 +422,73 @@ database/migrations/..._create_item_reservas_table.php
 tests/Feature/DisponibilidadeEquipamentoRepositoryTest.php
   - Disponível por data/horário, soma entre espaços, revogadas não contam,
     sobreposição de intervalos, maior uso futuro, data gravada sem hora.
+
+
+------------------------------------------------------------
+12. DATAS BLOQUEADAS E IMPORTAÇÃO DE FERIADOS
+------------------------------------------------------------
+
+composer.json / composer.lock
+  - Nova dependência: azuyalabs/yasumi (^2.12), feriados nacionais do Brasil.
+
+database/migrations/2026_11_06_120000_create_datas_bloqueadas_table.php
+  - data_inicio/data_fim: um dia ou um período.
+  - hora_inicio/hora_fim (nullable): vazias = dia inteiro; preenchidas = janela que vale
+    em cada dia do período.
+  - espaco_id (nullable): vazio = todos os espaços. cascadeOnDelete.
+  - origem: MANUAL (admin) ou FERIADO (importado). criado_por: vazio quando importado.
+
+app/Constants/OrigemBloqueioConstant.php
+  - MANUAL, FERIADO.
+
+app/Models/DataBloqueada.php
+  - Mutators: datas gravadas como Y-m-d e horas como H:i:s (mesmo formato das reservas,
+    para comparar direto e usar índice).
+  - scopeAfetando($data, $espacoId, $inicio, $fim): bloqueios que pegam aquela data,
+    aquele espaço (ou todos) e se sobrepõem ao intervalo (ou são de dia inteiro).
+  - diaInteiro(): true quando não há janela de horas.
+
+app/Rules/DataNaoBloqueada.php
+  - Aplicada só na reserva de aluno (eventos ignoram bloqueios).
+  - DataAwareRule: precisa de espaco_id e horario para saber o intervalo.
+  - Mensagem traz a data, a janela (se houver) e o motivo.
+
+app/Services/DataBloqueadaService.php
+  - criar(): cria o bloqueio e, na mesma transação, revoga as reservas ATIVAS de ALUNOS
+    atingidas (de hoje em diante, mesmo espaço ou todos, horário sobreposto), usando
+    ReservaService::revogar() com a justificativa "Data bloqueada: <motivo>".
+    Cada aluno recebe o email de revogação. Retorna [bloqueio, quantidade revogada].
+  - atualizarMotivo(): só o motivo é editável. Para mudar o período, excluir e criar.
+  - excluir(): não devolve reservas revogadas (o aluno já foi avisado).
+  - importarFeriados($ano, $facultativos):
+      padrão: tipo "official" da Yasumi + Sexta-feira Santa (goodFriday), que é feriado
+      nacional por lei mas a Yasumi marca como "observance";
+      --facultativos: + carnavalMonday, carnavalTuesday, ashWednesday, corpusChristi;
+      Páscoa nunca entra (é domingo).
+      Não duplica: pula se já existe bloqueio FERIADO na mesma data.
+      Usa criar(), então feriados também revogam reservas já existentes.
+
+app/Services/ReservaService.php
+  - revogar() aceita admin nulo (revogação pelo sistema, ex.: feriado importado).
+    revogada_por fica vazio nesse caso.
+
+app/Http/Controllers/DataBloqueadaController.php + Store/UpdateDataBloqueadaRequest + DataBloqueadaResource
+  - index com filtros ?de, ?ate (período que se sobrepõe) e ?espaco_id (inclui os globais).
+  - store responde 201 com "reservas_revogadas".
+  - Validação: hora_inicio e hora_fim juntas, fim depois do início, data_fim >= data_inicio,
+    data_inicio a partir de hoje.
+
+routes/api.php
+  - /api/admin/datas-bloqueadas (GET, POST, GET {id}, PATCH {id}, DELETE {id}).
+
+app/Console/Commands/ImportarFeriados.php
+  - php artisan feriados:importar {ano?} {--facultativos}
+
+database/factories/DataBloqueadaFactory.php
+  - Estados entre($inicio, $fim) e dasHoras($inicio, $fim).
+
+tests/Feature/DatasBloqueadasTest.php / ImportarFeriadosTest.php
+  - 13 testes novos (60 no total).
+
+Observação: composer audit aponta vulnerabilidades em componentes do Symfony usados pelo
+Laravel (não relacionadas à Yasumi). Atualização prevista como passo separado.
