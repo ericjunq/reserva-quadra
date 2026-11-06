@@ -61,8 +61,8 @@ trait Auditavel
 
     private function registrarAuditoria(AcaoAuditoriaConstant $acao, ?array $antes, ?array $depois): void
     {
-        $antes = $antes === null ? null : array_diff_key($antes, array_flip(self::CAMPOS_IGNORADOS));
-        $depois = $depois === null ? null : array_diff_key($depois, array_flip(self::CAMPOS_IGNORADOS));
+        $antes = $this->normalizarParaAuditoria($antes);
+        $depois = $this->normalizarParaAuditoria($depois);
 
         if ($acao === AcaoAuditoriaConstant::ATUALIZACAO && ! $depois) {
             return;
@@ -74,5 +74,24 @@ trait Auditavel
             'depois'  => $depois,
             'user_id' => Auth::id(),
         ]);
+    }
+
+    private function normalizarParaAuditoria(?array $valores): ?array
+    {
+        if ($valores === null) {
+            return null;
+        }
+
+        $valores = array_diff_key($valores, array_flip(self::CAMPOS_IGNORADOS));
+
+        foreach ($valores as $campo => $valor) {
+            if ($valor !== null && $this->hasCast($campo, ['bool', 'boolean'])) {
+                $valores[$campo] = (bool) $valor;
+            } elseif ($valor !== null && $this->hasCast($campo, ['int', 'integer'])) {
+                $valores[$campo] = (int) $valor;
+            }
+        }
+
+        return $valores;
     }
 }
