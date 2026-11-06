@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Http\Requests\StoreEquipamentoRequest;
 use App\Http\Requests\UpdateEquipamentoRequest;
 use App\Http\Resources\EquipamentoResource;
@@ -43,12 +44,12 @@ class EquipamentoController extends Controller
     {
         $equipamento = $this->equipamentoService->criar($request->validated());
 
-        return (new EquipamentoResource($equipamento))->response()->setStatusCode(201);
+        return (new EquipamentoResource($equipamento->load(Auditoria::RELACOES)))->response()->setStatusCode(201);
     }
 
     public function show(Equipamento $equipamento)
     {
-        return new EquipamentoResource($equipamento);
+        return new EquipamentoResource($equipamento->load(Auditoria::RELACOES));
     }
 
     public function edit(Equipamento $equipamento)
@@ -59,7 +60,7 @@ class EquipamentoController extends Controller
     {
         $equipamento = $this->equipamentoService->atualizar($equipamento, $request->validated());
 
-        return new EquipamentoResource($equipamento);
+        return new EquipamentoResource($equipamento->load(Auditoria::RELACOES));
     }
 
     public function destroy(Equipamento $equipamento)

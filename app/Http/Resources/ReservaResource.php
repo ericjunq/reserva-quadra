@@ -4,10 +4,13 @@ namespace App\Http\Resources;
 
 use App\Constants\StatusConstant;
 use Illuminate\Http\Request;
+use App\Http\Resources\Concerns\ExibeAuditoria;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ReservaResource extends JsonResource
 {
+    use ExibeAuditoria;
+
     public function toArray(Request $request): array
     {
         $data = $this->data_reserva->format('Y-m-d');
@@ -37,10 +40,6 @@ class ReservaResource extends JsonResource
                     ? ['id' => $this->aluno->curso->id, 'nome' => $this->aluno->curso->nome]
                     : null,
             ] : null),
-            'criado_por'     => $this->whenLoaded('criador', fn () => $this->criador ? [
-                'id'   => $this->criador->id,
-                'nome' => $this->criador->name,
-            ] : null),
             'descricao'      => $this->descricao,
             'equipamentos'   => $this->whenLoaded('equipamentos', fn () => $this->equipamentos->map(fn ($e) => [
                 'id'         => $e->id,
@@ -53,7 +52,7 @@ class ReservaResource extends JsonResource
                 'id'   => $this->revogador->id,
                 'nome' => $this->revogador->name,
             ] : null),
-            'criada_em'      => $this->created_at,
+            $this->auditoria(),
         ];
     }
 }

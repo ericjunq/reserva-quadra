@@ -11,6 +11,8 @@ class Auditoria extends Model
 {
     public const UPDATED_AT = null;
 
+    public const RELACOES = ['criador:id,name', 'atualizador:id,name'];
+
     protected $fillable = ['acao', 'antes', 'depois', 'user_id'];
 
     protected function casts(): array

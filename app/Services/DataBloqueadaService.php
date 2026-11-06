@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Auditoria;
 use App\Constants\OrigemBloqueioConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
@@ -23,7 +24,7 @@ class DataBloqueadaService
 
     public function listarPaginado(int $porPagina = 15, ?string $de = null, ?string $ate = null, ?int $espacoId = null): LengthAwarePaginator
     {
-        return DataBloqueada::with('espaco')
+        return DataBloqueada::with(['espaco', ...Auditoria::RELACOES])
             ->when($de, fn ($q) => $q->where('data_fim', '>=', $de))
             ->when($ate, fn ($q) => $q->where('data_inicio', '<=', $ate))
             ->when($espacoId, fn ($q) => $q->where(fn ($q) => $q->whereNull('espaco_id')->orWhere('espaco_id', $espacoId)))
@@ -41,7 +42,7 @@ class DataBloqueadaService
 
             $revogadas = $this->revogarReservasAtingidas($bloqueio, $admin);
 
-            return [$bloqueio->load('espaco'), $revogadas];
+            return [$bloqueio->load(['espaco', ...Auditoria::RELACOES]), $revogadas];
         });
     }
 
@@ -49,7 +50,7 @@ class DataBloqueadaService
     {
         $bloqueio->update(['motivo' => $motivo]);
 
-        return $bloqueio->load('espaco');
+        return $bloqueio->load(['espaco', ...Auditoria::RELACOES]);
     }
 
     public function excluir(DataBloqueada $bloqueio): void

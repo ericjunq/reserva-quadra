@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Auditoria;
 use App\Models\Aluno;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -14,6 +15,6 @@ class AlunoService
 
     public function findAll(int $porPagina = 15): LengthAwarePaginator
     {
-        return Aluno::with('curso')->orderBy('nome_completo')->paginate($porPagina);
+        return Aluno::with(['curso', ...Auditoria::RELACOES])->orderBy('nome_completo')->paginate($porPagina);
     }
 }

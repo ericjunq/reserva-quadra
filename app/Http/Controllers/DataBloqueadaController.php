@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Http\Requests\StoreDataBloqueadaRequest;
 use App\Http\Requests\UpdateDataBloqueadaRequest;
 use App\Http\Resources\DataBloqueadaResource;
@@ -35,7 +36,7 @@ class DataBloqueadaController extends Controller
 
     public function show(DataBloqueada $dataBloqueada)
     {
-        return new DataBloqueadaResource($dataBloqueada->load('espaco'));
+        return new DataBloqueadaResource($dataBloqueada->load(['espaco', ...Auditoria::RELACOES]));
     }
 
     public function update(UpdateDataBloqueadaRequest $request, DataBloqueada $dataBloqueada)

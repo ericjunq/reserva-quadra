@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Auditoria;
 use App\Constants\StatusConstant;
 use App\Constants\TipoEspacoConstant;
 use App\Exceptions\RegraNegocioException;
@@ -13,7 +14,7 @@ class EspacoService
 {
     public function listarPaginado(int $porPagina = 15, ?TipoEspacoConstant $tipo = null): LengthAwarePaginator
     {
-        return Espaco::query()
+        return Espaco::with(Auditoria::RELACOES)
             ->when($tipo, fn ($q) => $q->where('tipo', $tipo))
             ->orderBy('nome')
             ->paginate($porPagina);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Constants\TipoEspacoConstant;
 use App\Http\Requests\ConsultarDisponibilidadeRequest;
 use App\Http\Requests\StoreEspacoRequest;
@@ -44,17 +45,17 @@ class EspacoController extends Controller
     {
         $espaco = $this->espacoService->criar($request->validated());
 
-        return (new EspacoResource($espaco))->response()->setStatusCode(201);
+        return (new EspacoResource($espaco->load(Auditoria::RELACOES)))->response()->setStatusCode(201);
     }
 
     public function show(Espaco $espaco)
     {
-        return new EspacoResource($espaco);
+        return new EspacoResource($espaco->load(Auditoria::RELACOES));
     }
 
     public function update(UpdateEspacoRequest $request, Espaco $espaco)
     {
-        return new EspacoResource($this->espacoService->atualizar($espaco, $request->validated()));
+        return new EspacoResource($this->espacoService->atualizar($espaco, $request->validated())->load(Auditoria::RELACOES));
     }
 
     public function destroy(Espaco $espaco)

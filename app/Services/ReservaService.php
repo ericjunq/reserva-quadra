@@ -26,7 +26,7 @@ class ReservaService
         private ReservaRepository $reservas,
     ) {}
 
-    public const RELACOES_ADMIN = ['aluno.curso', 'espaco', 'equipamentos', 'criador', 'revogador'];
+    public const RELACOES_ADMIN = ['aluno.curso', 'espaco', 'equipamentos', 'criador', 'atualizador', 'revogador'];
 
     public function listar(array $filtros, string $ordem = 'asc', int $porPagina = 15): LengthAwarePaginator
     {

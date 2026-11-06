@@ -3,10 +3,13 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
+use App\Http\Resources\Concerns\ExibeAuditoria;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class AlunoResource extends JsonResource
 {
+    use ExibeAuditoria;
+
     public function toArray(Request $request): array
     {
         return [
@@ -16,6 +19,7 @@ class AlunoResource extends JsonResource
             'email'              => $this->email,
             'curso'              => new CursoResource($this->whenLoaded('curso')),
             'created_at'         => $this->created_at,
+            $this->auditoria(),
         ];
     }
 }

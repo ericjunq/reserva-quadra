@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Auditoria;
 use App\Models\Curso;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -15,7 +16,7 @@ class CursoService
 
     public function listarPaginado(int $porPagina = 15): LengthAwarePaginator
     {
-        return Curso::orderBy('nome')->paginate($porPagina);
+        return Curso::with(Auditoria::RELACOES)->orderBy('nome')->paginate($porPagina);
     }
 
     public function criar(array $data): Curso

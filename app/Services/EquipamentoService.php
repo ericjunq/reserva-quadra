@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Auditoria;
 use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Exceptions\RegraNegocioException;
@@ -29,7 +30,7 @@ class EquipamentoService
         ?string $nome = null,
         ?bool $ativo = null,
     ): LengthAwarePaginator {
-        return Equipamento::query()
+        return Equipamento::with(Auditoria::RELACOES)
         ->when($espacoId, fn ($q) => $q->where('espaco_id', $espacoId))
         ->when($nome, fn ($q) => $q->where('nome', 'like', "%{$nome}%"))
         ->when(! is_null($ativo), fn ($q) => $q->where('ativo', $ativo))

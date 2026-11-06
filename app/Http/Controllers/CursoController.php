@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Http\Requests\StoreCursoRequest;
 use App\Http\Requests\UpdateCursoRequest;
 use App\Http\Resources\CursoResource;
@@ -29,17 +30,17 @@ class CursoController extends Controller
     {
         $curso = $this->cursoService->criar($request->validated());
 
-        return (new CursoResource($curso))->response()->setStatusCode(201);
+        return (new CursoResource($curso->load(Auditoria::RELACOES)))->response()->setStatusCode(201);
     }
 
     public function show(Curso $curso)
     {
-        return new CursoResource($curso);
+        return new CursoResource($curso->load(Auditoria::RELACOES));
     }
 
     public function update(UpdateCursoRequest $request, Curso $curso)
     {
-        return new CursoResource($this->cursoService->atualizar($curso, $request->validated()));
+        return new CursoResource($this->cursoService->atualizar($curso, $request->validated())->load(Auditoria::RELACOES));
     }
 
     public function destroy(Curso $curso)

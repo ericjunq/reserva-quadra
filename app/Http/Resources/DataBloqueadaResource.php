@@ -3,10 +3,13 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
+use App\Http\Resources\Concerns\ExibeAuditoria;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class DataBloqueadaResource extends JsonResource
 {
+    use ExibeAuditoria;
+
     public function toArray(Request $request): array
     {
         return [
@@ -19,7 +22,7 @@ class DataBloqueadaResource extends JsonResource
             'espaco'      => $this->espaco ? ['id' => $this->espaco->id, 'nome' => $this->espaco->nome] : null,
             'motivo'      => $this->motivo,
             'origem'      => $this->origem->value,
-            'criado_por'  => $this->criado_por,
+            $this->auditoria(),
         ];
     }
 }
