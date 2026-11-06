@@ -7,6 +7,7 @@ use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Models\Concerns\Auditavel;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -52,6 +53,19 @@ class Reserva extends Model
     protected function dataReserva(): Attribute
     {
         return Attribute::set(fn ($valor) => Carbon::parse($valor)->toDateString());
+    }
+
+    public function scopeAtivasFuturas(Builder $query): Builder
+    {
+        $hoje = today()->toDateString();
+
+        return $query
+            ->where('status', StatusConstant::RESERVADO)
+            ->where(fn ($q) => $q
+                ->where('data_reserva', '>', $hoje)
+                ->orWhere(fn ($q) => $q
+                    ->where('data_reserva', $hoje)
+                    ->where('hora_fim', '>', now()->format('H:i:s'))));
     }
 
     public function aluno(): BelongsTo

@@ -106,9 +106,9 @@ class ReservaService
         });
     }
 
-    public function revogar(Reserva $reserva, ?User $admin, string $justificativa): Reserva
+    public function revogar(Reserva $reserva, ?User $admin, string $justificativa, bool $notificar = true): Reserva
     {
-        return DB::transaction(function () use ($reserva, $admin, $justificativa) {
+        return DB::transaction(function () use ($reserva, $admin, $justificativa, $notificar) {
             $reserva = Reserva::whereKey($reserva->id)->lockForUpdate()->firstOrFail();
 
             if ($reserva->status !== StatusConstant::RESERVADO) {
@@ -126,7 +126,7 @@ class ReservaService
                 'revogada_por'            => $admin?->id,
             ]);
 
-            if ($reserva->aluno) {
+            if ($notificar && $reserva->aluno) {
                 Mail::to($reserva->aluno->email)->queue(
                     (new ReservaRevogadaMail($reserva->load('aluno', 'espaco')))->afterCommit()
                 );

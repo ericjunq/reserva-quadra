@@ -18,6 +18,9 @@ class AlunoResource extends JsonResource
             'registro_academico' => $this->registro_academico,
             'email'              => $this->email,
             'curso'              => new CursoResource($this->whenLoaded('curso')),
+            'ativo'              => $this->ativo,
+            'anonimizado_em'     => $this->anonimizado_em,
+            'reservas_futuras'   => $this->whenCounted('reservas_futuras'),
             'created_at'         => $this->created_at,
             $this->auditoria(),
         ];
