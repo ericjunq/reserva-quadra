@@ -53,5 +53,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reservas/{reserva}', [ReservaController::class, 'show']);
         Route::post('/reservas/eventos', [ReservaController::class, 'storeEvento']);
         Route::post('/reservas/{reserva}/revogar', [ReservaController::class, 'revogar']);
+        Route::post('/reservas/{reserva}/devolucao', [ReservaController::class, 'registrarDevolucao']);
     });
 });

@@ -68,6 +68,23 @@ class Reserva extends Model
                     ->where('hora_fim', '>', now()->format('H:i:s'))));
     }
 
+    public function scopeJaIniciadas(Builder $query): Builder
+    {
+        $hoje = today()->toDateString();
+
+        return $query->where(fn ($q) => $q
+            ->where('data_reserva', '<', $hoje)
+            ->orWhere(fn ($q) => $q
+                ->where('data_reserva', $hoje)
+                ->where('hora_inicio', '<=', now()->format('H:i:s'))));
+    }
+
+    public function iniciada(): bool
+    {
+        return $this->data_reserva->toDateString() < today()->toDateString()
+            || ($this->data_reserva->isToday() && $this->hora_inicio <= now()->format('H:i:s'));
+    }
+
     public function aluno(): BelongsTo
     {
         return $this->belongsTo(Aluno::class);

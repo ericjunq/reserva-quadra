@@ -45,6 +45,13 @@ class ReservaResource extends JsonResource
                 'id'         => $e->id,
                 'nome'       => $e->nome,
                 'quantidade' => $e->pivot->quantidade,
+                'devolucao'  => [
+                    'situacao'             => $e->pivot->situacao_devolucao?->value,
+                    'quantidade_devolvida' => $e->pivot->quantidade_devolvida,
+                    'observacao'           => $e->pivot->observacao_devolucao,
+                    'devolvido_em'         => $e->pivot->devolvido_em,
+                    'devolvido_por'        => $e->pivot->devolvido_por,
+                ],
             ])),
             'justificativa_revogacao' => $this->when($revogada, $this->justificativa_revogacao),
             'revogada_em'             => $this->when($revogada, $this->revogada_em),
