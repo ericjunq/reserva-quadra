@@ -4,6 +4,7 @@ API (backend) em Laravel para reservar os espaços da faculdade (quadra, laborat
 
 > Este documento descreve **o que o sistema faz, como rodar, as decisões tomadas e o que vem pela frente**.
 > O registro detalhado de cada alteração, arquivo por arquivo, fica em [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt).
+> Um resumo simples do que o sistema já faz e do que falta fica em [`CHECKLIST.md`](CHECKLIST.md).
 
 ---
 
