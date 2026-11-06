@@ -170,14 +170,9 @@ class ReservaService
         $segunda = Carbon::parse($data['data_reserva'])->startOfWeek(Carbon::MONDAY);
         $sexta = $segunda->copy()->addDays(4);
 
-        $total = Reserva::query()
-            ->join('alunos', 'alunos.id', '=', 'reservas.aluno_id')
-            ->where('alunos.curso_id', $aluno->curso_id)
-            ->where('reservas.espaco_id', $espaco->id)
-            ->where('reservas.tipo', TipoReservaConstant::ALUNO)
-            ->where('reservas.status', StatusConstant::RESERVADO)
-            ->whereBetween('reservas.data_reserva', [$segunda->toDateString(), $sexta->toDateString()])
-            ->count();
+        $total = $this->reservas->contarPorSemanaDoCurso(
+            $aluno->curso_id, $espaco->id, $segunda->toDateString(), $sexta->toDateString(),
+        )->get($segunda->toDateString(), 0);
 
         if ($total >= $limite) {
             $curso = $aluno->curso->nome;

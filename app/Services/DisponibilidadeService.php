@@ -10,6 +10,7 @@ use App\Models\DataBloqueada;
 use App\Models\Espaco;
 use App\Models\Reserva;
 use App\Repositories\DisponibilidadeEquipamentoRepository;
+use App\Repositories\ReservaRepository;
 use App\Rules\AntecedenciaMaxima;
 use App\Rules\HorarioAindaReservavel;
 use Carbon\Carbon;
@@ -20,6 +21,7 @@ class DisponibilidadeService
 {
     public function __construct(
         private DisponibilidadeEquipamentoRepository $disponibilidade,
+        private ReservaRepository $reservas,
         private EquipamentoService $equipamentoService,
     ) {}
 
@@ -180,15 +182,9 @@ class DisponibilidadeService
         $primeiraSegunda = Carbon::parse($de)->startOfWeek(Carbon::MONDAY);
         $ultimaSexta = Carbon::parse($ate)->startOfWeek(Carbon::MONDAY)->addDays(4);
 
-        $porSemana = Reserva::query()
-            ->join('alunos', 'alunos.id', '=', 'reservas.aluno_id')
-            ->where('alunos.curso_id', $curso->id)
-            ->where('reservas.espaco_id', $espaco->id)
-            ->where('reservas.tipo', TipoReservaConstant::ALUNO)
-            ->where('reservas.status', StatusConstant::RESERVADO)
-            ->whereBetween('reservas.data_reserva', [$primeiraSegunda->toDateString(), $ultimaSexta->toDateString()])
-            ->pluck('reservas.data_reserva')
-            ->countBy(fn ($data) => Carbon::parse($data)->startOfWeek(Carbon::MONDAY)->toDateString());
+        $porSemana = $this->reservas->contarPorSemanaDoCurso(
+            $curso->id, $espaco->id, $primeiraSegunda->toDateString(), $ultimaSexta->toDateString(),
+        );
 
         $semanas = [];
 

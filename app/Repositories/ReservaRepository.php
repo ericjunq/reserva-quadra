@@ -2,8 +2,12 @@
 
 namespace App\Repositories;
 
+use App\Constants\StatusConstant;
+use App\Constants\TipoReservaConstant;
 use App\Models\Reserva;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class ReservaRepository
 {
@@ -21,6 +25,19 @@ class ReservaRepository
             ->when($filtros['busca'] ?? null, fn ($q, $busca) => $q->whereHas('aluno', fn ($a) => $a->where(fn ($w) => $w
                 ->whereLike('nome_completo', "%{$busca}%", caseSensitive: false)
                 ->orWhereLike('registro_academico', "%{$busca}%", caseSensitive: false))));
+    }
+
+    public function contarPorSemanaDoCurso(int $cursoId, int $espacoId, string $de, string $ate): Collection
+    {
+        return Reserva::query()
+            ->join('alunos', 'alunos.id', '=', 'reservas.aluno_id')
+            ->where('alunos.curso_id', $cursoId)
+            ->where('reservas.espaco_id', $espacoId)
+            ->where('reservas.tipo', TipoReservaConstant::ALUNO)
+            ->where('reservas.status', StatusConstant::RESERVADO)
+            ->whereBetween('reservas.data_reserva', [$de, $ate])
+            ->pluck('reservas.data_reserva')
+            ->countBy(fn ($data) => Carbon::parse($data)->startOfWeek(Carbon::MONDAY)->toDateString());
     }
 
     public function ordenar(Builder $query, string $ordem = 'asc'): Builder
