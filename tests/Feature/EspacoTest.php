@@ -64,4 +64,16 @@ class EspacoTest extends TestCase
         $this->deleteJson("/api/admin/espacos/{$espaco->id}")->assertNoContent();
         $this->getJson('/api/espacos')->assertJsonCount(0, 'data');
     }
+
+    public function test_paginacao_padronizada(): void
+    {
+        $this->comoAdmin();
+        Espaco::factory()->count(20)->create();
+
+        $this->getJson('/api/admin/espacos')->assertJsonPath('meta.per_page', 15);
+        $this->getJson('/api/admin/espacos?per_page=5')->assertJsonPath('meta.per_page', 5);
+        $this->getJson('/api/admin/espacos?per_page=500')->assertJsonPath('meta.per_page', 100);
+        $this->getJson('/api/admin/espacos?per_page=0')->assertJsonPath('meta.per_page', 15);
+        $this->getJson('/api/admin/espacos?per_page=abc')->assertJsonPath('meta.per_page', 15);
+    }
 }
