@@ -287,6 +287,18 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 - O preenchimento é automático, pelo trait `App\Models\Concerns\Auditavel`, nos eventos do Eloquent. Por isso as alterações precisam passar pelo model (`$model->update()`); um `update` em massa direto no query builder não é auditado.
 - Nas rotas do admin, as respostas trazem `criado_por` e `atualizado_por` (id e nome), `criado_em` e `atualizado_em`. As rotas públicas não mostram esses campos.
 
+### Compatibilidade com bancos de dados
+
+O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **MySQL (5.7+)** e **Postgres**:
+
+- Buscas por texto usam `whereLike(..., caseSensitive: false)`: vira `like` no MySQL/SQLite e `ilike` no Postgres, sem diferenciar maiúsculas em nenhum deles.
+- Nomes únicos (espaços, cursos e equipamentos no mesmo espaço) são validados com a regra `NomeUnico`, que compara em minúsculas (`LOWER`). Assim "Quadra" e "quadra" são o mesmo nome em qualquer banco (o MySQL já fazia isso; o Postgres e o SQLite, não).
+- Datas são comparadas direto na coluna (sem `whereDate`), o que funciona nos três e usa os índices.
+- Não há SQL específico de um banco; as consultas escritas à mão usam só `SUM`, `COUNT` e `GROUP BY`.
+- O SQLite ignora `lockForUpdate` (ele trava o banco inteiro na escrita). No MySQL e no Postgres, as travas por linha passam a valer de fato.
+
+**Pendente:** os testes rodam em SQLite em memória. Ao escolher o banco de produção, rodar `php artisan test` também nele (localmente ou em CI). No SQLite, `LOWER` só converte letras sem acento, então "Ética" e "ética" passam como nomes diferentes; no MySQL e no Postgres, não.
+
 ---
 
 ## 7. Decisões tomadas
@@ -303,6 +315,7 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 | Auditoria com colunas **e** tabela de histórico | As colunas mostram o último a alterar; o histórico mostra o que mudou em cada alteração (antes/depois) |
 | Auditoria por trait nos eventos do Eloquent | Nenhum service precisa lembrar de preencher; vale para qualquer alteração feita pelo model |
 | `reservas.user_id` renomeado para `criado_por` | Mesmo nome de coluna em todas as tabelas auditadas |
+| Código compatível com SQLite, MySQL e Postgres | O banco de produção ainda não foi escolhido; buscas e nomes únicos se comportam igual nos três |
 | Proteção contra fórmulas no CSV | Nome ou descrição começando com `=` poderia virar fórmula no Excel (*CSV injection*) |
 | Cursos em **tabela**, não enum | Permitir reaproveitar o sistema em outras instituições da rede |
 | Equipamento pertence a um espaço + flag `compartilhavel` | Por padrão a bola da quadra fica restrita à quadra; o microscópio pode ser marcado para uso em salas |
@@ -349,6 +362,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `LimiteSemanalTest` | Limite por curso na quadra, semana seguinte, revogadas e eventos não contam |
 | `DatasBloqueadasTest` | Dia inteiro, por espaço, janela de horas, eventos ignorando, revogação automática com email, validações, edição e filtros |
 | `ImportarFeriadosTest` | Importação sem duplicar, facultativos, revogação de reservas em feriado |
+| `MaiusculasEMinusculasTest` | Nomes únicos e buscas sem diferenciar maiúsculas |
 | `AuditoriaTest` | Colunas e histórico na criação, alteração, desativação e exclusão; ações públicas sem admin; revogação; alteração sem mudança; auditoria só nas rotas do admin; histórico após remover o admin |
 | `ExportacaoReservasTest` | Login, colunas obrigatórias, opcionais e todas, responsável em eventos, período e atalhos, filtros, mais de um lote, proteção contra fórmulas, validações |
 | `ListagemReservasTest` | Login obrigatório, padrão de hoje em diante, ordem, cada filtro e combinações, dados do aluno/espaço/equipamentos/revogação, totais por status, paginação, consultas sem N+1, validações |
@@ -373,6 +387,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Compatibilidade de bancos | Buscas com `whereLike` (ilike no Postgres), regra `NomeUnico`, datas comparadas sem `whereDate` |
 | Auditoria | `criado_por`/`atualizado_por` nas tabelas principais, tabela `auditorias` com antes/depois, trait `Auditavel`, campos nas respostas do admin |
 | Exportação de reservas | CSV com os filtros da listagem, atalhos de período, colunas opcionais, stream em lotes e proteção contra fórmulas; consulta movida para `ReservaRepository` |
 | Item 7 — Listagem de reservas (admin) | Lista paginada com filtros, detalhe, totais por status e dados completos de aluno, espaço, equipamentos, criador e revogador |

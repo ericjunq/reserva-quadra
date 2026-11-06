@@ -711,3 +711,28 @@ tests/Feature/AuditoriaTest.php (novo) — 10 testes (106 no total).
 
 Commits separados por tipo (pedido do usuário): refactor (renomeação), feat (auditoria),
 feat (respostas do admin), fix (normalização), test, docs.
+
+========================================================================
+20. COMPATIBILIDADE COM MYSQL E POSTGRES
+========================================================================
+
+app/Repositories/ReservaRepository.php / app/Services/EquipamentoService.php
+  - like -> whereLike(..., caseSensitive: false). SQL gerado: like no SQLite e MySQL (que já
+    não diferenciam maiúsculas) e "coluna"::text ilike no Postgres (o like de lá diferencia).
+
+app/Rules/NomeUnico.php (novo)
+  - Substitui Rule::unique em Store/Update de Espaco, Curso e Equipamento. Compara
+    LOWER(nome) = mb_strtolower(trim(valor)), com ignorarId (edição) e escopo (equipamento:
+    espaco_id). No MySQL a collation já tratava "Quadra" = "quadra"; no Postgres/SQLite não.
+  - Os índices únicos do banco continuam como proteção final (comparação exata).
+  - Limitação: no SQLite, LOWER só converte ASCII (letras acentuadas maiúsculas não).
+
+app/Services/ReservaService.php / EspacoService.php
+  - whereDate trocado por where/whereBetween direto em data_reserva (gravada como Y-m-d pelo
+    mutator). Funciona nos três bancos e permite usar os índices. Atenção: comparar com
+    today()->toDateString(), não com today() (que viraria 'Y-m-d H:i:s').
+
+Não testado em MySQL/Postgres: a máquina não tem esses servidores nem o driver pdo_pgsql.
+O SQL gerado foi conferido com toSql() nas três gramáticas.
+
+tests/Feature/MaiusculasEMinusculasTest.php (novo) — 5 testes (111 no total).

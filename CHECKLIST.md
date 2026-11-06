@@ -56,13 +56,15 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Erros de regra de negócio com mensagem clara (409/422)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
 - [x] Histórico de cada criação, alteração e exclusão, com o antes e o depois, quem fez e quando
-- [x] 106 testes automáticos passando
+- [x] Código compatível com SQLite, MySQL e Postgres (buscas e nomes únicos sem diferenciar maiúsculas)
+- [x] 111 testes automáticos passando
 
 ---
 
 ## ⬜ O que falta (na ordem combinada)
 
 - [ ] **Rota para o admin consultar o histórico de alterações** (os dados já são gravados)
+- [ ] **Rodar os testes no banco de produção** (MySQL ou Postgres) quando ele for escolhido
 - [ ] **Admin editar e desativar alunos**
 - [ ] **Aluno ver as próprias reservas** informando RA + email
 - [ ] **Item 8 — Cancelamento pelo aluno:** email ao reservar, com link para cancelar
