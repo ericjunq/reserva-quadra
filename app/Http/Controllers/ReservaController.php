@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListarReservasRequest;
 use App\Http\Requests\RevogarReservaRequest;
 use App\Http\Requests\StoreEventoRequest;
 use App\Http\Requests\StoreReservaRequest;
@@ -12,6 +13,20 @@ use App\Services\ReservaService;
 class ReservaController extends Controller
 {
     public function __construct(private ReservaService $reservaService) {}
+
+    public function index(ListarReservasRequest $request)
+    {
+        $filtros = $request->filtros();
+
+        return ReservaResource::collection(
+            $this->reservaService->listar($filtros, $request->input('ordem', 'asc'), (int) $request->input('per_page', 15))
+        )->additional(['totais_por_status' => $this->reservaService->totaisPorStatus($filtros)]);
+    }
+
+    public function show(Reserva $reserva)
+    {
+        return new ReservaResource($reserva->load(ReservaService::RELACOES_ADMIN));
+    }
 
     public function store(StoreReservaRequest $request)
     {

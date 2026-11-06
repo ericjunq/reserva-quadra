@@ -586,3 +586,38 @@ DOCUMENTACAO.md
     (desativar em vez de apagar), consulta de reservas pelo aluno, convite de admin,
     recuperação de senha, front-end em Angular.
   - Nova tabela "Emails do sistema".
+
+========================================================================
+17. ITEM 7 — LISTAGEM DE RESERVAS (ADMIN)
+========================================================================
+
+routes/api.php
+  - GET /api/admin/reservas e GET /api/admin/reservas/{reserva} (auth:sanctum).
+
+app/Http/Requests/ListarReservasRequest.php (novo)
+  - Filtros: de, ate (>= de), espaco_id, tipo_espaco, curso_id, busca (até 100), status, tipo,
+    horario (enums validados com Rule::enum), ordem (asc|desc), per_page (1–100).
+    Valor inválido dá 422 em vez de ser ignorado.
+  - filtros(): sem de e sem ate, aplica de = hoje.
+
+app/Services/ReservaService.php
+  - RELACOES_ADMIN: aluno.curso, espaco, equipamentos, criador, revogador (eager loading, sem N+1).
+  - listar(filtros, ordem, porPagina): ordena por data_reserva, hora_inicio e id.
+  - totaisPorStatus(filtros): contagem por status com os mesmos filtros, MENOS o de status
+    (o painel mostra os totais de todos os status mesmo filtrando um). Sempre traz os 3 status.
+  - filtrar() privado: um when() por filtro. curso_id e busca via whereHas('aluno'); busca
+    agrupa nome OR RA num where aninhado para o OR não vazar da subconsulta. tipo_espaco via
+    whereHas('espaco').
+  - Ficou no service (sem repositório): filtros simples, não reaproveitados por enquanto.
+
+app/Http/Controllers/ReservaController.php
+  - index(): coleção paginada + additional(['totais_por_status' => ...]).
+  - show(): carrega RELACOES_ADMIN.
+
+app/Http/Resources/ReservaResource.php
+  - Campos que só aparecem quando a relação está carregada (rotas do admin): espaco {id, nome,
+    tipo}, aluno {id, nome_completo, registro_academico, email, curso}, criado_por {id, nome},
+    revogada_por {id, nome} (só em revogadas). Novo campo criada_em.
+  - A rota pública de criação não carrega essas relações, então não expõe dados extras.
+
+tests/Feature/ListagemReservasTest.php (novo) — 12 testes (84 no total).

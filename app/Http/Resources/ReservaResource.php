@@ -22,7 +22,25 @@ class ReservaResource extends JsonResource
             'status'         => $this->status->value,
             'tipo'           => $this->tipo->value,
             'espaco_id'      => $this->espaco_id,
+            'espaco'         => $this->whenLoaded('espaco', fn () => [
+                'id'   => $this->espaco->id,
+                'nome' => $this->espaco->nome,
+                'tipo' => $this->espaco->tipo,
+            ]),
             'aluno_id'       => $this->aluno_id,
+            'aluno'          => $this->whenLoaded('aluno', fn () => $this->aluno ? [
+                'id'                 => $this->aluno->id,
+                'nome_completo'      => $this->aluno->nome_completo,
+                'registro_academico' => $this->aluno->registro_academico,
+                'email'              => $this->aluno->email,
+                'curso'              => $this->aluno->relationLoaded('curso') && $this->aluno->curso
+                    ? ['id' => $this->aluno->curso->id, 'nome' => $this->aluno->curso->nome]
+                    : null,
+            ] : null),
+            'criado_por'     => $this->whenLoaded('criador', fn () => $this->criador ? [
+                'id'   => $this->criador->id,
+                'nome' => $this->criador->name,
+            ] : null),
             'descricao'      => $this->descricao,
             'equipamentos'   => $this->whenLoaded('equipamentos', fn () => $this->equipamentos->map(fn ($e) => [
                 'id'         => $e->id,
@@ -31,6 +49,11 @@ class ReservaResource extends JsonResource
             ])),
             'justificativa_revogacao' => $this->when($revogada, $this->justificativa_revogacao),
             'revogada_em'    => $this->when($revogada, $this->revogada_em),
+            'revogada_por'   => $this->when($revogada && $this->relationLoaded('revogador'), fn () => $this->revogador ? [
+                'id'   => $this->revogador->id,
+                'nome' => $this->revogador->name,
+            ] : null),
+            'criada_em'      => $this->created_at,
         ];
     }
 }

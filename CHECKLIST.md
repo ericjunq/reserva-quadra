@@ -37,6 +37,8 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Marcar equipamento como compartilhável entre espaços
 - [x] Cadastrar, editar, listar e desativar cursos
 - [x] Listar alunos
+- [x] Listar reservas com filtros (data, espaço, tipo de espaço, curso, nome/RA do aluno, status, tipo, horário) e totais por status
+- [x] Ver o detalhe de uma reserva (aluno, curso, equipamentos, quem criou, quem revogou)
 - [x] Criar eventos (inclusive no fim de semana e em feriados)
 - [x] Revogar uma reserva de aluno com justificativa
 - [x] Criar evento por cima de uma reserva de aluno, revogando-a com justificativa
@@ -50,17 +52,16 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Duas pessoas reservando ao mesmo tempo não geram reserva duplicada
 - [x] Erros de regra de negócio com mensagem clara (409/422)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
-- [x] 72 testes automáticos passando
+- [x] 84 testes automáticos passando
 
 ---
 
 ## ⬜ O que falta (na ordem combinada)
 
-- [ ] **Item 7 — Listagem de reservas para o admin**, com filtros (data, espaço, curso, aluno, status, tipo)
 - [ ] **Exportação de reservas** em CSV (abre no Excel), com os mesmos filtros da listagem
 - [ ] **Auditoria:** registrar quem criou e quem alterou cada registro
 - [ ] **Admin editar e desativar alunos**
-- [ ] **Aluno ver as próprias reservas** pelo RA
+- [ ] **Aluno ver as próprias reservas** informando RA + email
 - [ ] **Item 8 — Cancelamento pelo aluno:** email ao reservar, com link para cancelar
 - [ ] **Item 9 — Confirmação:** email 2 dias antes; reserva não confirmada é revogada sozinha
 - [ ] **Agendador de tarefas:** roda a confirmação, limpa tokens vencidos e importa feriados todo ano
