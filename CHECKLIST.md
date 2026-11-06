@@ -12,33 +12,10 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
-Leia este arquivo inteiro antes de qualquer coisa. Ele substitui a memória da conversa anterior.
+Leia este arquivo e o `CLAUDE.md` antes de qualquer coisa. Juntos, eles substituem a memória da conversa anterior.
 
-### Regras de trabalho
-1. **Proposta antes de implementar:** para cada passo do plano, enviar a proposta (o que faz, arquivos, decisões em aberto com recomendação) e **esperar a aprovação**. Correções pequenas pedidas diretamente podem ser feitas sem proposta.
-2. **Respostas curtas e diretas** por padrão. Explicar mais quando o usuário pedir, quando ele não entender, em debates de ideias e quando houver risco (dados importantes, decisões difíceis de reverter).
-3. **Sem comentários no código.** As explicações vão para `implementacoes-com-claude-code.txt`, com uma seção nova por implementação, arquivo por arquivo.
-4. **Commits separados por alteração**, no padrão conventional commits (`feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `style`, `chore`). **Sem** a linha `Co-Authored-By` do Claude. O usuário faz o push.
-5. **Ao concluir cada etapa, atualizar:** este CHECKLIST (marcar itens, data e número de testes), o `DOCUMENTACAO.md`, o `DATABASE.md` (se mexer no banco) e o txt.
-6. **O usuário roda** `php artisan migrate:fresh --seed`. As migrations existentes são editadas no lugar, porque o banco de desenvolvimento é recriado com frequência.
-7. A senha `Admin` do `AdminSeeder` é intencional, só para desenvolvimento. Não apontar como problema, a menos que o assunto seja produção.
-
-### Padrões de código (valem para todo código novo)
-- **Organização:** o request valida, o controller é fino, o service guarda a regra e o resource formata a saída. Repositório (`app/Repositories`) **só** para consulta complexa ou reaproveitada. Métodos em português (`criar`, `listarPaginado`, `atualizar`, `desativar`). Paginação com `$this->porPagina($request)`. Nada de código morto. Rodar `./vendor/bin/pint` antes de commitar.
-- **Compatibilidade SQLite/MySQL/Postgres:**
-  - busca com `whereLike(..., caseSensitive: false)`;
-  - nome único com a regra `NomeUnico`;
-  - data comparada direto na coluna (`toDateString()`, sem `whereDate`);
-  - nada de SQL específico de um banco;
-  - índice explícito em chave estrangeira usada em filtro ou join.
-- **Desempenho:** eager loading (sem N+1), consultas por conjunto em vez de uma por item dentro de um loop, índices alinhados às consultas, exportação em stream.
-- **LGPD:**
-  - expor só o necessário: rota pública nunca mostra RA nem email;
-  - consultar dados pessoais exige RA + email;
-  - dados pessoais podem ser anonimizados, inclusive no histórico;
-  - nada de dados pessoais em URL (usar POST) nem em log;
-  - avisar o usuário quando uma decisão envolver dados pessoais.
-- **Testes:** feature tests com factories. A data dos testes fica fixa em segunda, 09/11/2026, 10:00 (`tests/TestCase.php`). Todo passo vem com testes.
+### Regras de trabalho e padrões de código
+Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usuário), tópico "Regras de desenvolvimento combinadas com o usuário": comunicação, processo (proposta antes de implementar), código, compatibilidade entre bancos, desempenho, LGPD, testes e git. O Claude Code lê esse arquivo sozinho em toda conversa.
 
 ### Decisões já tomadas (não reabrir)
 - Aluno **não faz login**: se identifica pelo RA. Admin entra com Sanctum (token de 8h).
