@@ -39,15 +39,7 @@ class ReservaService
     {
         unset($filtros['status']);
 
-        $totais = $this->reservas->filtrar($filtros)
-            ->toBase()
-            ->groupBy('status')
-            ->selectRaw('status, COUNT(*) as total')
-            ->pluck('total', 'status');
-
-        return collect(StatusConstant::cases())
-            ->mapWithKeys(fn (StatusConstant $status) => [$status->value => (int) ($totais[$status->value] ?? 0)])
-            ->all();
+        return $this->reservas->totaisPorStatus($filtros);
     }
 
     public function create(array $data): Reserva

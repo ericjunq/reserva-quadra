@@ -27,6 +27,19 @@ class ReservaRepository
                 ->orWhereLike('registro_academico', "%{$busca}%", caseSensitive: false))));
     }
 
+    public function totaisPorStatus(array $filtros): array
+    {
+        $totais = $this->filtrar($filtros)
+            ->toBase()
+            ->groupBy('status')
+            ->selectRaw('status, COUNT(*) as total')
+            ->pluck('total', 'status');
+
+        return collect(StatusConstant::cases())
+            ->mapWithKeys(fn (StatusConstant $status) => [$status->value => (int) ($totais[$status->value] ?? 0)])
+            ->all();
+    }
+
     public function contarPorSemanaDoCurso(int $cursoId, int $espacoId, string $de, string $ate): Collection
     {
         return Reserva::query()
