@@ -37,6 +37,27 @@ class DisponibilidadeEquipamentoRepository
         ]);
     }
 
+    public function usoNoPeriodo(array $ids, string $de, string $ate): Collection
+    {
+        if (! $ids) {
+            return collect();
+        }
+
+        return $this->reservasAtivas()
+            ->whereIn('item_reservas.equipamento_id', $ids)
+            ->whereBetween('reservas.data_reserva', [$de, $ate])
+            ->groupBy('reservas.data_reserva', 'reservas.hora_inicio', 'reservas.hora_fim', 'item_reservas.equipamento_id')
+            ->selectRaw('reservas.data_reserva, reservas.hora_inicio, reservas.hora_fim, item_reservas.equipamento_id, SUM(item_reservas.quantidade) as total')
+            ->get()
+            ->map(fn ($linha) => (object) [
+                'data'           => (string) $linha->data_reserva,
+                'hora_inicio'    => (string) $linha->hora_inicio,
+                'hora_fim'       => (string) $linha->hora_fim,
+                'equipamento_id' => (int) $linha->equipamento_id,
+                'total'          => (int) $linha->total,
+            ]);
+    }
+
     public function maiorUsoFuturo(Equipamento $equipamento): int
     {
         return (int) ($this->reservasAtivas()

@@ -502,3 +502,55 @@ composer.lock
     (http-foundation, http-kernel, mime, routing e afins). Corrige os 7 alertas do
     composer audit (bypass de access_control com HEAD, injeção de cabeçalho em email,
     host placeholders no roteamento). composer audit agora sem alertas; 60 testes passando.
+
+========================================================================
+14. ITEM 5 — CONSULTA DE DISPONIBILIDADE (CALENDÁRIO PÚBLICO)
+========================================================================
+
+routes/api.php
+  - GET /api/espacos/{espaco}/disponibilidade (pública, throttle 60/min).
+
+app/Http/Requests/ConsultarDisponibilidadeRequest.php (novo)
+  - de obrigatório (Y-m-d); ate opcional (>= de); período de no máximo 31 dias (MAXIMO_DIAS),
+    para o front navegar pelo calendário.
+  - registro_academico (exists) OU curso_id (exists); os dois juntos dão 422 (prohibits).
+  - ate(): sem ate, consulta só o dia "de". curso(): resolve o curso pelo RA ou pelo curso_id.
+  - Regras de data (fim de semana, antecedência, passado) NÃO dão 422 aqui: viram motivo na
+    resposta, porque o calendário mostra também dias que não aceitam reserva.
+
+app/Http/Controllers/EspacoController.php
+  - disponibilidade(): 404 para espaço inativo; devolve {"data": ...} montado pelo service.
+
+app/Services/DisponibilidadeService.php (novo)
+  - consultar(espaco, de, ate, ?curso): poucas consultas para o período inteiro (equipamentos,
+    uso de equipamentos, reservas ativas, bloqueios, contagem semanal do curso) e montagem dia a
+    dia em PHP, sem uma query por dia/horário.
+  - Situação de cada horário, nesta prioridade: RESERVADO/EVENTO > BLOQUEADO > INDISPONIVEL
+    (motivo do dia) > ENCERRADO (hoje, depois do limite de 20 min antes do fim) > LIVRE.
+  - Motivo do dia: "Data passada.", "Fim de semana.", "Reservas abertas até d/m/Y." ou o motivo
+    do bloqueio de dia inteiro.
+  - reservado_por: nome e curso do aluno, ou nome do admin no evento. RA e email nunca aparecem,
+    porque a rota é pública (LGPD).
+  - Com curso: bloco "curso" (limite_semanal e semanas seg–sex com reservas/restantes),
+    "do_curso" em cada reserva e "disponivel_para_o_curso" em cada horário (LIVRE e com cota
+    na semana). Todas as reservas continuam aparecendo; nada é filtrado.
+  - Equipamentos por horário: os do espaço + compartilháveis ativos, com total e disponível.
+
+app/Repositories/DisponibilidadeEquipamentoRepository.php
+  - usoNoPeriodo(ids, de, ate): uso somado por data, intervalo e equipamento num período, numa
+    só consulta. O service aplica a sobreposição de horário em PHP.
+
+app/Rules/AntecedenciaMaxima.php
+  - Passa a contar DIAS ÚTEIS (addWeekdays). dataLimite() estático, reaproveitado pelo service.
+    Feriados contam na contagem (só ficam bloqueados para reserva).
+
+app/Rules/HorarioAindaReservavel.php
+  - limiteParaHoje(horario) estático, reaproveitado pelo service (ENCERRADO).
+
+config/reservas.php
+  - antecedencia_maxima_dias -> antecedencia_maxima_dias_uteis
+    (env RESERVA_ANTECEDENCIA_MAXIMA_DIAS -> RESERVA_ANTECEDENCIA_MAXIMA_DIAS_UTEIS).
+
+tests/Feature/DisponibilidadeTest.php (novo) — 12 testes
+tests/Feature/RegrasDeDataTest.php — antecedência agora em dias úteis (seg 09/11 → até qua 18/11).
+  - 72 testes no total.

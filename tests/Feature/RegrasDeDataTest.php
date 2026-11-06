@@ -41,10 +41,10 @@ class RegrasDeDataTest extends TestCase
         ])->assertCreated();
     }
 
-    public function test_antecedencia_maxima_de_sete_dias(): void
+    public function test_antecedencia_maxima_de_sete_dias_uteis(): void
     {
-        $this->reservar('2026-11-16')->assertCreated();
-        $this->reservar('2026-11-17')->assertStatus(422)->assertJsonValidationErrors('data_reserva');
+        $this->reservar('2026-11-18')->assertCreated();
+        $this->reservar('2026-11-19')->assertStatus(422)->assertJsonValidationErrors('data_reserva');
     }
 
     public function test_nao_aceita_data_passada(): void
