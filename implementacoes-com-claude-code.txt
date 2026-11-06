@@ -492,3 +492,13 @@ tests/Feature/DatasBloqueadasTest.php / ImportarFeriadosTest.php
 
 Observação: composer audit aponta vulnerabilidades em componentes do Symfony usados pelo
 Laravel (não relacionadas à Yasumi). Atualização prevista como passo separado.
+
+========================================================================
+13. ATUALIZAÇÃO DE SEGURANÇA DO SYMFONY
+========================================================================
+
+composer.lock
+  - composer update "symfony/*" --with-dependencies: componentes do Symfony para a 7.4.23
+    (http-foundation, http-kernel, mime, routing e afins). Corrige os 7 alertas do
+    composer audit (bypass de access_control com HEAD, injeção de cabeçalho em email,
+    host placeholders no roteamento). composer audit agora sem alertas; 60 testes passando.

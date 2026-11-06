@@ -311,6 +311,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Item 4 — Regras de data | Fim de semana, 7 dias, horário de hoje, limite semanal por curso, `hora_inicio`/`hora_fim`, `config/reservas.php`, factories, `DemoSeeder` e testes permanentes |
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
+| Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
 
 ---
 
@@ -318,13 +319,12 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada:
 
-1. **Atualizar dependências do Symfony:** o `composer audit` aponta vulnerabilidades em componentes usados pelo Laravel.
-2. **Item 5 — Consulta de disponibilidade (pública):** horários livres de um espaço numa data, com o disponível de cada equipamento por horário.
-3. **Item 7 — Listagem de reservas (admin):** paginada, com filtros por data, espaço, status, aluno e tipo.
-4. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
-5. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired`).
-6. **Item 10 — Pendências:** `UserResource` no `/me`; rota para um admin cadastrar outros admins.
-7. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
+1. **Item 5 — Consulta de disponibilidade (pública):** horários livres de um espaço numa data, com o disponível de cada equipamento por horário.
+2. **Item 7 — Listagem de reservas (admin):** paginada, com filtros por data, espaço, status, aluno e tipo.
+3. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
+4. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired`).
+5. **Item 10 — Pendências:** `UserResource` no `/me`; rota para um admin cadastrar outros admins.
+6. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
 
 ### Implementação final: API para terceiros autorizados
 
