@@ -29,6 +29,7 @@ return new class extends Migration {
 
             $table->index(['espaco_id', 'data_reserva']);
             $table->index(['data_reserva', 'status']);
+            $table->index(['aluno_id', 'data_reserva']);
         });
     }
 

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+            $table->index('curso_id');
         });
     }
 
