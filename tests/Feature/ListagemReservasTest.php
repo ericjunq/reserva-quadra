@@ -118,7 +118,7 @@ class ListagemReservasTest extends TestCase
     {
         $this->comoAdmin();
         $criador = User::factory()->create(['name' => 'Coordenação']);
-        $evento = Reserva::factory()->evento()->create(['user_id' => $criador->id]);
+        $evento = Reserva::factory()->evento()->create(['criado_por' => $criador->id]);
 
         $this->getJson("/api/admin/reservas/{$evento->id}")->assertOk()
             ->assertJsonPath('data.criado_por.nome', 'Coordenação')

@@ -66,7 +66,7 @@ class DisponibilidadeTest extends TestCase
         Reserva::factory()->evento()->create([
             'data_reserva' => '2026-11-10',
             'espaco_id'    => $this->quadra->id,
-            'user_id'      => $admin->id,
+            'criado_por'   => $admin->id,
             'descricao'    => 'Palestra de Enfermagem',
         ]);
 

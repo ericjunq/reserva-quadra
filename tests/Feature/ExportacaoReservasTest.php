@@ -93,7 +93,7 @@ class ExportacaoReservasTest extends TestCase
     public function test_evento_tem_o_admin_como_responsavel(): void
     {
         $this->comoAdmin();
-        Reserva::factory()->evento()->create(['user_id' => User::factory()->create(['name' => 'Coordenação'])->id]);
+        Reserva::factory()->evento()->create(['criado_por' => User::factory()->create(['name' => 'Coordenação'])->id]);
 
         $this->assertSame('Coordenação', $this->linhas($this->exportar())[1][6]);
     }

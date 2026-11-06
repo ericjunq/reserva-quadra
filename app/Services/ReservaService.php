@@ -104,7 +104,7 @@ class ReservaService
                 'hora_fim'     => $data['hora_fim'],
                 'espaco_id'    => $data['espaco_id'],
                 'descricao' => $data['descricao'],
-                'user_id'   => $admin->id,
+                'criado_por' => $admin->id,
                 'tipo'      => TipoReservaConstant::EVENTO,
             ]);
 

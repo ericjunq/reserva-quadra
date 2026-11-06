@@ -23,7 +23,7 @@ class Reserva extends Model
         'hora_fim',
         'espaco_id',
         'aluno_id',
-        'user_id',
+        'criado_por',
         'status',
         'tipo',
         'descricao',
@@ -72,7 +72,7 @@ class Reserva extends Model
 
     public function criador(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'criado_por');
     }
 
     public function revogador(): BelongsTo
