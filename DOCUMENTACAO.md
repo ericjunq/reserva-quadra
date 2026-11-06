@@ -454,15 +454,19 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 ## 10. Próximos passos
 
-Na ordem combinada:
+Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Consulta das próprias reservas pelo aluno:** rota pública que exige **RA + email cadastrado** (só o RA não basta: ele não é secreto e revelaria onde e quando a pessoa estará).
-2. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
-3. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired` e importa os feriados do ano seguinte).
-4. **Item 10 — Admins:** `UserResource` no `/me`; um admin cadastra outros admins (convite por email para definir a senha).
-5. **Recuperação de senha do admin:** link por email para redefinir a senha.
-6. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
-7. **Front-end em Angular:** projeto separado consumindo esta API (não será feito com Blade).
+1. **Consulta das próprias reservas pelo aluno** (RA + email, via POST).
+2. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link de cancelamento (token).
+3. **Item 9 — Confirmação:** pedido 2 dias antes e revogação automática das não confirmadas.
+4. **Agendador de tarefas:** confirmação, limpeza de tokens, feriados do ano seguinte.
+5. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
+6. **Recuperação de senha do admin** por email.
+7. **Consulta do histórico de auditoria** pelo admin.
+8. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
+9. **CI:** testes em MySQL e Postgres no GitHub Actions.
+10. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
+11. **Front-end em Angular** (projeto separado; não será com Blade).
 
 ### Emails do sistema
 
