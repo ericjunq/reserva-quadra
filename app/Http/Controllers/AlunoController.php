@@ -12,7 +12,7 @@ class AlunoController extends Controller
 {
     public function index(Request $request, AlunoService $alunoService)
     {
-        $alunos = $alunoService->findAll(min((int) $request->query('per_page', 15), 100));
+        $alunos = $alunoService->listarPaginado(min((int) $request->query('per_page', 15), 100));
 
         return AlunoResource::collection($alunos);
     }
@@ -23,7 +23,7 @@ class AlunoController extends Controller
 
     public function store(StoreAlunoRequest $request, AlunoService $alunoService)
     {
-        $aluno = $alunoService->create($request->validated());
+        $aluno = $alunoService->criar($request->validated());
 
         return (new AlunoResource($aluno))->response()->setStatusCode(201);
     }
