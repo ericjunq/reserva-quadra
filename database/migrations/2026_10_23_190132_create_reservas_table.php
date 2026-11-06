@@ -16,6 +16,7 @@ return new class extends Migration {
             $table->foreignId('espaco_id')->constrained('espacos')->restrictOnDelete();
             $table->foreignId("aluno_id")->nullable()->constrained('alunos')->nullOnDelete();
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->string("status", 20)->default('RESERVADO');
             $table->string('tipo', 30)->default('ALUNO');
             $table->timestamp('confirmacao_enviada_em')->nullable();

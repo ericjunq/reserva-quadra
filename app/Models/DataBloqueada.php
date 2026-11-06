@@ -6,13 +6,14 @@ use App\Constants\OrigemBloqueioConstant;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Models\Concerns\Auditavel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DataBloqueada extends Model
 {
-    use HasFactory;
+    use Auditavel, HasFactory;
 
     protected $table = 'datas_bloqueadas';
 
@@ -79,10 +80,5 @@ class DataBloqueada extends Model
     public function espaco(): BelongsTo
     {
         return $this->belongsTo(Espaco::class);
-    }
-
-    public function criador(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'criado_por');
     }
 }

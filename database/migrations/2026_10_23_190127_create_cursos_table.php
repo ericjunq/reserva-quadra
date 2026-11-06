@@ -12,6 +12,8 @@ return new class extends Migration
             $table->id();
             $table->string('nome', 100)->unique();
             $table->boolean('ativo')->default(true);
+            $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

@@ -14,6 +14,8 @@ return new class extends Migration
             $table->string('tipo', 30);
             $table->boolean('ativo')->default(true);
             $table->unsignedTinyInteger('limite_semanal_por_curso')->nullable();
+            $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

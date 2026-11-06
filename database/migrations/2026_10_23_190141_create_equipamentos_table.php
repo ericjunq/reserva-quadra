@@ -15,6 +15,8 @@ return new class extends Migration
             $table->integer("quantidade_total");
             $table->boolean('ativo')->default(true);
             $table->boolean('compartilhavel')->default(false);
+            $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->unique(['espaco_id', 'nome']);

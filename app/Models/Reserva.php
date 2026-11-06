@@ -7,6 +7,7 @@ use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Models\Concerns\Auditavel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Reserva extends Model
 {
-    use HasFactory;
+    use Auditavel, HasFactory;
 
     protected $fillable = [
         'data_reserva',
@@ -70,10 +71,6 @@ class Reserva extends Model
             ->withTimestamps();
     }
 
-    public function criador(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'criado_por');
-    }
 
     public function revogador(): BelongsTo
     {

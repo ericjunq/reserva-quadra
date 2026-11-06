@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('motivo', 255);
             $table->string('origem', 20)->default('MANUAL');
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->index(['data_inicio', 'data_fim']);

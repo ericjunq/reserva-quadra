@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Constants\TipoEspacoConstant;
+use App\Models\Concerns\Auditavel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Espaco extends Model
 {
-    use HasFactory;
+    use Auditavel, HasFactory;
 
     protected $fillable = ['nome', 'tipo', 'ativo', 'limite_semanal_por_curso'];
 
