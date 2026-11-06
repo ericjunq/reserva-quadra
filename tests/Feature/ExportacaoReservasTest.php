@@ -86,8 +86,8 @@ class ExportacaoReservasTest extends TestCase
 
         $linhas = $this->linhas($this->exportar(['colunas' => ['todas']]));
 
-        $this->assertCount(7 + 10, $linhas[0]);
-        $this->assertCount(7 + 10, $linhas[1]);
+        $this->assertCount(7 + 11, $linhas[0]);
+        $this->assertCount(7 + 11, $linhas[1]);
     }
 
     public function test_evento_tem_o_admin_como_responsavel(): void
@@ -154,7 +154,7 @@ class ExportacaoReservasTest extends TestCase
 
         $this->getJson('/api/admin/reservas/exportar/colunas')->assertOk()
             ->assertJsonCount(7, 'data.obrigatorias')
-            ->assertJsonCount(8, 'data.opcionais')
+            ->assertJsonCount(9, 'data.opcionais')
             ->assertJsonPath('data.opcionais.0.chave', 'tipo_espaco');
     }
 
