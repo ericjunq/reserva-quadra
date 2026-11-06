@@ -36,6 +36,8 @@ erDiagram
         string registro_academico UK "RA"
         string email
         bigint curso_id FK
+        boolean ativo
+        timestamp anonimizado_em "LGPD"
     }
 
     users {
@@ -173,7 +175,7 @@ Feriados importados (`origem = FERIADO`) e bloqueios do admin (`MANUAL`) seguem 
 ### Integridade e desempenho
 
 **15. Exclusão é desativação (`ativo`).**
-Espaços, equipamentos e cursos não são apagados: são desativados. As chaves estrangeiras usam `restrictOnDelete` para impedir que o banco apague algo que tem histórico de reservas. A exceção hoje é `reservas.aluno_id` (`nullOnDelete`); com a desativação de alunos planejada, aluno também deixa de ser apagado.
+Espaços, equipamentos, cursos e alunos não são apagados: são desativados. As chaves estrangeiras usam `restrictOnDelete` para impedir que o banco apague algo que tem histórico de reservas. `reservas.aluno_id` ainda é `nullOnDelete`, mas a API não apaga alunos.
 
 **16. Índices pensados nas consultas mais frequentes.**
 - `reservas (espaco_id, data_reserva)`: conflito de horário e calendário do espaço.
@@ -201,13 +203,23 @@ O aluno não tem login, então ações pela rota pública ficam com `criado_por`
 **21. As chaves de auditoria usam `nullOnDelete`.**
 Se um admin for removido, os registros e o histórico continuam; só a referência a ele fica vazia.
 
+### LGPD
+
+**22. Aluno é anonimizado, não apagado.**
+Quando o aluno pede a exclusão dos dados, nome, RA e email são trocados por valores genéricos e `anonimizado_em` registra quando. As reservas continuam (estatísticas de uso), mas não identificam mais a pessoa. Apagar a linha quebraria o histórico ou deixaria reservas sem dono.
+
+**23. O histórico de auditoria também é anonimizado.**
+Os valores antes/depois guardados em `auditorias` repetiriam nome, RA e email; na anonimização eles viram `[anonimizado]`.
+
+**24. RA anonimizado começa com `A`.**
+`A` + id com 9 dígitos cabe nos 10 caracteres da coluna, é único e nunca colide com um RA real (só dígitos). O RA original fica livre para um novo cadastro.
+
 ---
 
 ## Mudanças planejadas
 
 | Mudança | Para quê |
 |---|---|
-| Desativação de alunos | Admin remover aluno sem perder o histórico de reservas |
 | Cancelamento pelo aluno (item 8) | Status `CANCELADO` e data do cancelamento |
 | Configuração de horário por espaço | Horários livres: modo FIXO/LIVRE, janela de funcionamento e duração máxima |
 | Clientes de API | Terceiros autorizados, com permissões por cliente |

@@ -135,7 +135,7 @@ users (admins) ──< reservas (criador de eventos / quem revogou)
 | Tabela | Colunas principais |
 |---|---|
 | `cursos` | `nome` (único), `ativo` |
-| `alunos` | `nome_completo`, `registro_academico` (RA, único, 10 dígitos), `email`, `curso_id` |
+| `alunos` | `nome_completo`, `registro_academico` (RA, único, 10 dígitos), `email`, `curso_id`, `ativo`, `anonimizado_em` |
 | `espacos` | `nome` (único), `tipo` (QUADRA, LABORATORIO, SALA), `ativo`, `limite_semanal_por_curso` (vazio = sem limite) |
 | `equipamentos` | `espaco_id`, `nome` (único dentro do espaço), `quantidade_total`, `ativo`, `compartilhavel` |
 | `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `confirmacao_enviada_em`, `confirmada_em` |
@@ -196,7 +196,11 @@ POST /api/reservas
 | GET/POST/PATCH/DELETE | `/api/admin/espacos` | CRUD de espaços (`?tipo=`) |
 | GET/POST/PATCH/DELETE | `/api/admin/equipamentos` | CRUD de equipamentos (`?espaco_id=`, `?nome=`, `?ativo=`) |
 | GET/POST/PATCH/DELETE | `/api/admin/cursos` | CRUD de cursos |
-| GET | `/api/admin/alunos` | Lista de alunos |
+| GET | `/api/admin/alunos` | Lista de alunos (`?busca=` nome/RA/email, `?curso_id=`, `?ativo=`) |
+| GET | `/api/admin/alunos/{id}` | Detalhe do aluno, com o total de reservas futuras |
+| PATCH | `/api/admin/alunos/{id}` | Edita nome, RA, email, curso e `ativo` (desativar revoga as reservas futuras) |
+| DELETE | `/api/admin/alunos/{id}` | Desativa o aluno e revoga as reservas futuras (responde com `reservas_revogadas`) |
+| POST | `/api/admin/alunos/{id}/anonimizar` | Anonimiza os dados pessoais (LGPD); exige `{"confirmar": true}` |
 | GET/POST/PATCH/DELETE | `/api/admin/datas-bloqueadas` | Bloqueios (`?de=`, `?ate=`, `?espaco_id=`); PATCH altera só o motivo |
 | GET | `/api/admin/reservas` | Lista reservas com filtros (ver abaixo) |
 | GET | `/api/admin/reservas/exportar` | Exporta as reservas filtradas em CSV |
@@ -290,6 +294,21 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 - O preenchimento é automático, pelo trait `App\Models\Concerns\Auditavel`, nos eventos do Eloquent. Por isso as alterações precisam passar pelo model (`$model->update()`); um `update` em massa direto no query builder não é auditado.
 - Nas rotas do admin, as respostas trazem `criado_por` e `atualizado_por` (id e nome), `criado_em` e `atualizado_em`. As rotas públicas não mostram esses campos.
 
+### Alunos (admin)
+
+- **Desativar** (DELETE ou PATCH com `ativo: false`) revoga as reservas ativas que ainda não terminaram, com a justificativa "Cadastro do aluno desativado." e email para o aluno. Reativar é PATCH com `ativo: true`.
+- Aluno inativo não reserva (RA recusado com 422) e não pode ser usado na consulta de disponibilidade.
+- **Mudança de curso:** o limite semanal conta pelo curso atual do aluno, então as reservas dele passam a contar para o curso novo.
+- O RA continua único; ao editar, a validação ignora o próprio aluno.
+
+### LGPD
+
+- **Rotas públicas** nunca mostram RA nem email; o calendário mostra só nome e curso de quem reservou.
+- **Consulta das próprias reservas** (passo futuro) exigirá RA + email.
+- **Anonimização** (`POST /api/admin/alunos/{id}/anonimizar`, irreversível, exige `"confirmar": true`): troca nome por "Aluno anonimizado", RA por `A` + id (ex.: `A000000042`) e email por um endereço inválido; desativa o aluno; revoga as reservas futuras **sem enviar email**; e substitui nome, RA e email por `[anonimizado]` no histórico de auditoria. As reservas passadas continuam, para as estatísticas, ligadas ao aluno anônimo. O RA original fica livre para um novo cadastro.
+- Aluno anonimizado não pode mais ser editado, desativado ou anonimizado de novo (409).
+- **Fora do sistema:** CSVs já exportados e emails já enviados não são alcançados pela anonimização. Em desenvolvimento, `MAIL_MAILER=log` grava os emails (com dados pessoais) em `storage/logs`; em produção, usar um serviço de envio e não o log.
+
 ### Compatibilidade com bancos de dados
 
 O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **MySQL (5.7+)** e **Postgres**:
@@ -310,6 +329,9 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 |---|---|
 | Aluno sem login, só com RA | Simplicidade de uso. Risco: alguém usar o RA de outra pessoa. Mitigação prevista: email com link de cancelamento a cada reserva (item 8) |
 | Listagem de alunos só para admin | Evita expor nome, RA e email publicamente |
+| Desativar aluno revoga as reservas futuras | Normalmente o aluno saiu da faculdade; manter as reservas só prenderia horários |
+| Anonimizar em vez de apagar o aluno | Atende o pedido de exclusão da LGPD sem perder as estatísticas de uso; o histórico de auditoria também é limpo |
+| Anonimização exige `confirmar: true` | É irreversível; evita execução acidental |
 | Listagem de reservas sem filtro de data mostra **de hoje em diante** | É o que o admin mais consulta; o histórico vem com `de`/`ate` |
 | Totais por status **ignoram o filtro de status** | O painel mostra quantas estão ativas, revogadas e canceladas mesmo quando a lista exibe só uma delas |
 | Consulta com filtros de reservas em `ReservaRepository` | Começou no service; foi para o repositório quando a exportação passou a reaproveitá-la |
@@ -356,6 +378,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `AlunoAdminTest` | Filtros, detalhe, edição, desativação com revogação e email, reativação, aluno inativo sem reservar, mudança de curso no limite semanal, anonimização (confirmação, dados e histórico limpos, sem email, bloqueio de alterações, RA liberado) |
 | `EspacoTest` | CRUD, PATCH, filtros, bloqueio de desativação com reservas futuras, paginação padronizada |
 | `EquipamentoTest` | Nome único por espaço, filtros, compartilháveis, redução de estoque |
 | `ReservaTest` | Reserva, conflito de horário, RA/espaço inválidos |
@@ -390,6 +413,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Gestão de alunos e LGPD | Filtros, detalhe, edição, desativação com revogação das reservas futuras, anonimização com limpeza do histórico |
 | Limpeza do código | Índices para o Postgres, contagem semanal e totais por status no `ReservaRepository`, paginação no controller base, nomes do `AlunoService`, código morto removido, Laravel Pint |
 | Compatibilidade de bancos | Buscas com `whereLike` (ilike no Postgres), regra `NomeUnico`, datas comparadas sem `whereDate` |
 | Auditoria | `criado_por`/`atualizado_por` nas tabelas principais, tabela `auditorias` com antes/depois, trait `Auditavel`, campos nas respostas do admin |
@@ -403,14 +427,13 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada:
 
-1. **Gestão de alunos (admin):** editar e desativar alunos. Desativar em vez de apagar, para manter o histórico de reservas.
-2. **Consulta das próprias reservas pelo aluno:** rota pública que exige **RA + email cadastrado** (só o RA não basta: ele não é secreto e revelaria onde e quando a pessoa estará).
-3. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
-4. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired` e importa os feriados do ano seguinte).
-5. **Item 10 — Admins:** `UserResource` no `/me`; um admin cadastra outros admins (convite por email para definir a senha).
-6. **Recuperação de senha do admin:** link por email para redefinir a senha.
-7. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
-8. **Front-end em Angular:** projeto separado consumindo esta API (não será feito com Blade).
+1. **Consulta das próprias reservas pelo aluno:** rota pública que exige **RA + email cadastrado** (só o RA não basta: ele não é secreto e revelaria onde e quando a pessoa estará).
+2. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
+3. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired` e importa os feriados do ano seguinte).
+4. **Item 10 — Admins:** `UserResource` no `/me`; um admin cadastra outros admins (convite por email para definir a senha).
+5. **Recuperação de senha do admin:** link por email para redefinir a senha.
+6. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
+7. **Front-end em Angular:** projeto separado consumindo esta API (não será feito com Blade).
 
 ### Emails do sistema
 

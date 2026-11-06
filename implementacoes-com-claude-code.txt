@@ -773,3 +773,54 @@ pint.json + formatação — chore/style
 Anotado para depois (não feito): exportação com OFFSET em volumes muito grandes (keyset).
 
 tests/Feature/EspacoTest.php — teste de paginação (112 no total).
+
+========================================================================
+22. GESTÃO DE ALUNOS (ADMIN) E ANONIMIZAÇÃO (LGPD)
+========================================================================
+
+database/migrations/..._create_alunos_table.php (editada; exige migrate:fresh)
+  - ativo (default true) e anonimizado_em (nullable).
+
+app/Models/Aluno.php
+  - fillable + casts (ativo boolean, anonimizado_em datetime), $attributes ativo = true,
+    anonimizado().
+
+app/Models/Reserva.php
+  - scopeAtivasFuturas(): RESERVADO e ainda não terminada (data > hoje, ou hoje com
+    hora_fim > agora). Usado na desativação, anonimização e no total do detalhe.
+
+app/Services/ReservaService.php
+  - revogar() ganhou $notificar (padrão true). A anonimização revoga sem email: a pessoa pediu
+    para ser esquecida, e o email queued releria o aluno já anonimizado.
+
+app/Services/AlunoService.php
+  - listarPaginado(porPagina, filtros): busca (whereLike em nome/RA/email, sem diferenciar
+    maiúsculas, agrupada), curso_id, ativo; ordem nome + id.
+  - detalhar(): curso, auditoria e loadCount reservas_futuras_count.
+  - atualizar(aluno, data, admin): transação + lockForUpdate; 409 se anonimizado; se ativo
+    passa de true para false, revoga as reservas futuras ("Cadastro do aluno desativado.", com
+    email). Retorna [aluno, revogadas]. desativar() = atualizar com ativo false.
+  - anonimizar(): revoga futuras sem email ("Dados do aluno anonimizados a pedido (LGPD)."),
+    troca nome/RA/email (RA = 'A' + id com 9 dígitos; email @anonimizado.invalid, TLD reservado),
+    desativa, grava anonimizado_em e troca nome/RA/email por [anonimizado] em todas as linhas de
+    auditorias do aluno (inclusive a gerada pela própria anonimização).
+
+app/Http/Requests
+  - ListarAlunosRequest (busca, curso_id, ativo in 0/1/true/false), UpdateAlunoRequest (RA
+    único ignorando o próprio, curso ativo, ativo boolean), AnonimizarAlunoRequest
+    (confirmar accepted, mensagem explicando que é irreversível).
+  - StoreReservaRequest e ConsultarDisponibilidadeRequest: RA precisa ser de aluno ativo.
+
+app/Http/Controllers/AlunoController.php + routes/api.php
+  - GET/PATCH/DELETE /api/admin/alunos/{aluno}, POST /api/admin/alunos/{aluno}/anonimizar.
+    PATCH e DELETE respondem com additional reservas_revogadas.
+
+app/Http/Resources/AlunoResource.php
+  - ativo, anonimizado_em, reservas_futuras (whenCounted).
+
+database/factories/AlunoFactory.php — estado inativo().
+
+tests/Feature/AlunoAdminTest.php (novo) — 12 testes (124 no total).
+
+Padrões aplicados: compatibilidade (whereLike, datas sem whereDate), organização (service +
+requests + scope reaproveitado), desempenho (loadCount, eager loading) e LGPD.

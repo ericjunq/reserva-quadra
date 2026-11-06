@@ -36,7 +36,10 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Cadastrar, editar, listar e desativar equipamentos (com filtros)
 - [x] Marcar equipamento como compartilhável entre espaços
 - [x] Cadastrar, editar, listar e desativar cursos
-- [x] Listar alunos
+- [x] Listar alunos com filtros (nome/RA/email, curso, ativo) e ver o detalhe
+- [x] Editar alunos (nome, RA, email, curso)
+- [x] Desativar e reativar alunos (desativar revoga as reservas futuras e avisa o aluno)
+- [x] Anonimizar aluno a pedido (LGPD), inclusive no histórico
 - [x] Listar reservas com filtros (data, espaço, tipo de espaço, curso, nome/RA do aluno, status, tipo, horário) e totais por status
 - [x] Ver o detalhe de uma reserva (aluno, curso, equipamentos, quem criou, quem revogou)
 - [x] Usar atalhos de período na listagem (hoje, semana atual, próxima semana, mês atual, mês anterior, ano)
@@ -58,7 +61,8 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Histórico de cada criação, alteração e exclusão, com o antes e o depois, quem fez e quando
 - [x] Código compatível com SQLite, MySQL e Postgres (buscas e nomes únicos sem diferenciar maiúsculas)
 - [x] Código formatado no padrão do Laravel (Pint)
-- [x] 112 testes automáticos passando
+- [x] Aluno inativo não consegue reservar
+- [x] 124 testes automáticos passando
 
 ---
 
@@ -66,7 +70,6 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 
 - [ ] **Rota para o admin consultar o histórico de alterações** (os dados já são gravados)
 - [ ] **Rodar os testes no banco de produção** (MySQL ou Postgres) quando ele for escolhido
-- [ ] **Admin editar e desativar alunos**
 - [ ] **Aluno ver as próprias reservas** informando RA + email
 - [ ] **Item 8 — Cancelamento pelo aluno:** email ao reservar, com link para cancelar
 - [ ] **Item 9 — Confirmação:** email 2 dias antes; reserva não confirmada é revogada sozinha
