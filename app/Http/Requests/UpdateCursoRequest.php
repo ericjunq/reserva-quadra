@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\NomeUnico;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateCursoRequest extends FormRequest
 {
@@ -15,7 +15,7 @@ class UpdateCursoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nome' => ['sometimes', 'string', 'max:100', Rule::unique('cursos', 'nome')->ignore($this->route('curso'))],
+            'nome' => ['sometimes', 'string', 'max:100', new NomeUnico('cursos', $this->route('curso')->id)],
             'ativo' => ['sometimes', 'boolean'],
         ];
     }

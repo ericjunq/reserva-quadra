@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\NomeUnico;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreEquipamentoRequest extends FormRequest
 {
@@ -18,8 +18,7 @@ class StoreEquipamentoRequest extends FormRequest
         return [
             'espaco_id' => ['required', 'integer', 'exists:espacos,id'],
             'nome' => [
-                'required', 'string', 'max:100', Rule::unique('equipamentos', 'nome')
-                    ->where('espaco_id', $this->input('espaco_id')),
+                'required', 'string', 'max:100', new NomeUnico('equipamentos', escopo: ['espaco_id' => $this->input('espaco_id')]),
             ],
             'quantidade_total' => ['required', 'integer', 'min:1'],
             'compartilhavel' => ['sometimes', 'boolean'],

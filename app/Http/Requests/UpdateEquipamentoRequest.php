@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\NomeUnico;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateEquipamentoRequest extends FormRequest
 {
@@ -20,9 +20,11 @@ class UpdateEquipamentoRequest extends FormRequest
                 'sometimes',
                 'string',
                 'max:100',
-                Rule::unique('equipamentos', 'nome')
-                    ->where('espaco_id', $this->route('equipamento')->espaco_id)
-                    ->ignore($this->route('equipamento')),
+                new NomeUnico(
+                    'equipamentos',
+                    $this->route('equipamento')->id,
+                    ['espaco_id' => $this->route('equipamento')->espaco_id],
+                ),
             ],
             'quantidade_total' => ['sometimes', 'integer', 'min:1'],
             'ativo' => ['sometimes', 'boolean'],

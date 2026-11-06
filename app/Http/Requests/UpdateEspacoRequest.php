@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\NomeUnico;
 use App\Constants\TipoEspacoConstant;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -19,7 +20,7 @@ class UpdateEspacoRequest extends FormRequest
         return [
             'nome' => [
                 'sometimes', 'string', 'max:100',
-                Rule::unique('espacos', 'nome')->ignore($this->route('espaco')),
+                new NomeUnico('espacos', $this->route('espaco')->id),
             ],
             'tipo' => ['sometimes', Rule::enum(TipoEspacoConstant::class)],
             'ativo' => ['sometimes', 'boolean'],

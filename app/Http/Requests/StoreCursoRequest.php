@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\NomeUnico;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreCursoRequest extends FormRequest
 {
@@ -15,7 +15,7 @@ class StoreCursoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nome' => ['required', 'string', 'max:100', 'unique:cursos,nome'],
+            'nome' => ['required', 'string', 'max:100', new NomeUnico('cursos')],
         ];
     }
 }

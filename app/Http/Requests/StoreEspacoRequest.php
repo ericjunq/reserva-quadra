@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\NomeUnico;
 use App\Constants\TipoEspacoConstant;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,7 +18,7 @@ class StoreEspacoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nome' => ['required', 'string', 'max:100', 'unique:espacos,nome'],
+            'nome' => ['required', 'string', 'max:100', new NomeUnico('espacos')],
             'tipo' => ['required', Rule::enum(TipoEspacoConstant::class)],
             'limite_semanal_por_curso' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
