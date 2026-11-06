@@ -19,7 +19,7 @@ class ReservaController extends Controller
         $filtros = $request->filtros();
 
         return ReservaResource::collection(
-            $this->reservaService->listar($filtros, $request->input('ordem', 'asc'), (int) $request->input('per_page', 15))
+            $this->reservaService->listar($filtros, $request->input('ordem', 'asc'), $this->porPagina($request))
         )->additional(['totais_por_status' => $this->reservaService->totaisPorStatus($filtros)]);
     }
 

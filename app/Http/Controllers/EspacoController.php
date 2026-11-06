@@ -35,7 +35,7 @@ class EspacoController extends Controller
 
     public function index(Request $request)
     {
-        $porPagina = min((int) $request->query('per_page', 15), 100);
+        $porPagina = $this->porPagina($request);
         $tipo = TipoEspacoConstant::tryFrom((string) $request->query('tipo'));
 
         return EspacoResource::collection($this->espacoService->listarPaginado($porPagina, $tipo));

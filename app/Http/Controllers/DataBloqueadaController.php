@@ -17,7 +17,7 @@ class DataBloqueadaController extends Controller
     public function index(Request $request)
     {
         return DataBloqueadaResource::collection($this->dataBloqueadaService->listarPaginado(
-            min((int) $request->query('per_page', 15), 100),
+            $this->porPagina($request),
             $request->date('de')?->toDateString(),
             $request->date('ate')?->toDateString(),
             $request->integer('espaco_id') ?: null,

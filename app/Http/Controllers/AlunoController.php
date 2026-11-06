@@ -10,16 +10,18 @@ use App\Http\Resources\AlunoResource;
 
 class AlunoController extends Controller
 {
-    public function index(Request $request, AlunoService $alunoService)
+    public function __construct(private AlunoService $alunoService) {}
+
+    public function index(Request $request)
     {
-        $alunos = $alunoService->listarPaginado(min((int) $request->query('per_page', 15), 100));
+        $alunos = $this->alunoService->listarPaginado($this->porPagina($request));
 
         return AlunoResource::collection($alunos);
     }
 
-    public function store(StoreAlunoRequest $request, AlunoService $alunoService)
+    public function store(StoreAlunoRequest $request)
     {
-        $aluno = $alunoService->criar($request->validated());
+        $aluno = $this->alunoService->criar($request->validated());
 
         return (new AlunoResource($aluno))->response()->setStatusCode(201);
     }

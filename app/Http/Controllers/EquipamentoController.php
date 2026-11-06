@@ -17,7 +17,7 @@ class EquipamentoController extends Controller
 
     public function index(Request $request)
     {
-        $porPagina = min((int) $request->query('per_page', 15), 100);
+        $porPagina = $this->porPagina($request);
 
         return EquipamentoResource::collection(
             $this->equipamentoService->listarPaginado(
