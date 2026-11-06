@@ -32,7 +32,7 @@ class EquipamentoService
     ): LengthAwarePaginator {
         return Equipamento::with(Auditoria::RELACOES)
         ->when($espacoId, fn ($q) => $q->where('espaco_id', $espacoId))
-        ->when($nome, fn ($q) => $q->where('nome', 'like', "%{$nome}%"))
+        ->when($nome, fn ($q) => $q->whereLike('nome', "%{$nome}%", caseSensitive: false))
         ->when(! is_null($ativo), fn ($q) => $q->where('ativo', $ativo))
         ->orderBy('nome')
         ->paginate($porPagina);

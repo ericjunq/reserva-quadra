@@ -19,8 +19,8 @@ class ReservaRepository
             ->when($filtros['tipo_espaco'] ?? null, fn ($q, $tipo) => $q->whereHas('espaco', fn ($e) => $e->where('tipo', $tipo)))
             ->when($filtros['curso_id'] ?? null, fn ($q, $curso) => $q->whereHas('aluno', fn ($a) => $a->where('curso_id', $curso)))
             ->when($filtros['busca'] ?? null, fn ($q, $busca) => $q->whereHas('aluno', fn ($a) => $a->where(fn ($w) => $w
-                ->where('nome_completo', 'like', "%{$busca}%")
-                ->orWhere('registro_academico', 'like', "%{$busca}%"))));
+                ->whereLike('nome_completo', "%{$busca}%", caseSensitive: false)
+                ->orWhereLike('registro_academico', "%{$busca}%", caseSensitive: false))));
     }
 
     public function ordenar(Builder $query, string $ordem = 'asc'): Builder
