@@ -18,6 +18,7 @@ erDiagram
     users ||--o{ reservas : "revoga"
     espacos ||--o{ reservas : "recebe"
     espacos ||--o{ equipamentos : "guarda"
+    users |o--o{ auditorias : "faz"
     espacos |o--o{ datas_bloqueadas : "bloqueado em"
     users |o--o{ datas_bloqueadas : "cadastra"
     reservas ||--o{ item_reservas : "pede"
@@ -69,7 +70,8 @@ erDiagram
         time hora_fim
         bigint espaco_id FK
         bigint aluno_id FK "reserva de aluno"
-        bigint user_id FK "evento do admin"
+        bigint criado_por FK "admin do evento"
+        bigint atualizado_por FK
         string status "RESERVADO, CANCELADO, REVOGADO"
         string tipo "ALUNO, EVENTO"
         string descricao "eventos"
@@ -97,10 +99,22 @@ erDiagram
         string motivo
         string origem "MANUAL, FERIADO"
         bigint criado_por FK
+        bigint atualizado_por FK
+    }
+
+    auditorias {
+        bigint id PK
+        string auditavel_type "model alterado"
+        bigint auditavel_id "registro alterado"
+        string acao "CRIACAO, ATUALIZACAO, EXCLUSAO"
+        json antes
+        json depois
+        bigint user_id FK "admin; null = público"
+        timestamp created_at
     }
 ```
 
-Todas as tabelas têm `created_at` e `updated_at`. Ficaram de fora do diagrama as tabelas internas do Laravel: tokens do Sanctum, filas, cache e sessões.
+Todas as tabelas têm `created_at` e `updated_at`. Cursos, alunos, espaços e equipamentos também têm `criado_por` e `atualizado_por` (FK para `users`), omitidos no diagrama para não poluí-lo; `auditorias` se liga a qualquer uma das tabelas auditadas pelo par `auditavel_type`/`auditavel_id`. Ficaram de fora do diagrama as tabelas internas do Laravel: tokens do Sanctum, filas, cache e sessões.
 
 ---
 
@@ -131,7 +145,7 @@ A disponibilidade muda a cada data e horário. Um número fixo não representa i
 ### Reservas
 
 **7. Alunos e eventos na mesma tabela `reservas`, diferenciados por `tipo`.**
-Os dois ocupam o espaço da mesma forma, então a verificação de conflito é uma só. O que muda é quem criou: `aluno_id` para o aluno, `user_id` para o admin no evento.
+Os dois ocupam o espaço da mesma forma, então a verificação de conflito é uma só. O que muda é quem criou: `aluno_id` para o aluno, `criado_por` para o admin no evento.
 
 **8. A reserva guarda `hora_inicio` e `hora_fim`, além do `horario`.**
 Hoje os horários são fixos (19:00 e 20:30). Guardar o intervalo prepara o sistema para horários livres (ex.: 7h às 22h) sem migração de dados. O conflito é verificado por **sobreposição** de intervalos, o que funciona nos dois modelos.
@@ -172,11 +186,26 @@ Ao reservar, o sistema trava a linha do espaço e dos equipamentos (`lockForUpda
 
 ---
 
+### Auditoria
+
+**18. Colunas `criado_por`/`atualizado_por` mais uma tabela de histórico.**
+As colunas respondem rápido "quem criou e quem mexeu por último", sem consulta extra. A tabela `auditorias` responde "o que mudou": cada criação, alteração e exclusão guarda os valores antes e depois (só dos campos alterados), quem fez e quando.
+
+**19. Histórico polimórfico, numa tabela só.**
+`auditavel_type` + `auditavel_id` apontam para qualquer tabela auditada. Uma tabela de histórico por entidade multiplicaria migrations e código sem ganho.
+
+**20. Vazio significa "não foi um admin".**
+O aluno não tem login, então ações pela rota pública ficam com `criado_por`, `atualizado_por` e `user_id` vazios, o mesmo valendo para comandos como a importação de feriados.
+
+**21. As chaves de auditoria usam `nullOnDelete`.**
+Se um admin for removido, os registros e o histórico continuam; só a referência a ele fica vazia.
+
+---
+
 ## Mudanças planejadas
 
 | Mudança | Para quê |
 |---|---|
-| Colunas de auditoria (`criado_por`, `atualizado_por`) | Saber quem criou e quem alterou cada registro, e quando |
 | Desativação de alunos | Admin remover aluno sem perder o histórico de reservas |
 | Cancelamento pelo aluno (item 8) | Status `CANCELADO` e data do cancelamento |
 | Configuração de horário por espaço | Horários livres: modo FIXO/LIVRE, janela de funcionamento e duração máxima |

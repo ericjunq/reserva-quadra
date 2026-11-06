@@ -135,9 +135,12 @@ users (admins) ──< reservas (criador de eventos / quem revogou)
 | `alunos` | `nome_completo`, `registro_academico` (RA, único, 10 dígitos), `email`, `curso_id` |
 | `espacos` | `nome` (único), `tipo` (QUADRA, LABORATORIO, SALA), `ativo`, `limite_semanal_por_curso` (vazio = sem limite) |
 | `equipamentos` | `espaco_id`, `nome` (único dentro do espaço), `quantidade_total`, `ativo`, `compartilhavel` |
-| `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `user_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `confirmacao_enviada_em`, `confirmada_em` |
+| `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `confirmacao_enviada_em`, `confirmada_em` |
 | `item_reservas` | `reserva_id`, `equipamento_id`, `quantidade` |
-| `datas_bloqueadas` | `data_inicio`, `data_fim`, `hora_inicio`/`hora_fim` (vazias = dia inteiro), `espaco_id` (vazio = todos), `motivo`, `origem` (MANUAL, FERIADO), `criado_por` |
+| `datas_bloqueadas` | `data_inicio`, `data_fim`, `hora_inicio`/`hora_fim` (vazias = dia inteiro), `espaco_id` (vazio = todos), `motivo`, `origem` (MANUAL, FERIADO) |
+| `auditorias` | `auditavel_type`/`auditavel_id` (registro alterado), `acao` (CRIACAO, ATUALIZACAO, EXCLUSAO), `antes`, `depois` (JSON), `user_id` (admin), `created_at` |
+
+Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também `criado_por` e `atualizado_por` (auditoria). Diagrama e decisões de modelagem em [`DATABASE.md`](DATABASE.md).
 
 ---
 
@@ -277,6 +280,13 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 - trava as **linhas dos equipamentos** pedidos (em ordem de id, para evitar deadlock), porque os compartilháveis podem ser disputados por espaços diferentes;
 - o admin, ao reduzir o estoque, trava o mesmo equipamento.
 
+### Auditoria
+
+- Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas guardam `criado_por` e `atualizado_por` (o admin logado). Ações pela rota pública (aluno) e por comandos (importação de feriados) ficam com esses campos vazios.
+- Toda criação, alteração e exclusão grava uma linha em `auditorias` com os valores **antes** e **depois** (só os campos que mudaram), quem fez e quando. Alteração sem mudança real não gera linha.
+- O preenchimento é automático, pelo trait `App\Models\Concerns\Auditavel`, nos eventos do Eloquent. Por isso as alterações precisam passar pelo model (`$model->update()`); um `update` em massa direto no query builder não é auditado.
+- Nas rotas do admin, as respostas trazem `criado_por` e `atualizado_por` (id e nome), `criado_em` e `atualizado_em`. As rotas públicas não mostram esses campos.
+
 ---
 
 ## 7. Decisões tomadas
@@ -290,6 +300,9 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 | Consulta com filtros de reservas em `ReservaRepository` | Começou no service; foi para o repositório quando a exportação passou a reaproveitá-la |
 | Exportação em **CSV**, não `.xlsx` | Abre no Excel sem biblioteca nova; `.xlsx` fica para quando alguém pedir |
 | Colunas obrigatórias + opcionais na exportação | O arquivo traz só o necessário: menos tamanho e menos consultas (relações só carregam se a coluna for pedida) |
+| Auditoria com colunas **e** tabela de histórico | As colunas mostram o último a alterar; o histórico mostra o que mudou em cada alteração (antes/depois) |
+| Auditoria por trait nos eventos do Eloquent | Nenhum service precisa lembrar de preencher; vale para qualquer alteração feita pelo model |
+| `reservas.user_id` renomeado para `criado_por` | Mesmo nome de coluna em todas as tabelas auditadas |
 | Proteção contra fórmulas no CSV | Nome ou descrição começando com `=` poderia virar fórmula no Excel (*CSV injection*) |
 | Cursos em **tabela**, não enum | Permitir reaproveitar o sistema em outras instituições da rede |
 | Equipamento pertence a um espaço + flag `compartilhavel` | Por padrão a bola da quadra fica restrita à quadra; o microscópio pode ser marcado para uso em salas |
@@ -336,6 +349,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `LimiteSemanalTest` | Limite por curso na quadra, semana seguinte, revogadas e eventos não contam |
 | `DatasBloqueadasTest` | Dia inteiro, por espaço, janela de horas, eventos ignorando, revogação automática com email, validações, edição e filtros |
 | `ImportarFeriadosTest` | Importação sem duplicar, facultativos, revogação de reservas em feriado |
+| `AuditoriaTest` | Colunas e histórico na criação, alteração, desativação e exclusão; ações públicas sem admin; revogação; alteração sem mudança; auditoria só nas rotas do admin; histórico após remover o admin |
 | `ExportacaoReservasTest` | Login, colunas obrigatórias, opcionais e todas, responsável em eventos, período e atalhos, filtros, mais de um lote, proteção contra fórmulas, validações |
 | `ListagemReservasTest` | Login obrigatório, padrão de hoje em diante, ordem, cada filtro e combinações, dados do aluno/espaço/equipamentos/revogação, totais por status, paginação, consultas sem N+1, validações |
 | `DisponibilidadeTest` | Situações dos horários, quem reservou sem RA/email, bloqueios, motivos do calendário, equipamentos por horário, dados do curso por RA/curso, validações |
@@ -359,6 +373,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Auditoria | `criado_por`/`atualizado_por` nas tabelas principais, tabela `auditorias` com antes/depois, trait `Auditavel`, campos nas respostas do admin |
 | Exportação de reservas | CSV com os filtros da listagem, atalhos de período, colunas opcionais, stream em lotes e proteção contra fórmulas; consulta movida para `ReservaRepository` |
 | Item 7 — Listagem de reservas (admin) | Lista paginada com filtros, detalhe, totais por status e dados completos de aluno, espaço, equipamentos, criador e revogador |
 | Item 5 — Consulta de disponibilidade | Calendário público por espaço (até 31 dias), situação de cada horário, quem reservou, equipamentos por horário, limite semanal do curso por RA/curso; antecedência passa a 10 dias úteis |
@@ -369,15 +384,14 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada:
 
-1. **Auditoria:** colunas `criado_por` e `atualizado_por` (admin que criou/alterou; vazio quando foi o aluno pela rota pública) nas tabelas principais, preenchidas automaticamente. O "quando" já vem de `created_at`/`updated_at`.
-2. **Gestão de alunos (admin):** editar e desativar alunos. Desativar em vez de apagar, para manter o histórico de reservas.
-3. **Consulta das próprias reservas pelo aluno:** rota pública que exige **RA + email cadastrado** (só o RA não basta: ele não é secreto e revelaria onde e quando a pessoa estará).
-4. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
-5. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired` e importa os feriados do ano seguinte).
-6. **Item 10 — Admins:** `UserResource` no `/me`; um admin cadastra outros admins (convite por email para definir a senha).
-7. **Recuperação de senha do admin:** link por email para redefinir a senha.
-8. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
-9. **Front-end em Angular:** projeto separado consumindo esta API (não será feito com Blade).
+1. **Gestão de alunos (admin):** editar e desativar alunos. Desativar em vez de apagar, para manter o histórico de reservas.
+2. **Consulta das próprias reservas pelo aluno:** rota pública que exige **RA + email cadastrado** (só o RA não basta: ele não é secreto e revelaria onde e quando a pessoa estará).
+3. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
+4. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired` e importa os feriados do ano seguinte).
+5. **Item 10 — Admins:** `UserResource` no `/me`; um admin cadastra outros admins (convite por email para definir a senha).
+6. **Recuperação de senha do admin:** link por email para redefinir a senha.
+7. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
+8. **Front-end em Angular:** projeto separado consumindo esta API (não será feito com Blade).
 
 ### Emails do sistema
 

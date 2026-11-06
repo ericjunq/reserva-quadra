@@ -663,3 +663,51 @@ app/Http/Controllers/ExportacaoReservasController.php (novo) + routes/api.php
     /reservas/{reserva} para não conflitar).
 
 tests/Feature/ExportacaoReservasTest.php (novo) — 12 testes (96 no total).
+
+========================================================================
+19. AUDITORIA (COLUNAS + HISTÓRICO)
+========================================================================
+
+database/migrations (editadas; exige migrate:fresh)
+  - cursos, alunos, espacos, equipamentos: criado_por e atualizado_por (FK users, nullOnDelete).
+  - reservas: user_id renomeado para criado_por (mesmo nome em todas as tabelas) + atualizado_por.
+  - datas_bloqueadas: + atualizado_por (criado_por já existia).
+  - 2026_11_06_130000_create_auditorias_table (nova): morphs auditavel, acao, antes/depois (json),
+    user_id (nullOnDelete), created_at. Índices em user_id e created_at.
+
+app/Constants/AcaoAuditoriaConstant.php (novo): CRIACAO, ATUALIZACAO, EXCLUSAO.
+
+app/Models/Auditoria.php (novo)
+  - Sem updated_at (registro imutável). RELACOES = ['criador:id,name', 'atualizador:id,name'],
+    usado para eager loading nas rotas do admin.
+
+app/Models/Concerns/Auditavel.php (novo trait), usado em Curso, Aluno, Espaco, Equipamento,
+Reserva e DataBloqueada
+  - creating: criado_por ??= Auth::id() (respeita valor explícito, ex.: evento e bloqueio);
+    atualizado_por = criado_por.
+  - updating: atualizado_por = Auth::id() (null se a ação veio da rota pública).
+  - created/updated/deleted: grava em auditorias. Na alteração, antes = valores originais só dos
+    campos que mudaram (getRawOriginal no evento updated, antes do syncOriginal) e depois =
+    getChanges(). Ignora created_at, updated_at e atualizado_por. Alteração sem mudança não grava.
+  - normalizarParaAuditoria(): converte bool/int conforme o cast (o SQLite devolve 1 no original
+    e o valor novo vem como false).
+  - Relações criador(), atualizador() e auditorias() (removidas as criador() próprias de Reserva
+    e DataBloqueada).
+  - Limitação: update em massa pelo query builder não dispara eventos (hoje não existe nenhum).
+    attach de equipamentos na reserva (pivot) também não é auditado.
+
+app/Http/Resources/Concerns/ExibeAuditoria.php (novo trait)
+  - auditoria(): mergeWhen com criado_por/atualizado_por {id, nome}, criado_em e atualizado_em,
+    só quando criador e atualizador foram carregados (rotas do admin). Rotas públicas não mostram.
+  - Usado em Espaco, Equipamento, Curso, Aluno, DataBloqueada (substitui criado_por = id) e
+    Reserva (substitui criado_por e criada_em).
+
+Services/Controllers do admin
+  - listarPaginado de espaços, equipamentos, cursos, alunos e datas bloqueadas com
+    with(Auditoria::RELACOES); store/show/update carregam as mesmas relações.
+    ReservaService::RELACOES_ADMIN ganhou 'atualizador'.
+
+tests/Feature/AuditoriaTest.php (novo) — 10 testes (106 no total).
+
+Commits separados por tipo (pedido do usuário): refactor (renomeação), feat (auditoria),
+feat (respostas do admin), fix (normalização), test, docs.

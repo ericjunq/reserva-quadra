@@ -41,6 +41,7 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Ver o detalhe de uma reserva (aluno, curso, equipamentos, quem criou, quem revogou)
 - [x] Usar atalhos de período na listagem (hoje, semana atual, próxima semana, mês atual, mês anterior, ano)
 - [x] Exportar reservas em CSV (abre no Excel), com os mesmos filtros e escolhendo as colunas opcionais
+- [x] Ver quem criou e quem alterou por último cada registro (espaços, equipamentos, cursos, alunos, reservas, bloqueios)
 - [x] Criar eventos (inclusive no fim de semana e em feriados)
 - [x] Revogar uma reserva de aluno com justificativa
 - [x] Criar evento por cima de uma reserva de aluno, revogando-a com justificativa
@@ -54,13 +55,14 @@ Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md).
 - [x] Duas pessoas reservando ao mesmo tempo não geram reserva duplicada
 - [x] Erros de regra de negócio com mensagem clara (409/422)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
-- [x] 96 testes automáticos passando
+- [x] Histórico de cada criação, alteração e exclusão, com o antes e o depois, quem fez e quando
+- [x] 106 testes automáticos passando
 
 ---
 
 ## ⬜ O que falta (na ordem combinada)
 
-- [ ] **Auditoria:** registrar quem criou e quem alterou cada registro
+- [ ] **Rota para o admin consultar o histórico de alterações** (os dados já são gravados)
 - [ ] **Admin editar e desativar alunos**
 - [ ] **Aluno ver as próprias reservas** informando RA + email
 - [ ] **Item 8 — Cancelamento pelo aluno:** email ao reservar, com link para cancelar
