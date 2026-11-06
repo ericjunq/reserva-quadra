@@ -6,6 +6,7 @@ use App\Http\Controllers\CursoController;
 use App\Http\Controllers\DataBloqueadaController;
 use App\Http\Controllers\EquipamentoController;
 use App\Http\Controllers\EspacoController;
+use App\Http\Controllers\ExportacaoReservasController;
 use App\Http\Controllers\ReservaController;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/datas-bloqueadas/{dataBloqueada}', [DataBloqueadaController::class, 'destroy']);
 
         Route::get('/reservas', [ReservaController::class, 'index']);
+        Route::get('/reservas/exportar', [ExportacaoReservasController::class, 'exportar']);
+        Route::get('/reservas/exportar/colunas', [ExportacaoReservasController::class, 'colunas']);
         Route::get('/reservas/{reserva}', [ReservaController::class, 'show']);
         Route::post('/reservas/eventos', [ReservaController::class, 'storeEvento']);
         Route::post('/reservas/{reserva}/revogar', [ReservaController::class, 'revogar']);

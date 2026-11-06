@@ -621,3 +621,45 @@ app/Http/Resources/ReservaResource.php
   - A rota pública de criação não carrega essas relações, então não expõe dados extras.
 
 tests/Feature/ListagemReservasTest.php (novo) — 12 testes (84 no total).
+
+========================================================================
+18. EXPORTAÇÃO DE RESERVAS (CSV)
+========================================================================
+
+app/Constants/PeriodoConstant.php (novo)
+  - Atalhos HOJE, SEMANA_ATUAL, PROXIMA_SEMANA (seg–dom), MES_ATUAL, MES_ANTERIOR, ANO_ATUAL.
+    intervalo() devolve [de, ate] em Y-m-d.
+
+app/Repositories/ReservaRepository.php (novo)
+  - filtrar(filtros) e ordenar(query, ordem): saíram do ReservaService porque agora são
+    reaproveitados pela listagem e pela exportação (regra: repositório para consulta complexa
+    e reaproveitada).
+
+app/Services/ReservaService.php
+  - listar() e totaisPorStatus() usam o ReservaRepository (injetado no construtor).
+
+app/Http/Requests/ListarReservasRequest.php
+  - Novo filtro periodo (enum), que proíbe de/ate juntos (prohibits) e é convertido em de/ate
+    em filtros().
+
+app/Http/Requests/ExportarReservasRequest.php (novo, estende ListarReservasRequest)
+  - Sem per_page. colunas[] com as chaves opcionais ou "todas". Período máximo de 366 dias
+    (só checado quando de e ate vêm juntos).
+
+app/Services/ExportacaoReservasService.php (novo)
+  - COLUNAS_OBRIGATORIAS (id, data, horário, espaço, tipo, status, responsável) e
+    COLUNAS_OPCIONAIS (tipo_espaco, registro_academico, email, curso, equipamentos, descricao,
+    criada_em, revogacao -> 3 colunas). A ordem das opcionais no arquivo é sempre a da constante.
+  - streamDownload + lazy(500): lotes de 500 sem carregar tudo; relações carregadas só quando a
+    coluna pedida precisa delas (curso, equipamentos, revogador).
+  - CSV: BOM UTF-8, separador ";", escape vazio no fputcsv (padrão do PHP 8.4+).
+  - protegerContraFormula(): prefixa "'" em valores iniciados por = + - @ tab ou CR
+    (CSV injection: nome de aluno como =HYPERLINK(...) viraria fórmula no Excel).
+  - Nome do arquivo conforme o período: reservas_{de}_a_{ate}.csv / reservas_a_partir_de_{de}.csv.
+  - colunasDisponiveis(): lista para o front montar os checkboxes.
+
+app/Http/Controllers/ExportacaoReservasController.php (novo) + routes/api.php
+  - GET /api/admin/reservas/exportar e /api/admin/reservas/exportar/colunas (antes de
+    /reservas/{reserva} para não conflitar).
+
+tests/Feature/ExportacaoReservasTest.php (novo) — 12 testes (96 no total).
