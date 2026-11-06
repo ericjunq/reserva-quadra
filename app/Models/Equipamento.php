@@ -26,7 +26,8 @@ class Equipamento extends Model
     public function reservas(): BelongsToMany
     {
         return $this->belongsToMany(Reserva::class, 'item_reservas')
-            ->withPivot('quantidade')
+            ->using(ItemReserva::class)
+            ->withPivot(ItemReserva::COLUNAS)
             ->withTimestamps();
     }
 
