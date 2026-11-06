@@ -176,8 +176,7 @@ class ReservaService
             ->where('reservas.espaco_id', $espaco->id)
             ->where('reservas.tipo', TipoReservaConstant::ALUNO)
             ->where('reservas.status', StatusConstant::RESERVADO)
-            ->whereDate('reservas.data_reserva', '>=', $segunda->toDateString())
-            ->whereDate('reservas.data_reserva', '<=', $sexta->toDateString())
+            ->whereBetween('reservas.data_reserva', [$segunda->toDateString(), $sexta->toDateString()])
             ->count();
 
         if ($total >= $limite) {
@@ -250,7 +249,7 @@ class ReservaService
     private function buscarConflito(array $data): ?Reserva
     {
         return Reserva::where('espaco_id', $data['espaco_id'])
-            ->whereDate('data_reserva', $data['data_reserva'])
+            ->where('data_reserva', $data['data_reserva'])
             ->where('hora_inicio', '<', $data['hora_fim'])
             ->where('hora_fim', '>', $data['hora_inicio'])
             ->where('status', StatusConstant::RESERVADO)

@@ -56,7 +56,7 @@ class EspacoService
     {
         $quantidade = $espaco->reservas()
             ->where('status', StatusConstant::RESERVADO)
-            ->whereDate('data_reserva', '>=', today())
+            ->where('data_reserva', '>=', today()->toDateString())
             ->count();
 
         if ($quantidade > 0) {
