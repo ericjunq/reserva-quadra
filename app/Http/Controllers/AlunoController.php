@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AnonimizarAlunoRequest;
 use App\Http\Requests\ListarAlunosRequest;
 use App\Http\Requests\StoreAlunoRequest;
 use App\Http\Requests\UpdateAlunoRequest;
@@ -38,6 +39,11 @@ class AlunoController extends Controller
         [$aluno, $revogadas] = $this->alunoService->atualizar($aluno, $request->validated(), $request->user());
 
         return (new AlunoResource($aluno))->additional(['reservas_revogadas' => $revogadas]);
+    }
+
+    public function anonimizar(AnonimizarAlunoRequest $request, Aluno $aluno)
+    {
+        return new AlunoResource($this->alunoService->anonimizar($aluno, $request->user()));
     }
 
     public function destroy(Request $request, Aluno $aluno)

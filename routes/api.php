@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/alunos/{aluno}', [AlunoController::class, 'show']);
         Route::patch('/alunos/{aluno}', [AlunoController::class, 'update']);
         Route::delete('/alunos/{aluno}', [AlunoController::class, 'destroy']);
+        Route::post('/alunos/{aluno}/anonimizar', [AlunoController::class, 'anonimizar']);
 
         Route::get('/datas-bloqueadas', [DataBloqueadaController::class, 'index']);
         Route::post('/datas-bloqueadas', [DataBloqueadaController::class, 'store']);

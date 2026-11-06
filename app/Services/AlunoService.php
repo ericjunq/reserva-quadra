@@ -14,6 +14,12 @@ class AlunoService
 {
     public const JUSTIFICATIVA_DESATIVACAO = 'Cadastro do aluno desativado.';
 
+    public const JUSTIFICATIVA_ANONIMIZACAO = 'Dados do aluno anonimizados a pedido (LGPD).';
+
+    public const CAMPOS_PESSOAIS = ['nome_completo', 'registro_academico', 'email'];
+
+    public const VALOR_ANONIMIZADO = '[anonimizado]';
+
     public function __construct(private ReservaService $reservaService) {}
 
     public function criar(array $data): Aluno
@@ -63,6 +69,56 @@ class AlunoService
         return $this->atualizar($aluno, ['ativo' => false], $admin);
     }
 
+    public function anonimizar(Aluno $aluno, ?User $admin): Aluno
+    {
+        return DB::transaction(function () use ($aluno, $admin) {
+            $aluno = $this->travar($aluno);
+
+            $reservas = Reserva::where('aluno_id', $aluno->id)->ativasFuturas()->get();
+
+            foreach ($reservas as $reserva) {
+                $this->reservaService->revogar($reserva, $admin, self::JUSTIFICATIVA_ANONIMIZACAO, notificar: false);
+            }
+
+            $aluno->update([
+                'nome_completo'      => 'Aluno anonimizado',
+                'registro_academico' => 'A'.str_pad((string) $aluno->id, 9, '0', STR_PAD_LEFT),
+                'email'              => "anonimizado-{$aluno->id}@anonimizado.invalid",
+                'ativo'              => false,
+                'anonimizado_em'     => now(),
+            ]);
+
+            $this->anonimizarHistorico($aluno);
+
+            return $this->detalhar($aluno);
+        });
+    }
+
+    private function anonimizarHistorico(Aluno $aluno): void
+    {
+        $aluno->auditorias()->get()->each(function (Auditoria $auditoria) {
+            $auditoria->update([
+                'antes'  => $this->ocultarCamposPessoais($auditoria->antes),
+                'depois' => $this->ocultarCamposPessoais($auditoria->depois),
+            ]);
+        });
+    }
+
+    private function ocultarCamposPessoais(?array $valores): ?array
+    {
+        if ($valores === null) {
+            return null;
+        }
+
+        foreach (self::CAMPOS_PESSOAIS as $campo) {
+            if (array_key_exists($campo, $valores)) {
+                $valores[$campo] = self::VALOR_ANONIMIZADO;
+            }
+        }
+
+        return $valores;
+    }
+
     private function travar(Aluno $aluno): Aluno
     {
         $aluno = Aluno::whereKey($aluno->id)->lockForUpdate()->firstOrFail();
@@ -74,12 +130,12 @@ class AlunoService
         return $aluno;
     }
 
-    private function revogarReservasFuturas(Aluno $aluno, ?User $admin, bool $notificar = true): int
+    private function revogarReservasFuturas(Aluno $aluno, ?User $admin): int
     {
         $reservas = Reserva::where('aluno_id', $aluno->id)->ativasFuturas()->get();
 
         foreach ($reservas as $reserva) {
-            $this->reservaService->revogar($reserva, $admin, self::JUSTIFICATIVA_DESATIVACAO, $notificar);
+            $this->reservaService->revogar($reserva, $admin, self::JUSTIFICATIVA_DESATIVACAO);
         }
 
         return $reservas->count();
