@@ -19,6 +19,7 @@ class StoreEspacoRequest extends FormRequest
         return [
             'nome' => ['required', 'string', 'max:100', 'unique:espacos,nome'],
             'tipo' => ['required', Rule::enum(TipoEspacoConstant::class)],
+            'limite_semanal_por_curso' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
     }
 }

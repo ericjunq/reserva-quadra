@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Constants\HorarioReservaConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Exceptions\RegraNegocioException;
@@ -11,6 +12,7 @@ use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Models\Reserva;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
@@ -19,17 +21,21 @@ class ReservaService
     public function create(array $data): Reserva
     {
         $aluno = Aluno::where('registro_academico', $data['registro_academico'])->firstOrFail();
+        $data = $this->resolverIntervalo($data);
 
         return DB::transaction(function () use ($aluno, $data) {
-            $this->travarEspaco($data['espaco_id']);
+            $espaco = $this->travarEspaco($data['espaco_id']);
             $this->verificarConflitoDeEspaco($data);
+            $this->verificarLimiteSemanalDoCurso($aluno, $espaco, $data);
             $this->verificarDisponibilidadeEquipamentos($data);
 
             $reserva = $aluno->reservas()->create([
                 'data_reserva' => $data['data_reserva'],
-                'horario'   => $data['horario'],
-                'espaco_id' => $data['espaco_id'],
-                'tipo'      => TipoReservaConstant::ALUNO,
+                'horario'      => $data['horario'],
+                'hora_inicio'  => $data['hora_inicio'],
+                'hora_fim'     => $data['hora_fim'],
+                'espaco_id'    => $data['espaco_id'],
+                'tipo'         => TipoReservaConstant::ALUNO,
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
@@ -40,6 +46,8 @@ class ReservaService
 
     public function criarEvento(array $data, User $admin): Reserva
     {
+        $data = $this->resolverIntervalo($data);
+
         return DB::transaction(function () use ($data, $admin) {
             $this->travarEspaco($data['espaco_id']);
 
@@ -59,8 +67,10 @@ class ReservaService
 
             $reserva = Reserva::create([
                 'data_reserva' => $data['data_reserva'],
-                'horario'   => $data['horario'],
-                'espaco_id' => $data['espaco_id'],
+                'horario'      => $data['horario'],
+                'hora_inicio'  => $data['hora_inicio'],
+                'hora_fim'     => $data['hora_fim'],
+                'espaco_id'    => $data['espaco_id'],
                 'descricao' => $data['descricao'],
                 'user_id'   => $admin->id,
                 'tipo'      => TipoReservaConstant::EVENTO,
@@ -102,9 +112,50 @@ class ReservaService
         });
     }
 
-    private function travarEspaco(int $espacoId): void
+    private function resolverIntervalo(array $data): array
     {
-        Espaco::whereKey($espacoId)->lockForUpdate()->firstOrFail();
+        $horario = HorarioReservaConstant::from($data['horario']);
+
+        return $data + [
+            'hora_inicio' => $horario->horaInicio(),
+            'hora_fim'    => $horario->horaFim(),
+        ];
+    }
+
+    private function travarEspaco(int $espacoId): Espaco
+    {
+        return Espaco::whereKey($espacoId)->lockForUpdate()->firstOrFail();
+    }
+
+    private function verificarLimiteSemanalDoCurso(Aluno $aluno, Espaco $espaco, array $data): void
+    {
+        $limite = $espaco->limite_semanal_por_curso;
+
+        if (! $limite) {
+            return;
+        }
+
+        $segunda = Carbon::parse($data['data_reserva'])->startOfWeek(Carbon::MONDAY);
+        $sexta = $segunda->copy()->addDays(4);
+
+        $total = Reserva::query()
+            ->join('alunos', 'alunos.id', '=', 'reservas.aluno_id')
+            ->where('alunos.curso_id', $aluno->curso_id)
+            ->where('reservas.espaco_id', $espaco->id)
+            ->where('reservas.tipo', TipoReservaConstant::ALUNO)
+            ->where('reservas.status', StatusConstant::RESERVADO)
+            ->whereDate('reservas.data_reserva', '>=', $segunda->toDateString())
+            ->whereDate('reservas.data_reserva', '<=', $sexta->toDateString())
+            ->count();
+
+        if ($total >= $limite) {
+            $curso = $aluno->curso->nome;
+
+            throw new RegraNegocioException(
+                "O curso {$curso} já tem {$total} reserva(s) nesta semana para {$espaco->nome}. O limite é {$limite} por semana.",
+                409,
+            );
+        }
     }
 
     private function verificarConflitoDeEspaco(array $data): void
@@ -130,7 +181,8 @@ class ReservaService
             ->join('reservas', 'reservas.id', '=', 'item_reservas.reserva_id')
             ->whereIn('item_reservas.equipamento_id', $ids)
             ->whereDate('reservas.data_reserva', $data['data_reserva'])
-            ->where('reservas.horario', $data['horario'])
+            ->where('reservas.hora_inicio', '<', $data['hora_fim'])
+            ->where('reservas.hora_fim', '>', $data['hora_inicio'])
             ->where('reservas.status', StatusConstant::RESERVADO->value)
             ->groupBy('item_reservas.equipamento_id')
             ->selectRaw('item_reservas.equipamento_id, SUM(item_reservas.quantidade) as total')
@@ -175,7 +227,8 @@ class ReservaService
     {
         return Reserva::where('espaco_id', $data['espaco_id'])
             ->whereDate('data_reserva', $data['data_reserva'])
-            ->where('horario', $data['horario'])
+            ->where('hora_inicio', '<', $data['hora_fim'])
+            ->where('hora_fim', '>', $data['hora_inicio'])
             ->where('status', StatusConstant::RESERVADO)
             ->first();
     }

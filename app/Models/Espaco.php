@@ -3,19 +3,22 @@
 namespace App\Models;
 
 use App\Constants\TipoEspacoConstant;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Espaco extends Model
 {
+    use HasFactory;
 
-    protected $fillable = ['nome', 'tipo', 'ativo'];
+    protected $fillable = ['nome', 'tipo', 'ativo', 'limite_semanal_por_curso'];
 
     protected function casts(): array
     {
         return [
             'tipo' => TipoEspacoConstant::class,
-            'ativo' => 'boolean'
+            'ativo' => 'boolean',
+            'limite_semanal_por_curso' => 'integer',
         ];
     }
 

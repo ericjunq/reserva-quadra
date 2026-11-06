@@ -16,9 +16,9 @@ class ReservaResource extends JsonResource
         return [
             'id'             => $this->id,
             'data_reserva'   => $data,
-            'horario'        => $this->horario->value,
-            'horario_inicio' => "{$data} {$this->horario->inicio()}",
-            'horario_fim'    => "{$data} {$this->horario->fim()}",
+            'horario'        => $this->horario?->value,
+            'hora_inicio'    => substr($this->hora_inicio, 0, 5),
+            'hora_fim'       => substr($this->hora_fim, 0, 5),
             'status'         => $this->status->value,
             'tipo'           => $this->tipo->value,
             'espaco_id'      => $this->espaco_id,

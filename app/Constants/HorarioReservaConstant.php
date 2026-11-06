@@ -25,6 +25,16 @@ enum HorarioReservaConstant: string
             ->format('H:i');
     }
 
+    public function horaInicio(): string
+    {
+        return $this->inicio() . ':00';
+    }
+
+    public function horaFim(): string
+    {
+        return $this->fim() . ':00';
+    }
+
     public function label(): string
     {
         return "{$this->inicio()} - {$this->fim()}";

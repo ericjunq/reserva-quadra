@@ -23,6 +23,7 @@ class UpdateEspacoRequest extends FormRequest
             ],
             'tipo' => ['sometimes', Rule::enum(TipoEspacoConstant::class)],
             'ativo' => ['sometimes', 'boolean'],
+            'limite_semanal_por_curso' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:50'],
         ];
     }
 }

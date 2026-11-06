@@ -66,7 +66,7 @@ class EquipamentoService
         ->where('item_reservas.equipamento_id', $equipamento->id)
         ->where('reservas.status', StatusConstant::RESERVADO->value)
         ->where('reservas.data_reserva', '>=', today())
-        ->groupBy('reservas.data_reserva', 'reservas.horario')
+        ->groupBy('reservas.data_reserva', 'reservas.hora_inicio')
         ->selectRaw('SUM(item_reservas.quantidade) as total')
         ->orderByDesc('total')
         ->value('total') ?? 0;

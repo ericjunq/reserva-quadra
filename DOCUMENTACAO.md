@@ -1,0 +1,312 @@
+# Sistema de Reservas de Espaços — Documentação de Desenvolvimento
+
+API (backend) em Laravel para reservar os espaços da faculdade (quadra, laboratórios e salas) e os equipamentos desses espaços.
+
+> Este documento descreve **o que o sistema faz, como rodar, as decisões tomadas e o que vem pela frente**.
+> O registro detalhado de cada alteração, arquivo por arquivo, fica em [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt).
+
+---
+
+## Sumário
+
+1. [Visão geral](#1-visão-geral)
+2. [Como rodar](#2-como-rodar)
+3. [Estrutura do código](#3-estrutura-do-código)
+4. [Modelo de dados](#4-modelo-de-dados)
+5. [Endpoints](#5-endpoints)
+6. [Regras de negócio](#6-regras-de-negócio)
+7. [Decisões tomadas](#7-decisões-tomadas)
+8. [Testes](#8-testes)
+9. [Histórico do desenvolvimento](#9-histórico-do-desenvolvimento)
+10. [Próximos passos](#10-próximos-passos)
+
+---
+
+## 1. Visão geral
+
+Há dois tipos de usuário:
+
+| Quem | Como acessa | O que faz |
+|---|---|---|
+| **Aluno** | Sem login, informando o RA | Escolhe espaço, data, horário e (opcionalmente) equipamentos e quantidades |
+| **Admin** (funcionário) | Login com token (Sanctum) | Gerencia espaços, equipamentos, cursos e alunos; cria eventos; revoga reservas |
+
+- Toda reserva nasce com status `RESERVADO`.
+- A quadra usa **horários fixos** de 1h30: `19:00–20:30` e `20:30–22:00`.
+- O sistema começou pela quadra (atléticas), mas já está pronto para laboratórios e salas, cada um com nome próprio.
+
+**Stack:** PHP 8.3+, Laravel 13, Laravel Sanctum, SQLite em desenvolvimento.
+
+---
+
+## 2. Como rodar
+
+### Primeira vez
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate:fresh --seed
+```
+
+O `--seed` cria:
+
+- **Admin:** `admin@email.com` / senha `Admin` (senha simples de propósito, porque o banco é resetado com frequência em desenvolvimento);
+- **Cursos** da faculdade;
+- **Dados de demonstração** (só com `APP_ENV=local`): quadra (limite de 3 reservas por curso na semana), laboratórios, salas, equipamentos e alunos.
+
+### No dia a dia
+
+```bash
+php artisan serve          # API em http://localhost:8000
+php artisan queue:work     # envia os emails (em dev eles aparecem em storage/logs/laravel.log)
+php artisan test           # roda os testes
+```
+
+Depois de alterar migrations, rode `php artisan migrate:fresh --seed` (**apaga os dados locais**).
+
+### Fazer login como admin
+
+```http
+POST /api/login
+{ "email": "admin@email.com", "password": "Admin" }
+```
+
+Use o `token` devolvido no cabeçalho `Authorization: Bearer <token>`. O token vale 8 horas.
+
+### Variáveis de ambiente do negócio
+
+Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo `.env`:
+
+| Variável | Padrão | O que controla |
+|---|---|---|
+| `RESERVA_ANTECEDENCIA_MAXIMA_DIAS` | 7 | Até quantos dias à frente o aluno pode reservar |
+| `RESERVA_MINUTOS_ANTES_DO_FIM` | 20 | Até quantos minutos antes do fim um horário de hoje pode ser reservado |
+| `RESERVA_CONFIRMACAO_DIAS_ANTES` | 2 | Quantos dias antes o pedido de confirmação é enviado (item 9) |
+| `APP_TIMEZONE` | America/Sao_Paulo | Fuso usado nas regras de "hoje" e no agendador |
+
+---
+
+## 3. Estrutura do código
+
+| Pasta | Papel |
+|---|---|
+| `app/Constants` | Enums: horários, status, tipo de espaço, tipo de reserva |
+| `app/Http/Controllers` | Recebem a requisição e devolvem o resource. Não têm regra de negócio |
+| `app/Http/Requests` | Validação da **entrada** (erro 422, com o campo) |
+| `app/Http/Requests/Concerns` | Validações compartilhadas entre requests (ex.: equipamentos da reserva) |
+| `app/Rules` | Regras de validação reutilizáveis (dia útil, antecedência, horário ainda reservável) |
+| `app/Services` | Regras de negócio que dependem do banco (conflitos, estoque, limites), dentro de transações |
+| `app/Http/Resources` | Formato das respostas JSON (sempre dentro de `data`) |
+| `app/Exceptions` | `RegraNegocioException` (respostas 409/422 com mensagem e dados extras) |
+| `app/Mail` + `resources/views/emails` | Emails (revogação) |
+| `database/factories` + `database/seeders` | Dados de teste e de demonstração |
+| `tests/Feature` | Testes da API, separados por assunto |
+
+**Convenções:**
+
+- Erros de **entrada** (campo inválido) → `422` no request.
+- Erros de **regra de negócio** que dependem do estado do banco (horário ocupado, estoque, limite semanal) → `RegraNegocioException`: `409` para conflitos, `422` para as demais.
+- Update só por **PATCH** (atualização parcial).
+- Exclusão de espaços, equipamentos e cursos = **desativação** (`ativo = false`), para não perder o histórico.
+- Sem comentários no código: as explicações ficam no `implementacoes-com-claude-code.txt` e neste documento.
+
+---
+
+## 4. Modelo de dados
+
+```
+cursos ──< alunos ──< reservas >── espacos ──< equipamentos
+                         │                          │
+                         └──────< item_reservas >───┘
+users (admins) ──< reservas (criador de eventos / quem revogou)
+```
+
+| Tabela | Colunas principais |
+|---|---|
+| `cursos` | `nome` (único), `ativo` |
+| `alunos` | `nome_completo`, `registro_academico` (RA, único, 10 dígitos), `email`, `curso_id` |
+| `espacos` | `nome` (único), `tipo` (QUADRA, LABORATORIO, SALA), `ativo`, `limite_semanal_por_curso` (vazio = sem limite) |
+| `equipamentos` | `espaco_id`, `nome` (único dentro do espaço), `quantidade_total`, `ativo`, `compartilhavel` |
+| `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `user_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `confirmacao_enviada_em`, `confirmada_em` |
+| `item_reservas` | `reserva_id`, `equipamento_id`, `quantidade` |
+
+---
+
+## 5. Endpoints
+
+### Públicos (alunos, sem login)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/cursos` | Cursos ativos (para o cadastro) |
+| POST | `/api/alunos` | Cadastro de aluno |
+| GET | `/api/espacos?tipo=QUADRA` | Espaços ativos (filtro opcional) |
+| GET | `/api/espacos/{id}/equipamentos` | Equipamentos reserváveis no espaço (os dele + os compartilháveis) |
+| POST | `/api/reservas` | Cria uma reserva |
+| POST | `/api/login` | Login do admin |
+
+`POST /api/alunos` e `POST /api/reservas` aceitam no máximo 10 requisições por minuto. O login aceita 5.
+
+**Exemplo de reserva:**
+
+```json
+POST /api/reservas
+{
+  "registro_academico": "2024000001",
+  "espaco_id": 1,
+  "data_reserva": "2026-11-10",
+  "horario": "PRIMEIRO_HORARIO",
+  "equipamentos": [ { "id": 1, "quantidade": 2 } ]
+}
+```
+
+### Admin (exigem `Authorization: Bearer <token>`)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/api/logout` · `/api/logout-geral` | Encerra o token atual ou todos os tokens |
+| GET | `/api/me` | Admin logado |
+| GET/POST/PATCH/DELETE | `/api/admin/espacos` | CRUD de espaços (`?tipo=`) |
+| GET/POST/PATCH/DELETE | `/api/admin/equipamentos` | CRUD de equipamentos (`?espaco_id=`, `?nome=`, `?ativo=`) |
+| GET/POST/PATCH/DELETE | `/api/admin/cursos` | CRUD de cursos |
+| GET | `/api/admin/alunos` | Lista de alunos |
+| POST | `/api/admin/reservas/eventos` | Reserva de evento da faculdade |
+| POST | `/api/admin/reservas/{id}/revogar` | Revoga uma reserva (`justificativa` obrigatória) |
+
+---
+
+## 6. Regras de negócio
+
+### Reservas de alunos
+
+| Regra | Erro |
+|---|---|
+| RA cadastrado, espaço ativo | 422 |
+| Data não pode ser passada nem cair em fim de semana | 422 |
+| No máximo **7 dias** à frente | 422 |
+| Horário de **hoje**: aceito até **20 minutos antes do término** (ex.: 19:00–20:30 até as 20:10) | 422 |
+| Um espaço aceita **uma reserva por horário** | 409 |
+| Espaço com `limite_semanal_por_curso` (quadra = 3): no máximo N reservas do mesmo curso de **segunda a sexta** | 409 |
+
+### Equipamentos na reserva
+
+| Regra | Erro |
+|---|---|
+| Equipamento ativo, do próprio espaço **ou** compartilhável | 422 |
+| Sem equipamento repetido; quantidade ≥ 1 e ≤ estoque total | 422 |
+| Quantidade ≤ **disponível** naquela data/horário | 409 (lista o que faltou e quanto há) |
+
+**Disponível** = `quantidade_total` − soma do que está reservado (status `RESERVADO`) em horários que se sobrepõem, **em qualquer espaço**.
+Exemplo: 2 microscópios compartilháveis e 3 labs no mesmo horário → o terceiro recebe 409.
+
+### Eventos (admin)
+
+- Podem ser em fim de semana e não têm limite de antecedência.
+- Se o horário estiver ocupado: sem `justificativa` → 409 com `reserva_conflitante_id`; com `justificativa` → a reserva do aluno é revogada, o aluno recebe email e o evento é criado, tudo na mesma transação.
+- Podem reservar equipamentos (os da reserva revogada já ficam liberados).
+
+### Revogação (admin)
+
+- Exige `justificativa` (10 a 500 caracteres); só reservas ativas e não passadas.
+- Registra quem revogou e quando; o aluno é avisado por email (enviado pela fila, depois do commit).
+- Revogadas e canceladas liberam o horário, o estoque e o limite semanal.
+
+### Espaços e equipamentos
+
+- Não é possível desativar um espaço com reservas futuras (409).
+- Não é possível reduzir o estoque de um equipamento abaixo do maior uso já reservado num mesmo horário (409).
+
+### Concorrência
+
+Reservas simultâneas são tratadas com *locks* dentro da transação:
+
+- trava a **linha do espaço**, porque o conflito de horário depende dela, e quando ainda não existe reserva não há linha de reserva para travar;
+- trava as **linhas dos equipamentos** pedidos (em ordem de id, para evitar deadlock), porque os compartilháveis podem ser disputados por espaços diferentes;
+- o admin, ao reduzir o estoque, trava o mesmo equipamento.
+
+---
+
+## 7. Decisões tomadas
+
+| Decisão | Motivo |
+|---|---|
+| Aluno sem login, só com RA | Simplicidade de uso. Risco: alguém usar o RA de outra pessoa. Mitigação prevista: email com link de cancelamento a cada reserva (item 8) |
+| Listagem de alunos só para admin | Evita expor nome, RA e email publicamente |
+| Cursos em **tabela**, não enum | Permitir reaproveitar o sistema em outras instituições da rede |
+| Equipamento pertence a um espaço + flag `compartilhavel` | Por padrão a bola da quadra fica restrita à quadra; o microscópio pode ser marcado para uso em salas |
+| Disponibilidade **calculada** a partir das reservas | Ela muda por data e horário; um número fixo no equipamento não representa isso. Em discussão: concentrar o cálculo numa classe dedicada ou manter uma tabela de ocupação |
+| Espaço exclusivo por horário | Regra atual da quadra. Está isolada em `verificarConflitoDeEspaco()` e pode ser removida se um dia o espaço for compartilhado |
+| Reserva guarda `hora_inicio` e `hora_fim`; conflito por **sobreposição** | Preparação para horários livres (ex.: 7h–22h com duração máxima por espaço). A quadra continua com horários fixos |
+| Regras de entrada em `app/Rules` (uma linha no request) | Fáceis de ligar e desligar quando a regra mudar |
+| Números do negócio em `config/reservas.php` | Mudar 7 dias, 20 minutos ou 2 dias sem mexer no código |
+| Eventos podem revogar reservas de alunos | Eventos da faculdade têm prioridade; justificativa obrigatória e aluno avisado |
+| Reservas não confirmadas serão revogadas automaticamente | Libera horários de quem não vai usar (item 9) |
+| Datas bloqueadas em tabela própria | Feriados nacionais podem ser importados (biblioteca Yasumi); recesso e manutenção são cadastrados pelo admin |
+| Campo `data_reserva` (e não `data`) | Com um campo `data`, o Laravel não envolvia a resposta em `{"data": ...}` |
+| Update só por PATCH; exclusão = desativação | Atualização parcial e preservação do histórico |
+
+---
+
+## 8. Testes
+
+```bash
+php artisan test
+```
+
+Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories de `database/factories`. A data dos testes é fixada em **segunda-feira, 09/11/2026, 10:00** (`tests/TestCase.php`), para não dependerem do dia em que rodam. O limite de requisições por minuto fica desligado nos testes.
+
+| Arquivo | O que cobre |
+|---|---|
+| `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `EspacoTest` | CRUD, PATCH, filtros, bloqueio de desativação com reservas futuras |
+| `EquipamentoTest` | Nome único por espaço, filtros, compartilháveis, redução de estoque |
+| `ReservaTest` | Reserva, conflito de horário, RA/espaço inválidos |
+| `ReservaEquipamentosTest` | Validações dos itens, disponibilidade entre espaços, revogação liberando estoque |
+| `EventoERevogacaoTest` | Eventos com e sem conflito, revogação, email |
+| `RegrasDeDataTest` | Fim de semana, 7 dias, data passada, horário de hoje |
+| `LimiteSemanalTest` | Limite por curso na quadra, semana seguinte, revogadas e eventos não contam |
+
+---
+
+## 9. Histórico do desenvolvimento
+
+| Etapa | O que foi feito |
+|---|---|
+| Base | Migrations, models, enums de horário e status, cadastro de alunos, autenticação de admins (Sanctum), CRUD de equipamentos |
+| Correções | Nomes de classes, ordem e colunas das migrations, chaves estrangeiras, bugs de update e de reserva duplicada |
+| Infra | `RegraNegocioException`, fuso horário, limite de requisições, update só por PATCH |
+| Item 1 — Espaços | CRUD completo, filtros por tipo, bloqueio de desativação |
+| Item 2 — Exceções | Regras de negócio respondem 409/422 em vez de 500 |
+| Cursos | Tabela de cursos, aluno com `curso_id`, seeder |
+| Item 6 — Eventos e revogação | Revogação com justificativa e email; evento revoga conflito com justificativa |
+| Item 3 — Equipamentos na reserva | Itens no payload, disponibilidade por data/horário, flag `compartilhavel`, filtros no admin |
+| Item 4 — Regras de data | Fim de semana, 7 dias, horário de hoje, limite semanal por curso, `hora_inicio`/`hora_fim`, `config/reservas.php`, factories, `DemoSeeder` e testes permanentes |
+
+---
+
+## 10. Próximos passos
+
+Na ordem combinada:
+
+1. **Datas bloqueadas:** tabela (`data_inicio`, `data_fim`, espaço ou todos, motivo); importação de feriados nacionais (Yasumi); reservas existentes no período são revogadas com o motivo.
+2. **Item 5 — Consulta de disponibilidade (pública):** horários livres de um espaço numa data, com o disponível de cada equipamento por horário.
+3. **Item 7 — Listagem de reservas (admin):** paginada, com filtros por data, espaço, status, aluno e tipo.
+4. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link assinado de cancelamento.
+5. **Item 9 — Confirmação:** comando diário que envia o pedido de confirmação 2 dias antes e revoga automaticamente as não confirmadas; scheduler (que também roda o `sanctum:prune-expired`).
+6. **Item 10 — Pendências:** `UserResource` no `/me`; rota para um admin cadastrar outros admins.
+7. **Horários livres:** configuração por espaço (`modo_horario` FIXO/LIVRE, janela de funcionamento, duração máxima, blocos de 30 min) e cálculo de equipamentos pelo **pico de uso** no intervalo.
+
+### Implementação final: API para terceiros autorizados
+
+Permitir que sistemas de terceiros autorizados (ex.: portal da faculdade, app das atléticas, outras unidades da rede) consumam a API.
+
+Pontos a decidir quando chegar a hora:
+
+- **Autenticação de sistemas:** tokens do Sanctum com *abilities* por cliente (ex.: `reservas:ler`, `reservas:criar`) ou OAuth2 *client credentials* (Laravel Passport), se os parceiros exigirem um padrão.
+- **Cadastro de clientes:** tabela de clientes de API, gerenciada pelos admins, com permissões e possibilidade de revogação.
+- **Versionamento:** rotas em `/api/v1` para não quebrar os parceiros quando a API mudar.
+- **Limites:** *rate limit* por cliente.
+- **Documentação:** especificação OpenAPI (Swagger) gerada a partir das rotas.
+- **Auditoria:** registrar qual cliente criou ou alterou cada reserva.

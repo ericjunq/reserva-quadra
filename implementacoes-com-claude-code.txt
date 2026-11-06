@@ -305,3 +305,80 @@ database/seeders/AdminSeeder.php
 
 database/seeders/DatabaseSeeder.php
   - Seed the application's database.
+
+
+------------------------------------------------------------
+10. ITEM 4 — REGRAS DE DATA, LIMITE SEMANAL E PREPARAÇÃO PARA HORÁRIOS LIVRES
+------------------------------------------------------------
+
+config/reservas.php
+  - Números do negócio num lugar só (alteráveis pelo .env):
+    antecedencia_maxima_dias = 7, minutos_antes_do_fim = 20, confirmacao_dias_antes = 2.
+
+app/Rules/DiaUtil.php
+  - Bloqueia sábado e domingo. Aplicada só na reserva de aluno (eventos podem no fim de semana).
+
+app/Rules/AntecedenciaMaxima.php
+  - Data no máximo N dias à frente (config). Só para alunos; eventos sem limite.
+
+app/Rules/HorarioAindaReservavel.php
+  - Para a data de hoje: o horário pode ser reservado até N minutos antes do TÉRMINO
+    (ex.: 19:00–20:30 aceita até 20:10). Vale para alunos e eventos.
+  - DataAwareRule: precisa ler data_reserva junto com horario.
+
+app/Http/Requests/StoreReservaRequest.php / StoreEventoRequest.php
+  - Cada regra é uma linha no array do campo; para desligar, basta remover.
+
+database/migrations/..._create_reservas_table.php
+  - hora_inicio e hora_fim (time). horario (enum) passou a ser nullable, pensando no
+    modo de horários livres, em que não haverá horário fixo.
+  - Índice trocado para (espaco_id, data_reserva).
+
+app/Constants/HorarioReservaConstant.php
+  - horaInicio() / horaFim(): formato H:i:s, usado para gravar no banco.
+
+app/Services/ReservaService.php
+  - resolverIntervalo(): converte o horário fixo (enum) em hora_inicio/hora_fim.
+  - Conflito de espaço e disponibilidade de equipamentos passaram a usar SOBREPOSIÇÃO:
+      existente.hora_inicio < nova.hora_fim  E  existente.hora_fim > nova.hora_inicio
+    Com os horários fixos, o resultado é igual a "mesmo horário".
+  - ATENÇÃO para o modo livre: com intervalos variáveis, somar as reservas sobrepostas
+    superestima o uso de equipamentos (7h-8h e 9h-10h nunca usam ao mesmo tempo, mas
+    ambas se sobrepõem a 7h-10h). Lá será preciso calcular o PICO de uso por bloco de 30 min.
+  - verificarLimiteSemanalDoCurso(): se o espaço tiver limite_semanal_por_curso, conta as
+    reservas ATIVAS de ALUNOS do mesmo curso naquele espaço, de segunda a sexta da semana
+    da data reservada. Revogadas, canceladas e eventos não contam. Estourou -> 409.
+    Roda depois do lock do espaço, então duas reservas simultâneas não furam o limite.
+  - travarEspaco() passou a devolver o Espaco (usado pelo limite semanal).
+
+app/Services/EquipamentoService.php
+  - verificarNovaQuantidade() agrupa por data_reserva + hora_inicio.
+
+database/migrations/..._create_espacos_table.php + Espaco, EspacoResource, Store/UpdateEspacoRequest
+  - limite_semanal_por_curso (nullable = sem limite; 1 a 50). Admin define pelo CRUD.
+
+app/Http/Resources/ReservaResource.php
+  - MUDANÇA NA API: horario_inicio/horario_fim ("2026-11-10 19:00") viraram
+    hora_inicio/hora_fim ("19:00"). horario pode vir null no futuro (modo livre).
+
+database/factories/* (Curso, Aluno, Espaco, Equipamento, Reserva)
+  - Estados úteis: Espaco::quadra($limite), laboratorio(), inativo();
+    Equipamento::compartilhavel(), inativo(); Reserva::noHorario(), evento(), revogada().
+  - Estados que geram nome usam closure (fn () => [...]) para gerar um nome por registro
+    quando usados com count().
+
+database/seeders/DemoSeeder.php
+  - Dados de demonstração: quadra (limite 3), labs, salas, equipamentos (microscópio e
+    projetor compartilháveis) e alunos. Só roda com APP_ENV=local.
+
+tests/TestCase.php
+  - Data fixa: segunda-feira 09/11/2026 10:00 (testes não dependem do dia em que rodam).
+  - Throttle desligado nos testes; helper comoAdmin().
+
+tests/Feature/*
+  - 41 testes: Aluno, Espaco, Equipamento, Reserva, ReservaEquipamentos,
+    EventoERevogacao, RegrasDeData, LimiteSemanal.
+
+DOCUMENTACAO.md
+  - Visão geral, como rodar, estrutura, modelo de dados, endpoints, regras, decisões,
+    testes, histórico e próximos passos (incluindo a API para terceiros).

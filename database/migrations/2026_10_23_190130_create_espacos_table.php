@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('nome', 100)->unique();
             $table->string('tipo', 30);
             $table->boolean('ativo')->default(true);
+            $table->unsignedTinyInteger('limite_semanal_por_curso')->nullable();
             $table->timestamps();
         });
     }

@@ -14,6 +14,7 @@ class EspacoResource extends JsonResource
             'nome'  => $this->nome,
             'tipo'  => $this->tipo->value,
             'ativo' => $this->ativo,
+            'limite_semanal_por_curso' => $this->limite_semanal_por_curso,
         ];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Constants\HorarioReservaConstant;
 use App\Http\Requests\Concerns\ValidaEquipamentosDaReserva;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\HorarioAindaReservavel;
 use Illuminate\Validation\Rule;
 
 class StoreEventoRequest extends FormRequest
@@ -22,7 +23,7 @@ class StoreEventoRequest extends FormRequest
             ...$this->regrasEquipamentos(),
             'espaco_id'     => ['required', 'integer', Rule::exists('espacos', 'id')->where('ativo', true)],
             'data_reserva'  => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
-            'horario'       => ['required', Rule::enum(HorarioReservaConstant::class)],
+            'horario'       => ['required', Rule::enum(HorarioReservaConstant::class), new HorarioAindaReservavel],
             'descricao'     => ['required', 'string', 'max:255'],
             'justificativa' => ['nullable', 'string', 'min:10', 'max:500'],
         ];
