@@ -6,15 +6,16 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 09/11/2026 · 167 testes passando
+Última atualização: 09/11/2026 · 171 testes passando
 
 ---
 
 ## 📍 Onde paramos
 
-- **Último passo concluído:** passo 3, item 9 (confirmação da reserva e revogação automática), em 09/11/2026.
-- **Próximo passo:** passo 4, agendador de tarefas. **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação. O que falta agendar: importação dos feriados do ano seguinte e limpeza da fila; documentar o cron e o worker de produção. O pedido de confirmação, a revogação e a limpeza de tokens do Sanctum **já estão agendados** em `routes/console.php`.
-- **O usuário precisa:** dar push. Não há migration nova neste passo. No `.env`, a variável `RESERVA_CONFIRMACAO_DIAS_ANTES` virou `RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES` (só importa se ela estiver definida lá).
+- **Último passo concluído:** passo 4, agendador de tarefas (feriados do ano seguinte, limpeza de links de email e de jobs falhos, documentação de cron e supervisor), em 09/11/2026.
+- **Próximo passo:** passo 5, item 10 (admins: `UserResource` no `/me` e no login, cadastro de admins por convite, desativação). **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação. O convite reaproveita a redefinição de senha do passo 6; avaliar na proposta se os dois passos devem ser feitos juntos.
+- **O usuário precisa:** dar push. Não há migration nova.
+- **Conceitos já explicados ao usuário:** fila e jobs (seção "Fila e jobs" do DOCUMENTACAO).
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -66,6 +67,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Equipamentos só se houver quantidade disponível naquele horário
 - [x] Aluno inativo não consegue reservar
 - [x] Reserva não confirmada no prazo é revogada sozinha (comando agendado)
+- [x] Tarefas automáticas: feriados do ano seguinte, limpeza de links de email (30 dias) e de jobs falhos (7 dias), tokens de login vencidos
 - [x] Limite de requisições por minuto contra abuso
 
 ### Admins (com login)
@@ -93,7 +95,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Código compatível com SQLite, MySQL e Postgres
 - [x] Código formatado com o Laravel Pint (`pint.json`)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
-- [x] 167 testes automáticos passando
+- [x] 171 testes automáticos passando
 
 ---
 
@@ -124,14 +126,11 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - Na criação: reserva **para hoje** nasce confirmada; reserva **dentro da janela** já recebe "Confirme sua reserva" (um email só); fora da janela recebe "Reserva registrada" com a data do pedido.
 - Email de confirmação com **Confirmar** e **Cancelar**; `GET`/`POST /api/reservas/confirmacao/{token}`; filtro `confirmacao` na listagem do admin. Eventos não precisam de confirmação.
 
-### 4. ⬜ Agendador de tarefas (scheduler) — *próximo; proposta ainda não enviada*
-- Já agendados em `routes/console.php`: pedido de confirmação (08:00), revogação das não confirmadas (00:05) e `sanctum:prune-expired` (diário).
-- Falta agendar:
-  - `feriados:importar` do ano seguinte, todo 1º de dezembro;
-  - `queue:prune-failed`.
-- Produção precisa de um cron chamando `php artisan schedule:run` a cada minuto e de um worker de fila (`queue:work`, com supervisor). Documentar isso.
+### 4. ✅ Agendador de tarefas — *concluído em 09/11/2026*
+- `routes/console.php`: revogação (00:05), limpeza de links de email com mais de 30 dias (03:10), tokens de login vencidos (03:20), jobs falhos com mais de 7 dias (03:30), pedido de confirmação (08:00) e feriados do ano seguinte (1º/12, 03:00, sem facultativos por padrão). Todas com `withoutOverlapping`.
+- Produção documentada no DOCUMENTACAO: cron do `schedule:run` e worker da fila com supervisor. Aviso de falha por email fica para o passo 10.
 
-### 5. ⬜ Item 10 — Admins
+### 5. ⬜ Item 10 — Admins — *próximo; proposta ainda não enviada*
 - `UserResource` no `/me` e no login, para não devolver o model `User` cru.
 - `POST /api/admin/admins`: um admin cadastra outro. O novo admin recebe um **convite por email** com um link para definir a senha (reaproveita o mecanismo de redefinição do passo 6).
 - `GET /api/admin/admins` (lista), `PATCH` (nome/email) e `DELETE` (desativar: coluna `ativo` em `users`; admin desativado não faz login e perde os tokens). Um admin não pode desativar a si mesmo, e precisa sobrar pelo menos 1 admin ativo.

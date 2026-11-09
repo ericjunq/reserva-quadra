@@ -94,6 +94,58 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES` | 2 | Quantos dias **úteis** antes da reserva sai o pedido de confirmação |
 | `RESERVA_HORARIO_PEDIDO_CONFIRMACAO` | 08:00 | Horário diário do comando que envia os pedidos |
 | `RESERVA_HORARIO_REVOGACAO_NAO_CONFIRMADAS` | 00:05 | Horário diário do comando que revoga as não confirmadas |
+| `RESERVA_FERIADOS_FACULTATIVOS` | false | Se a importação automática de feriados inclui Carnaval, Quarta de Cinzas e Corpus Christi |
+| `RESERVA_TOKENS_RETENCAO_DIAS` | 30 | Depois de quantos dias os links de email usados ou vencidos são apagados |
+| `RESERVA_JOBS_FALHOS_RETENCAO_HORAS` | 168 | Depois de quantas horas os jobs que falharam são apagados (7 dias) |
+
+### Fila e jobs (o que são)
+
+**Job** é uma tarefa que o sistema anota para fazer depois, em vez de fazer no meio da requisição. Hoje todos os jobs são **envios de email**.
+
+- Mandar email demora (conectar no servidor de email, enviar, esperar resposta). Se a API fizesse isso durante a reserva, o aluno esperaria a tela carregar, e uma falha no servidor de email derrubaria a reserva.
+- Por isso todo `Mail::to(...)->queue(...)` só **anota** o envio na fila (milissegundos) e a resposta volta na hora. Um processo separado, o **worker** (`php artisan queue:work`), pega os jobs da fila e envia de fato.
+- A fila fica no banco (`QUEUE_CONNECTION=database`): tabela **`jobs`** (esperando) e **`failed_jobs`** (deram erro depois das novas tentativas; podem ser reenviados com `php artisan queue:retry all`).
+- **LGPD:** um job guarda tudo o que é preciso para o email (endereço, nome, dados da reserva). Os que falham ficariam em `failed_jobs` para sempre, então o agendador apaga os que falharam há mais de 7 dias.
+- Sem o worker rodando, os emails ficam parados na tabela `jobs` e não saem.
+
+### Agendador (tarefas automáticas)
+
+Definidas em `routes/console.php`, no fuso `APP_TIMEZONE` (America/Sao_Paulo). Nenhuma roda duas vezes ao mesmo tempo (`withoutOverlapping`).
+
+| Tarefa | Quando | O que faz |
+|---|---|---|
+| `reservas:revogar-nao-confirmadas` | Todo dia, 00:05 | Revoga as reservas de hoje que não foram confirmadas |
+| `reservas:limpar-tokens` | Todo dia, 03:10 | Apaga links de email usados ou vencidos há mais de 30 dias |
+| `sanctum:prune-expired --hours=24` | Todo dia, 03:20 | Apaga tokens de login vencidos |
+| `queue:prune-failed --hours=168` | Todo dia, 03:30 | Apaga jobs que falharam há mais de 7 dias |
+| `reservas:pedir-confirmacao` | Todo dia, 08:00 | Envia os pedidos de confirmação |
+| `feriados:importar {ano seguinte}` | 1º de dezembro, 03:00 | Importa os feriados do próximo ano (sem os facultativos, salvo `RESERVA_FERIADOS_FACULTATIVOS=true`) |
+
+Em desenvolvimento: `php artisan schedule:work` (roda o agendador) e `php artisan schedule:list` (mostra as tarefas e a próxima execução).
+
+### Em produção (agendador e fila)
+
+O agendador precisa de **um** cron chamando o Laravel a cada minuto:
+
+```cron
+* * * * * cd /caminho/do/projeto && php artisan schedule:run >> /dev/null 2>&1
+```
+
+O worker da fila precisa ficar sempre rodando e voltar sozinho se cair. Exemplo com **supervisor** (`/etc/supervisor/conf.d/reservas-worker.conf`):
+
+```ini
+[program:reservas-worker]
+command=php /caminho/do/projeto/artisan queue:work --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+user=www-data
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/caminho/do/projeto/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+Depois de cada deploy, rodar `php artisan queue:restart` para o worker carregar o código novo. Falhas das tarefas ficam no log; o aviso por email aos admins fica para a preparação de produção.
 | `APP_TIMEZONE` | America/Sao_Paulo | Fuso usado nas regras de "hoje" e no agendador |
 | `FRONTEND_URL` | http://localhost:4200 | Endereço do front Angular; base dos links enviados por email (ex.: cancelamento) |
 
@@ -426,6 +478,11 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 | Reservas não confirmadas são revogadas automaticamente | Libera horários de quem não vai usar |
 | Pedido de confirmação **2 dias úteis** antes | Em dias corridos, reserva de segunda pediria confirmação no sábado, quando muita gente não abre o email da faculdade |
 | Prazo até as **23:59 do dia anterior** (dia corrido) | Dá o maior prazo possível (ex.: o fim de semana inteiro para reservas de segunda); a revogação às 00:05 ainda libera o horário no próprio dia |
+| Fila no banco (`QUEUE_CONNECTION=database`) para os emails | A requisição não espera o envio, e uma falha no servidor de email não derruba a reserva |
+| Jobs que falharam apagados após **7 dias** | Guardam dados pessoais (LGPD); 7 dias dão tempo de investigar |
+| Links de email usados/vencidos apagados após **30 dias** | Não guardar o que não serve mais; 30 dias ajudam a responder "cliquei e não funcionou" |
+| Importação automática de feriados **sem os facultativos** por padrão | Cada instituição decide se fecha nesses dias (`RESERVA_FERIADOS_FACULTATIVOS`) |
+| Sem aviso por email quando uma tarefa falha (por enquanto) | Falhas ficam no log; o aviso entra na preparação de produção, junto com o monitoramento |
 | Prazo **não** é "24h / 1 dia útil depois do email" (alternativa avaliada em 09/11/2026) | Liberaria o horário um dia antes, mas o ganho é pequeno: o horário já é liberado às 00:05 do próprio dia e pode ser reservado até 20 min antes do fim (horários à noite). A alternativa criaria prazos de poucas horas para reservas feitas perto da data, exigiria tratar fim de semana e revogação de hora em hora. Rever só se, em uso, horários liberados no próprio dia ficarem vazios com a quadra lotada |
 | Reserva dentro da janela pede a confirmação **já na criação** | Um email só; também confirma que quem reservou é o dono do email (reserva com RA de outra pessoa cai sozinha) |
 | Reserva **para hoje** nasce confirmada | O prazo (dia anterior) já teria passado; um prazo de poucas horas exigiria revogação de hora em hora para um caso raro |
@@ -452,6 +509,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `AgendadorTest` | Horários e `withoutOverlapping` de todas as tarefas, feriados do ano seguinte sem facultativos, retenção de 7 dias dos jobs falhos, limpeza só dos tokens antigos |
 | `ConfirmacaoTest` | Reserva para hoje confirmada, dentro da janela pede confirmação na criação (prazo e links), fora da janela avisa a data do pedido, pedido 2 dias úteis antes e sem duplicar, o que o pedido ignora, confirmação pelo link, vencimento no fim do dia anterior, cancelar pelo email de confirmação, revogação só das não confirmadas do dia, fluxo completo pelos comandos, filtro do admin, agendamento |
 | `CancelamentoTest` | Email de criação com link do front, só o hash no banco e validade até o início, resumo sem dados pessoais, cancelamento liberando horário e equipamentos com email, uso único, token inválido e vencido, reserva revogada, evento sem email, criação sem expor o aluno |
 | `MinhasReservasTest` | Futuras e todas, ordem, espaço/equipamentos/justificativa, sem dados pessoais nem auditoria, email sem maiúsculas, resposta igual para dados errados, inativo x anonimizado, só POST, validações, paginação |
@@ -491,6 +549,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Agendador | Feriados do ano seguinte, limpeza de tokens e de jobs falhos, horários escalonados, documentação de cron e supervisor, explicação de fila e jobs |
 | Item 9 — Confirmação | Pedido 2 dias úteis antes (ou já na criação dentro da janela), prazo até o dia anterior, confirmação pela API, revogação automática, comandos agendados, filtro do admin |
 | Item 8 — Cancelamento pelo aluno | Email "Reserva registrada" com link, tokens genéricos com hash, resumo e cancelamento pela API, email "Reserva cancelada", `FRONTEND_URL` |
 | Minhas reservas (aluno) | Consulta por RA + email via POST, resposta genérica para dados errados, futuras/todas |
@@ -509,14 +568,13 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Agendador de tarefas:** completar com os feriados do ano seguinte e a limpeza da fila (confirmação, revogação e tokens já estão agendados); documentar cron e worker de produção.
-2. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
-3. **Recuperação de senha do admin** por email.
-4. **Consulta do histórico de auditoria** pelo admin.
-5. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
-6. **CI:** testes em MySQL e Postgres no GitHub Actions.
-7. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
-8. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
+2. **Recuperação de senha do admin** por email.
+3. **Consulta do histórico de auditoria** pelo admin.
+4. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
+5. **CI:** testes em MySQL e Postgres no GitHub Actions.
+6. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
+7. **Front-end em Angular** (projeto separado; não será com Blade).
 
 ### Emails do sistema
 

@@ -1042,3 +1042,37 @@ Decisão (09/11/2026): manter a regra atual. O horário já é liberado às 00:0
 pode ser reservado até 20 min antes do fim (horários noturnos), então o ganho é pequeno diante
 dos casos estranhos e da complexidade. Rever só se, em uso, horários liberados no dia ficarem
 vazios com a quadra lotada. A regra está isolada em ConfirmacaoService::prazo().
+
+========================================================================
+28. AGENDADOR DE TAREFAS
+========================================================================
+
+Decisões do usuário (09/11/2026): sem feriados facultativos na importação automática (variável
+para ligar); jobs falhos guardados por 7 dias; links de email por 30 dias; sem aviso por email
+de falha por enquanto (passo 10). O usuário pediu para documentar o que são jobs: seção
+"Fila e jobs (o que são)" no DOCUMENTACAO.
+
+config/reservas.php
+  - feriados_facultativos (RESERVA_FERIADOS_FACULTATIVOS, false), tokens_retencao_dias
+    (RESERVA_TOKENS_RETENCAO_DIAS, 30), jobs_falhos_retencao_horas
+    (RESERVA_JOBS_FALHOS_RETENCAO_HORAS, 168).
+
+app/Services/TokenReservaService.php
+  - limparAntigos(dias): apaga tokens usados há mais de N dias ou vencidos há mais de N dias.
+    Tokens válidos e recentes ficam.
+
+app/Console/Commands/LimparTokens.php (novo): reservas:limpar-tokens.
+
+routes/console.php
+  - Todas as tarefas com withoutOverlapping e horários escalonados de madrugada (03:10, 03:20,
+    03:30) para não competirem: revogação 00:05, pedido 08:00, feriados 1º/12 03:00 com
+    now()->addYear()->year (avaliado a cada schedule:run, então o ano é sempre o seguinte),
+    --facultativos só se a config estiver ligada; queue:prune-failed --hours da config.
+  - sanctum:prune-expired passou de daily() (meia-noite) para 03:20.
+
+DOCUMENTACAO.md
+  - Variáveis novas, seção "Fila e jobs (o que são)", seção "Agendador" (tabela de tarefas) e
+    "Em produção" (cron do schedule:run, supervisor do queue:work, queue:restart no deploy).
+
+tests/Feature/AgendadorTest.php (novo) — 4 testes (171 no total). Lê os eventos do Schedule
+para conferir expressão cron, withoutOverlapping e argumentos.
