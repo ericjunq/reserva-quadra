@@ -13,7 +13,7 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - **Proposta antes de implementar:** para cada passo ou item do plano, enviar uma proposta com o que o passo faz, os arquivos afetados e as decisões em aberto, cada uma com uma recomendação. **Só implementar depois da aprovação.** Correções pequenas pedidas diretamente podem ser feitas sem proposta.
 - Aprovação vale só para o que foi aprovado. Se o usuário recusar uma recomendação, implementar sem ela e registrar a decisão.
 - Ao concluir cada etapa, **atualizar a documentação**:
-  - `CHECKLIST.md`: marcar itens, data e número de testes;
+  - `CHECKLIST.md`: marcar itens, data e número de testes, e **sempre** atualizar a seção "📍 Onde paramos" (último passo concluído, próximo passo, pendências do usuário). O usuário alterna entre PCs, e uma conversa nova precisa entender em segundos o que foi feito, o que está em andamento e o que vem depois;
   - `DOCUMENTACAO.md`: endpoints, regras, decisões, testes, histórico e próximos passos;
   - `DATABASE.md`: diagrama Mermaid e decisões de modelagem, sempre que o banco mudar;
   - `implementacoes-com-claude-code.txt`: uma seção nova por implementação, arquivo por arquivo.
