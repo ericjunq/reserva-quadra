@@ -19,6 +19,22 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
   - `implementacoes-com-claude-code.txt`: uma seção nova por implementação, arquivo por arquivo.
 - Decisões tomadas não são reabertas. Ficam registradas no `CHECKLIST.md` e no `DOCUMENTACAO.md`.
 
+### Continuidade entre conversas (o usuário alterna entre PCs e chats)
+- A memória da conversa **não** vai para outro PC. O que garante a continuidade são os arquivos do repositório: **este `CLAUDE.md`** (como trabalhar) e o **`CHECKLIST.md`** (onde estamos, o que foi decidido e o que vem). Escreva-os como instruções **para você mesmo** numa conversa nova, com contexto suficiente para seguir a mesma linha de ideias, sem precisar perguntar o que já foi combinado.
+- **Mantenha tudo atualizado o tempo todo**, e não só ao concluir uma etapa. Atualize e commite os guias sempre que:
+  - enviar uma **proposta**: resumo e decisões em aberto no passo do plano, e "Onde paramos" como "proposta enviada, aguardando aprovação";
+  - o usuário **aprovar, recusar ou ajustar** algo: registrar a decisão e o motivo;
+  - **explicar um conceito** ao usuário: anotar em "Conceitos já explicados" e, se for útil, numa seção do DOCUMENTACAO;
+  - concluir uma etapa: todos os guias (CHECKLIST, DOCUMENTACAO, DATABASE se mexer no banco, txt).
+- A seção **"📍 Onde paramos"** do CHECKLIST sempre traz: o último passo concluído, o que está em andamento (proposta enviada? decisões pendentes?), o próximo passo, o que o usuário precisa fazer (push, `migrate:fresh` etc.) e os conceitos já explicados.
+- **Novas instruções de comportamento** do usuário (como trabalhar, responder, commitar, documentar) entram **neste `CLAUDE.md` na mesma hora**, em vez de ficar só na conversa.
+
+### Perfil e jeito de trabalhar do usuário
+- Desenvolve o projeto com o Claude, revisando cada passo. Gosta de propostas com **recomendação** em cada decisão. Costuma aprovar com ajustes pontuais e às vezes traz ideias próprias: avaliar com honestidade e, se discordar, explicar o risco antes de implementar (ex.: maiúsculas no email, prazo de confirmação).
+- Valoriza segurança, LGPD, código organizado, desempenho e compatibilidade entre bancos.
+- Quando não entende algo (ex.: jobs, branches), quer uma explicação didática, e pede que ela fique documentada.
+- Faz o push e roda `migrate:fresh --seed` por conta própria. O repositório é público: `github.com/ericjunq/reserva-quadra`. O CI (GitHub Actions) pode ser consultado pela API pública sem autenticação.
+
 ### Código
 - **Nenhum comentário no código**, nem os padrões do Laravel (removidos em 09/11/2026 a pedido do usuário). Isso vale para PHP, Blade, JS e CSS. Explicações e comentários vão para `implementacoes-com-claude-code.txt`, indicando o arquivo. Arquivos gerados pelo artisan ou por pacotes (configs publicadas, stubs) devem ter os comentários removidos ao entrar no projeto.
 - **Arquitetura:** o request (FormRequest) valida, o controller é fino, o service guarda a regra de negócio e o resource formata a saída.

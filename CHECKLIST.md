@@ -14,14 +14,13 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 
 - **Último passo concluído:** passo 9, CI no GitHub Actions. **Primeira execução verde em 09/11/2026** (commit `43a0e74`): os 226 testes passaram em SQLite, **MySQL 8.0** e **Postgres 16**, além do Pint e do `composer audit`.
 - **Próximo passo:** passo 10, preparação para produção. **Proposta enviada em 09/11/2026, aguardando aprovação** (resumo no passo 10 do plano, abaixo).
-- **O usuário precisa:** nada pendente além do `migrate:fresh --seed` local, se ainda não rodou depois do passo 8.
-- **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions.
-- **Conceitos já explicados ao usuário:** fila e jobs; por que email não deve diferenciar maiúsculas (seção de decisões do DOCUMENTACAO).
+- **O usuário precisa:** dar push dos commits de documentação e rodar `migrate:fresh --seed` local, se ainda não rodou depois do passo 8.
+- **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions. Antes: fila e jobs; por que email não deve diferenciar maiúsculas; opção A do link do front (Angular, sem Blade); prazo da confirmação até a véspera (alternativa avaliada e descartada).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
-Leia este arquivo e o `CLAUDE.md` antes de qualquer coisa. Juntos, eles substituem a memória da conversa anterior.
+Leia este arquivo e o `CLAUDE.md` antes de qualquer coisa. Juntos, eles substituem a memória da conversa anterior. Comece pela seção "📍 Onde paramos" e mantenha-a atualizada a cada proposta, decisão, explicação e etapa concluída (regras em "Continuidade entre conversas", no `CLAUDE.md`).
 
 ### Regras de trabalho e padrões de código
 Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usuário), tópico "Regras de desenvolvimento combinadas com o usuário": comunicação, processo (proposta antes de implementar), código, compatibilidade entre bancos, desempenho, LGPD, testes e git. O Claude Code lê esse arquivo sozinho em toda conversa.

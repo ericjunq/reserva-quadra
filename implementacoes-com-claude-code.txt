@@ -1340,3 +1340,20 @@ Atualização da seção 34 (09/11/2026): primeira execução do CI verde no com
 composer audit ok; 226 testes passando em SQLite, MySQL 8.0 e Postgres 16, sem nenhuma correção
 de compatibilidade (os ajustes da seção 20 — whereLike, NomeUnico, datas sem whereDate — e o
 cálculo do pico em PHP já cobriam as diferenças entre os bancos).
+
+========================================================================
+35. REGRAS DE CONTINUIDADE ENTRE CONVERSAS (documentação)
+========================================================================
+
+Pedido do usuário (09/11/2026): manter todos os guias sempre atualizados e o CHECKLIST escrito
+como instrução para o próprio Claude continuar em outro chat/PC com a mesma linha de ideias;
+registrar toda nova instrução de comportamento.
+
+CLAUDE.md
+  - Nova seção "Continuidade entre conversas": quando atualizar os guias (proposta enviada,
+    decisão, conceito explicado, etapa concluída), o que "Onde paramos" deve conter, e que novas
+    instruções de comportamento entram no CLAUDE.md na hora.
+  - Nova seção "Perfil e jeito de trabalhar do usuário".
+CHECKLIST.md
+  - "Como continuar" aponta para "Onde paramos" e para as regras de continuidade; "Conceitos já
+    explicados" consolidado numa linha só.
