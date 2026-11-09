@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AlunoController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CancelamentoController;
 use App\Http\Controllers\CursoController;
 use App\Http\Controllers\DataBloqueadaController;
 use App\Http\Controllers\EquipamentoController;
@@ -18,6 +19,8 @@ Route::get('/espacos/{espaco}/disponibilidade', [EspacoController::class, 'dispo
 
 Route::post('/alunos', [AlunoController::class, 'store'])->middleware('throttle:10,1');
 Route::post('/reservas', [ReservaController::class, 'store'])->middleware('throttle:10,1');
+Route::get('/reservas/cancelamento/{token}', [CancelamentoController::class, 'show'])->middleware('throttle:10,1');
+Route::post('/reservas/cancelamento/{token}', [CancelamentoController::class, 'cancelar'])->middleware('throttle:10,1');
 Route::post('/minhas-reservas', [MinhasReservasController::class, 'index'])->middleware('throttle:10,1');
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
