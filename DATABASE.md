@@ -19,6 +19,7 @@ erDiagram
     espacos ||--o{ reservas : "recebe"
     espacos ||--o{ equipamentos : "guarda"
     users |o--o{ auditorias : "faz"
+    users ||--o| convites_admin_tokens : "convite pendente"
     espacos |o--o{ datas_bloqueadas : "bloqueado em"
     users |o--o{ datas_bloqueadas : "cadastra"
     reservas ||--o{ item_reservas : "pede"
@@ -44,8 +45,16 @@ erDiagram
     users {
         bigint id PK "admins"
         string name
-        string email UK
+        string email UK "sempre minúsculas"
         string password
+        boolean ativo
+        timestamp convite_aceito_em
+    }
+
+    convites_admin_tokens {
+        string email PK
+        string token "hash"
+        timestamp created_at
     }
 
     espacos {
@@ -237,6 +246,15 @@ Os valores antes/depois guardados em `auditorias` repetiriam nome, RA e email; n
 
 **25. Tokens em tabela própria e genérica (`tokens_reserva`).**
 Os links dos emails (cancelar agora, confirmar no item 9) usam a mesma tabela, diferenciados por `finalidade`. Uma reserva pode ter vários tokens, cada um com validade (`expira_em`) e uso único (`usado_em`). Colunas de token dentro de `reservas` exigiriam um par de colunas novo a cada finalidade.
+
+**27. Email de admin sempre em minúsculas.**
+O model normaliza o email ao gravar (minúsculas, sem espaços nas pontas) e os requests normalizam antes de validar. A unicidade e o login ficam iguais nos três bancos e não existem dois admins para a mesma caixa de email.
+
+**28. Convite e redefinição de senha em tabelas separadas.**
+Os dois usam o Password Broker do Laravel (token com hash, um por email). Com a mesma tabela, o broker do convite (2 dias) aceitaria um token de redefinição (60 min). `convites_admin_tokens` tem a mesma estrutura de `password_reset_tokens`.
+
+**29. Senha nunca entra no histórico.**
+`users` usa o trait de auditoria como as outras tabelas, mas `password` e `remember_token` aparecem só como `[oculto]` (o trait aceita uma lista de campos sensíveis por model).
 
 **26. No banco fica só o hash do token.**
 O token puro (64 caracteres aleatórios) só existe no email. O banco guarda o SHA-256, com índice único, então quem tiver acesso ao banco não consegue montar um link válido. SHA-256 sem salt é suficiente aqui porque o token já é aleatório e longo (diferente de uma senha).

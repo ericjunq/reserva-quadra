@@ -1099,3 +1099,73 @@ Onde consultar o que os comentários dos configs explicavam: documentação ofic
 (https://laravel.com/docs), seção de cada arquivo de configuração.
 
 Regra atualizada no CLAUDE.md: nenhum comentário, nem os padrões do Laravel.
+
+========================================================================
+30. ITENS 5 E 6 — GESTÃO DE ADMINS E SENHAS
+========================================================================
+
+Decisões do usuário (09/11/2026): convite vale 2 dias; redefinição 60 min; ter "esqueci a senha"
+E troca logado; link só com o token; email "senha alterada"; senha 8+ com letras e números;
+sem perfis. O usuário pediu email com diferenciação de maiúsculas; foi explicado o risco
+(admins duplicados/cópias, login falhando, comportamento diferente por banco) e ele aprovou
+manter o email SEMPRE em minúsculas.
+
+database/migrations/0001_01_01_000000_create_users_table.php (editada; exige migrate:fresh)
+  - ativo, convite_aceito_em, criado_por, atualizado_por (FK users, nullOnDelete).
+database/migrations/2026_11_09_130000_create_convites_admin_tokens_table.php (nova)
+  - Mesma estrutura de password_reset_tokens, para o broker de convites.
+
+config/auth.php
+  - Brokers "admins" (password_reset_tokens, AUTH_REDEFINICAO_EXPIRA_MINUTOS=60, throttle 60s)
+    e "convites" (convites_admin_tokens, AUTH_CONVITE_EXPIRA_MINUTOS=2880). Padrão = admins.
+  - Tabelas separadas: o broker valida o token pela própria validade; com a mesma tabela, um
+    token de redefinição (60 min) valeria 2 dias em /convites/aceitar.
+
+app/Models/User.php
+  - Auditavel; fillable ativo/convite_aceito_em; casts; normalizarEmail() (minúsculas + trim)
+    usado pelo mutator de email, pelo AuthService e pelo trait NormalizaEmail dos requests;
+    camposSensiveisDaAuditoria() = password e remember_token; conviteAceito().
+
+app/Models/Concerns/Auditavel.php
+  - camposSensiveisDaAuditoria() (padrão vazio): campos presentes viram "[oculto]" no antes/
+    depois, em vez de sumirem (assim fica registrado QUE a senha mudou, sem o hash).
+
+app/Http/Resources/UserResource.php (novo): id, nome, email, ativo, convite_aceito_em, auditoria.
+app/Services/AuthService.php / AuthController
+  - Login normaliza o email, recusa inativo com a mesma mensagem e devolve o user pelo resource;
+    /me usa o resource.
+
+app/Support/FrontEnd.php (novo): url(caminho) com FRONTEND_URL. TokenReservaService::link usa.
+
+app/Services/AdminService.php (novo)
+  - listarPaginado (whereLike nome/email, ativo), detalhar, convidar (senha aleatória +
+    Password::broker('convites')->createToken + ConviteAdminMail afterCommit), reenviarConvite
+    (409 se inativo ou já aceito), atualizar (nome/email/ativo; desativado perde os tokens),
+    desativar.
+  - verificarDesativacao: 422 se for a si mesmo; trava os admins ativos (lockForUpdate, ordem
+    por id) e exige o responsável ativo e pelo menos 2 ativos — evita que dois admins se
+    desativem ao mesmo tempo e o sistema fique sem nenhum.
+
+app/Services/SenhaService.php (novo)
+  - esqueci(): broker admins sendResetLink com credencial ativo=true (inativo não recebe nada)
+    e callback que envia RedefinicaoSenhaMail; resposta do controller sempre igual.
+  - redefinir()/aceitarConvite(): broker reset com ativo=true; callback grava senha,
+    remember_token novo, convite_aceito_em (se vazio), apaga os tokens dos DOIS brokers e todas
+    as sessões Sanctum, envia SenhaAlteradaMail. Falha: 422 "Link inválido ou expirado.".
+  - trocar(): grava a senha, apaga as outras sessões e mantém a atual (currentAccessToken).
+
+app/Http/Requests
+  - Concerns/NormalizaEmail (prepareForValidation), ListarAdminsRequest, StoreAdminRequest
+    (unique users.email sobre o email normalizado), UpdateAdminRequest, EsqueciSenhaRequest,
+    DefinirSenhaRequest (Password::min(8)->letters()->numbers(), confirmed),
+    TrocarSenhaRequest (current_password:sanctum, different).
+
+app/Mail: ConviteAdminMail, RedefinicaoSenhaMail, SenhaAlteradaMail + views em emails/.
+app/Http/Controllers: AdminController, SenhaController. routes/api.php: rotas públicas
+(esqueci 5/min, redefinir e aceitar 10/min), PATCH /api/me/senha e /api/admin/admins.
+
+database/seeders/AdminSeeder.php: convite_aceito_em = agora.
+database/factories/UserFactory.php: ativo, convite_aceito_em; estados inativo() e
+convitePendente().
+
+tests/Feature/AdminTest.php (13) e SenhaTest.php (10) — 193 testes no total.

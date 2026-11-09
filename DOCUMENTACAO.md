@@ -99,6 +99,8 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `RESERVA_JOBS_FALHOS_RETENCAO_HORAS` | 168 | Depois de quantas horas os jobs que falharam são apagados (7 dias) |
 | `APP_TIMEZONE` | America/Sao_Paulo | Fuso usado nas regras de "hoje" e no agendador |
 | `FRONTEND_URL` | http://localhost:4200 | Endereço do front Angular; base dos links enviados por email (ex.: cancelamento) |
+| `AUTH_REDEFINICAO_EXPIRA_MINUTOS` | 60 | Validade do link de redefinição de senha |
+| `AUTH_CONVITE_EXPIRA_MINUTOS` | 2880 | Validade do link de convite de admin (2 dias) |
 
 ### Fila e jobs (o que são)
 
@@ -223,9 +225,12 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | POST | `/api/reservas/cancelamento/{token}` | Cancela a reserva do link do email |
 | GET | `/api/reservas/confirmacao/{token}` | Resumo da reserva do link de confirmação (`pode_confirmar`, `prazo_confirmacao`) |
 | POST | `/api/reservas/confirmacao/{token}` | Confirma a reserva |
-| POST | `/api/login` | Login do admin |
+| POST | `/api/login` | Login do admin (responde com `token`, `expires_at` e `user`) |
+| POST | `/api/esqueci-senha` | Pede o link de redefinição de senha (resposta sempre igual) |
+| POST | `/api/redefinir-senha` | Define a senha nova com o token do email |
+| POST | `/api/convites/aceitar` | Admin convidado define a senha com o token do convite |
 
-`POST /api/alunos`, `POST /api/reservas`, `POST /api/minhas-reservas` e as rotas de cancelamento e de confirmação aceitam no máximo 10 requisições por minuto. O login aceita 5. A consulta de disponibilidade aceita 60.
+`POST /api/alunos`, `POST /api/reservas`, `POST /api/minhas-reservas` e as rotas de cancelamento e de confirmação aceitam no máximo 10 requisições por minuto. O login e o "esqueci a senha" aceitam 5; a redefinição e o aceite de convite, 10. A consulta de disponibilidade aceita 60.
 
 **Consulta de disponibilidade:**
 
@@ -256,7 +261,14 @@ POST /api/reservas
 | Método | Rota | Descrição |
 |---|---|---|
 | POST | `/api/logout` · `/api/logout-geral` | Encerra o token atual ou todos os tokens |
-| GET | `/api/me` | Admin logado |
+| GET | `/api/me` | Admin logado (`UserResource`) |
+| PATCH | `/api/me/senha` | Troca a própria senha (`senha_atual`, `password`, `password_confirmation`) |
+| GET | `/api/admin/admins` | Lista de admins (`?busca=` nome/email, `?ativo=`) |
+| POST | `/api/admin/admins` | Convida um admin (`nome`, `email`); ele recebe o link para definir a senha |
+| GET | `/api/admin/admins/{id}` | Detalhe do admin |
+| PATCH | `/api/admin/admins/{id}` | Edita nome, email e `ativo` (reativar) |
+| DELETE | `/api/admin/admins/{id}` | Desativa o admin (sem login e sem sessões) |
+| POST | `/api/admin/admins/{id}/reenviar-convite` | Reenvia o convite de quem ainda não definiu a senha |
 | GET/POST/PATCH/DELETE | `/api/admin/espacos` | CRUD de espaços (`?tipo=`) |
 | GET/POST/PATCH/DELETE | `/api/admin/equipamentos` | CRUD de equipamentos (`?espaco_id=`, `?nome=`, `?ativo=`) |
 | GET/POST/PATCH/DELETE | `/api/admin/cursos` | CRUD de cursos |
@@ -402,6 +414,18 @@ POST /api/admin/reservas/15/devolucao
 - **Não** mexe no estoque: o admin decide se reduz a `quantidade_total`. **Não** bloqueia o aluno de novas reservas.
 - Pendências: `GET /api/admin/reservas?devolucao=PENDENTE` (ou `NAO_DEVOLVIDO`, `DEVOLVIDO_COM_AVARIA`).
 
+### Admins e senhas
+
+- **Email do admin sempre em minúsculas** (e sem espaços nas pontas): no cadastro, na edição, no login e na redefinição. Assim `Ana@fac.edu` e `ana@fac.edu` são a mesma conta em qualquer banco, e não existe admin duplicado.
+- **Convite:** o admin novo é criado com uma senha aleatória (inutilizável) e recebe **"Convite para acessar o sistema de reservas"**, com o link `FRONTEND_URL/aceitar-convite/{token}`, válido por **2 dias**. No front, ele informa o email e a senha nova (`POST /api/convites/aceitar`). Dá para reenviar enquanto o convite não foi aceito.
+- **Esqueci a senha:** `POST /api/esqueci-senha` responde sempre a mesma mensagem (não revela quais emails são de admins); admin ativo recebe **"Redefinição de senha"** com `FRONTEND_URL/redefinir-senha/{token}`, válido por **60 minutos**, no máximo um pedido por minuto. No front, informa email e senha nova (`POST /api/redefinir-senha`).
+- Os links levam **só o token** (sem email na URL). Os tokens ficam com hash, um por email, em tabelas **separadas** para convite (`convites_admin_tokens`) e redefinição (`password_reset_tokens`), para um link de 60 minutos não valer 2 dias na rota do convite.
+- **Senha nova:** no mínimo 8 caracteres, com letras e números, e confirmação.
+- Ao **redefinir** ou **aceitar convite**: todas as sessões do admin caem e os links pendentes dele são invalidados. Ao **trocar logado** (`PATCH /api/me/senha`, exige a senha atual): caem as outras sessões, a atual continua. Nos três casos, o admin recebe **"Sua senha foi alterada"**.
+- **Desativar admin:** ele não faz mais login e perde todas as sessões na hora. Ninguém desativa a si mesmo, e sempre sobra pelo menos um admin ativo (verificado com trava). Reativar é `PATCH` com `ativo: true`.
+- **Login** de admin inativo ou com senha errada: a mesma resposta, "Credenciais inválidas".
+- **Auditoria:** convites, edições e desativações de admins ficam no histórico; senha e `remember_token` aparecem só como `[oculto]`.
+
 ### Alunos (admin)
 
 - **Desativar** (DELETE ou PATCH com `ativo: false`) revoga as reservas ativas que ainda não terminaram, com a justificativa "Cadastro do aluno desativado." e email para o aluno. Reativar é PATCH com `ativo: true`.
@@ -478,6 +502,15 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 | Reservas não confirmadas são revogadas automaticamente | Libera horários de quem não vai usar |
 | Pedido de confirmação **2 dias úteis** antes | Em dias corridos, reserva de segunda pediria confirmação no sábado, quando muita gente não abre o email da faculdade |
 | Prazo até as **23:59 do dia anterior** (dia corrido) | Dá o maior prazo possível (ex.: o fim de semana inteiro para reservas de segunda); a revogação às 00:05 ainda libera o horário no próprio dia |
+| Email do admin em minúsculas e único sem diferenciar maiúsculas | O usuário pediu diferenciar "para mais segurança"; foi explicado (09/11/2026) que provedores entregam `Ana@` e `ana@` na mesma caixa, que diferenciar permitiria admins duplicados ou cópias de um admin e logins falhando por digitação, e que o comportamento mudaria conforme o banco. Decisão: minúsculas |
+| Convite e redefinição pelo Password Broker do Laravel | Mecanismo oficial: token com hash, validade e limite de pedidos |
+| Tabelas de token separadas para convite e redefinição | Com a mesma tabela, um link de redefinição (60 min) valeria 2 dias na rota do convite |
+| Link só com o token; email digitado no front | Nada pessoal na URL (LGPD) |
+| Convite válido por **2 dias**; redefinição por **60 minutos** | Decisão do usuário; o convite pode ser reenviado |
+| Trocar a senha logado **e** "esqueci a senha" | Decisão do usuário: as duas opções |
+| Senha com 8+ caracteres, letras e números, sem checagem de vazamento | A checagem `uncompromised` consulta um serviço externo a cada cadastro |
+| Email "Sua senha foi alterada" | Se não foi o próprio admin, ele fica sabendo na hora |
+| Sem perfis de permissão (por enquanto) | Todo admin pode tudo; perfis ficam como opcional |
 | Fila no banco (`QUEUE_CONNECTION=database`) para os emails | A requisição não espera o envio, e uma falha no servidor de email não derruba a reserva |
 | Jobs que falharam apagados após **7 dias** | Guardam dados pessoais (LGPD); 7 dias dão tempo de investigar |
 | Links de email usados/vencidos apagados após **30 dias** | Não guardar o que não serve mais; 30 dias ajudam a responder "cliquei e não funcionou" |
@@ -509,6 +542,8 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
+| `SenhaTest` | Esqueci a senha (link só com token, 60 min), resposta igual para inexistente/inativo, redefinição derrubando sessões com email de aviso, uso único e vencimento, token/email errados, regras da senha, aceite de convite em até 2 dias, link de redefinição não serve no convite, troca logado mantendo a sessão atual |
 | `AgendadorTest` | Horários e `withoutOverlapping` de todas as tarefas, feriados do ano seguinte sem facultativos, retenção de 7 dias dos jobs falhos, limpeza só dos tokens antigos |
 | `ConfirmacaoTest` | Reserva para hoje confirmada, dentro da janela pede confirmação na criação (prazo e links), fora da janela avisa a data do pedido, pedido 2 dias úteis antes e sem duplicar, o que o pedido ignora, confirmação pelo link, vencimento no fim do dia anterior, cancelar pelo email de confirmação, revogação só das não confirmadas do dia, fluxo completo pelos comandos, filtro do admin, agendamento |
 | `CancelamentoTest` | Email de criação com link do front, só o hash no banco e validade até o início, resumo sem dados pessoais, cancelamento liberando horário e equipamentos com email, uso único, token inválido e vencido, reserva revogada, evento sem email, criação sem expor o aluno |
@@ -549,6 +584,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Admins e senhas (itens 5 e 6) | `UserResource`, gestão de admins com convite, desativação, esqueci/redefinir/aceitar/trocar senha, email "senha alterada", email em minúsculas |
 | Agendador | Feriados do ano seguinte, limpeza de tokens e de jobs falhos, horários escalonados, documentação de cron e supervisor, explicação de fila e jobs |
 | Item 9 — Confirmação | Pedido 2 dias úteis antes (ou já na criação dentro da janela), prazo até o dia anterior, confirmação pela API, revogação automática, comandos agendados, filtro do admin |
 | Item 8 — Cancelamento pelo aluno | Email "Reserva registrada" com link, tokens genéricos com hash, resumo e cancelamento pela API, email "Reserva cancelada", `FRONTEND_URL` |
@@ -568,13 +604,11 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
-2. **Recuperação de senha do admin** por email.
-3. **Consulta do histórico de auditoria** pelo admin.
-4. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
-5. **CI:** testes em MySQL e Postgres no GitHub Actions.
-6. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
-7. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **Consulta do histórico de auditoria** pelo admin.
+2. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
+3. **CI:** testes em MySQL e Postgres no GitHub Actions.
+4. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
+5. **Front-end em Angular** (projeto separado; não será com Blade).
 
 ### Emails do sistema
 
@@ -586,8 +620,9 @@ Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e re
 | Reserva cancelada | Aluno | Ao cancelar pelo link | ✅ Pronto |
 | Confirme sua reserva (Confirmar + Cancelar) | Aluno | 2 dias úteis antes, ou já na criação se a reserva cair dentro da janela | ✅ Pronto |
 | Reserva revogada por falta de confirmação | Aluno | No dia da reserva, às 00:05, se não confirmou (reaproveita o email de revogação) | ✅ Pronto |
-| Convite de novo admin | Admin novo | Admin cadastra outro admin | Item 10 |
-| Recuperação de senha | Admin | Pedido de "esqueci a senha" | Passo 9 |
+| Convite para acessar o sistema | Admin novo | Admin cadastra ou reenvia o convite | ✅ Pronto |
+| Redefinição de senha | Admin | Pedido de "esqueci a senha" | ✅ Pronto |
+| Sua senha foi alterada | Admin | Depois de redefinir, aceitar convite ou trocar a senha | ✅ Pronto |
 
 Todos vão pela fila (`php artisan queue:work`). Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
 

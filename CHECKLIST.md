@@ -6,16 +6,16 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 09/11/2026 · 171 testes passando
+Última atualização: 09/11/2026 · 193 testes passando
 
 ---
 
 ## 📍 Onde paramos
 
-- **Último passo concluído:** passo 4, agendador de tarefas (feriados do ano seguinte, limpeza de links de email e de jobs falhos, documentação de cron e supervisor), em 09/11/2026.
-- **Próximo passo:** passos 5 e 6 juntos (gestão de admins e senhas). **Proposta aprovada em 09/11/2026** com ajustes do usuário: convite vale **2 dias** (redefinição 60 min); ter **as duas opções**, trocar a senha logado (`PATCH /api/me/senha`) e "esqueci minha senha"; link só com o token (email digitado no form); email "senha alterada"; senha mínima de 8 com letras e números; sem perfis de permissão. **Pendente:** o usuário pediu email com diferenciação de maiúsculas "para mais segurança"; foi explicado o risco (contas duplicadas como `Ana@` e `ana@`) e aguarda a confirmação de como fica, antes de implementar.
-- **O usuário precisa:** dar push. Não há migration nova.
-- **Conceitos já explicados ao usuário:** fila e jobs (seção "Fila e jobs" do DOCUMENTACAO).
+- **Último passo concluído:** passos 5 e 6, gestão de admins e senhas (convite, desativação, esqueci/redefinir/aceitar/trocar senha), em 09/11/2026.
+- **Próximo passo:** passo 7, rota para o admin consultar o histórico de auditoria. **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação. Os dados já são gravados na tabela `auditorias` (inclusive admins, com a senha oculta).
+- **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` (colunas novas em `users` e tabela `convites_admin_tokens`). O admin do seeder continua `admin@email.com` / `Admin`.
+- **Conceitos já explicados ao usuário:** fila e jobs; por que email não deve diferenciar maiúsculas (seção de decisões do DOCUMENTACAO).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
@@ -73,6 +73,9 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 
 ### Admins (com login)
 - [x] Login, logout e logout de todos os dispositivos (token vale 8h)
+- [x] Convidar outros admins por email (link para definir a senha, válido por 2 dias) e reenviar o convite
+- [x] Listar, editar, desativar e reativar admins (desativado perde as sessões; ninguém desativa a si mesmo)
+- [x] Trocar a própria senha logado e recuperar a senha por email ("esqueci minha senha")
 - [x] Cadastrar, editar, listar e desativar espaços, equipamentos e cursos
 - [x] Marcar equipamento como compartilhável entre espaços
 - [x] Listar alunos com filtros (nome/RA/email, curso, ativo) e ver o detalhe
@@ -96,7 +99,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Código compatível com SQLite, MySQL e Postgres
 - [x] Código formatado com o Laravel Pint (`pint.json`)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
-- [x] 171 testes automáticos passando
+- [x] 193 testes automáticos passando
 
 ---
 
@@ -131,18 +134,14 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - `routes/console.php`: revogação (00:05), limpeza de links de email com mais de 30 dias (03:10), tokens de login vencidos (03:20), jobs falhos com mais de 7 dias (03:30), pedido de confirmação (08:00) e feriados do ano seguinte (1º/12, 03:00, sem facultativos por padrão). Todas com `withoutOverlapping`.
 - Produção documentada no DOCUMENTACAO: cron do `schedule:run` e worker da fila com supervisor. Aviso de falha por email fica para o passo 10.
 
-### 5. ⬜ Item 10 — Admins — *próximo; proposta ainda não enviada*
-- `UserResource` no `/me` e no login, para não devolver o model `User` cru.
-- `POST /api/admin/admins`: um admin cadastra outro. O novo admin recebe um **convite por email** com um link para definir a senha (reaproveita o mecanismo de redefinição do passo 6).
-- `GET /api/admin/admins` (lista), `PATCH` (nome/email) e `DELETE` (desativar: coluna `ativo` em `users`; admin desativado não faz login e perde os tokens). Um admin não pode desativar a si mesmo, e precisa sobrar pelo menos 1 admin ativo.
-- Decisão em aberto: perfis de permissão (ex.: admin geral × funcionário que só registra devoluções). Recomendação: **não agora**; deixar anotado para quando houver necessidade.
+### 5. ✅ Item 10 — Admins — *concluído em 09/11/2026 (junto com o passo 6)*
+- `UserResource` no login e no `/me`; `GET/POST/PATCH/DELETE /api/admin/admins` e reenvio de convite. Convite por email com link para definir a senha (**2 dias**). Desativado não faz login e perde as sessões; ninguém desativa a si mesmo; sempre sobra um ativo.
+- Email do admin **sempre em minúsculas** (decisão após explicação ao usuário). Sem perfis de permissão.
 
-### 6. ⬜ Recuperação de senha do admin
-- `POST /api/esqueci-senha` com o email: a resposta é **sempre a mesma**, exista o email ou não. Limite de requisições.
-- Email com o link `FRONTEND_URL/redefinir-senha?token=...` (Password broker do Laravel; a tabela `password_reset_tokens` já existe; o token expira em 60 minutos).
-- `POST /api/redefinir-senha` (token, email, senha nova com confirmação e regras mínimas). Ao redefinir, **revoga todos os tokens de acesso** daquele admin.
+### 6. ✅ Recuperação e troca de senha — *concluído em 09/11/2026*
+- "Esqueci a senha" (resposta sempre igual, link de **60 min** só com o token), redefinição, aceite de convite e troca logado (`PATCH /api/me/senha`). Senha 8+ com letras e números. Email "Sua senha foi alterada". Tabelas de token separadas para convite e redefinição.
 
-### 7. ⬜ Rota de consulta do histórico de auditoria
+### 7. ⬜ Rota de consulta do histórico de auditoria — *próximo; proposta ainda não enviada*
 - `GET /api/admin/auditorias` com os filtros: tipo do registro (espaço, reserva, aluno...), id do registro, admin, ação e período. Paginada.
 - Também `GET /api/admin/{tipo}/{id}/historico`, ou um campo no detalhe de cada entidade (decidir na proposta).
 
@@ -185,5 +184,6 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - [x] Reserva cancelada pelo aluno
 - [x] Confirme sua reserva (2 dias úteis antes, ou já na criação dentro da janela)
 - [x] Reserva revogada por falta de confirmação
-- [ ] Convite de novo admin (passo 5)
-- [ ] Recuperação de senha do admin (passo 6)
+- [x] Convite para acessar o sistema (admin novo)
+- [x] Redefinição de senha do admin
+- [x] Sua senha foi alterada
