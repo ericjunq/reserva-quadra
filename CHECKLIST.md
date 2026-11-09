@@ -13,7 +13,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 ## 📍 Onde paramos
 
 - **Último passo concluído:** passo 1, o aluno consulta as próprias reservas (RA + email).
-- **Próximo passo:** passo 2, item 8 (email na criação com link de cancelamento). A proposta foi enviada; **faltam as respostas do usuário** para as 3 decisões em aberto (prazo, link do front, token genérico).
+- **Próximo passo:** passo 2, item 8 (email na criação com link de cancelamento). **Proposta aprovada em 09/11/2026.** As decisões 1 (cancelar até o início), 3 (token genérico em `tokens_reserva`) e 4 (resumo do GET sem o nome do aluno) estão aprovadas. A decisão 2 (link do email apontando para o front Angular, `FRONTEND_URL`) aguarda a confirmação do usuário, depois de uma explicação mais detalhada.
 - **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` se ainda não rodou depois das mudanças em `alunos` e `item_reservas`.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
