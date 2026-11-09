@@ -57,6 +57,13 @@ class ReservaRepository
             ->countBy(fn ($data) => Carbon::parse($data)->startOfWeek(Carbon::MONDAY)->toDateString());
     }
 
+    public function doAluno(int $alunoId, bool $somenteFuturas = true): Builder
+    {
+        return Reserva::query()
+            ->where('aluno_id', $alunoId)
+            ->when($somenteFuturas, fn ($q) => $q->where('data_reserva', '>=', today()->toDateString()));
+    }
+
     public function ordenar(Builder $query, string $ordem = 'asc'): Builder
     {
         return $query
