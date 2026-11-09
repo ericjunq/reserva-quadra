@@ -968,3 +968,62 @@ tests/Feature/CancelamentoTest.php (novo) — 9 testes (155 no total).
 
 Guias: CHECKLIST (Onde paramos, passo 2 concluído), DOCUMENTACAO (endpoints, regras, decisões,
 emails, testes, histórico), DATABASE (tokens_reserva, cancelada_em, decisões 25 e 26).
+
+========================================================================
+26. ITEM 9 — CONFIRMAÇÃO DA RESERVA E REVOGAÇÃO AUTOMÁTICA
+========================================================================
+
+Decisões do usuário (09/11/2026): pedido 2 dias ÚTEIS antes; prazo até 23:59 do dia anterior
+em dia CORRIDO; reserva dentro da janela já pede a confirmação no email da criação (sugestão
+do usuário); reserva para o mesmo dia nasce confirmada; email de confirmação com Cancelar;
+comandos às 08:00 e 00:05 (configuráveis).
+
+config/reservas.php
+  - confirmacao_dias_antes -> confirmacao_dias_uteis_antes (env RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES).
+  - horario_pedido_confirmacao (08:00) e horario_revogacao_nao_confirmadas (00:05).
+
+app/Constants/SituacaoConfirmacaoConstant.php (novo): NAO_SOLICITADA, AGUARDANDO, CONFIRMADA.
+
+app/Models/Reserva.php
+  - confirmacao_enviada_em e confirmada_em no fillable e nos casts (as colunas já existiam).
+
+app/Services/TokenReservaService.php
+  - link(finalidade, token): FRONTEND_URL/reservas/cancelar|confirmar/{token}.
+
+app/Services/ConfirmacaoService.php (novo)
+  - limiteDaJanela() = hoje + N dias úteis; dentroDaJanela(); prazo() = dia anterior 23:59:59;
+    dataDoPedido() = data - N dias úteis.
+  - enviarPedido(reserva, aluno, recemCriada): tokens CONFIRMAR (vence no prazo) e CANCELAR
+    (vence no início), grava confirmacao_enviada_em, PedidoConfirmacaoMail (afterCommit).
+  - pedirPendentes(): reservas de aluno RESERVADO, sem pedido e não confirmadas, com data entre
+    amanhã e o limite da janela (pega também execuções perdidas). Uma transação por reserva.
+  - resumo/podeConfirmar/confirmar(token): mesmo padrão do cancelamento; 409 se não ativa ou
+    já confirmada.
+  - Não depende de ReservaService (evita dependência circular): ReservaService usa este service.
+
+app/Services/ReservaService.php
+  - notificarCriacao(): hoje -> confirmada_em = agora + "Reserva registrada"; dentro da janela
+    -> enviarPedido(recemCriada); fora -> "Reserva registrada" com a data do pedido.
+  - revogarNaoConfirmadas(): reservas de aluno de HOJE, com pedido enviado, sem confirmação e
+    ainda não encerradas (ativasFuturas), revogadas sem admin com "Reserva não confirmada no
+    prazo." (email de revogação). Só hoje: dias anteriores já passaram e não são revogáveis.
+
+app/Mail/PedidoConfirmacaoMail.php + emails/pedido-confirmacao.blade.php (novos)
+  - Texto muda se a reserva acabou de ser criada; prazo; botões Confirmar e Cancelar.
+app/Mail/ReservaCriadaMail.php + emails/reserva-criada.blade.php
+  - Assunto "Reserva registrada" (antes "Reserva confirmada", confundia com o item 9);
+    mostra a data em que chegará o pedido de confirmação.
+
+app/Console/Commands/PedirConfirmacao.php e RevogarNaoConfirmadas.php (novos)
+routes/console.php
+  - Os dois comandos com dailyAt(config) e withoutOverlapping().
+
+app/Http/Controllers/ConfirmacaoController.php (novo) + routes/api.php
+  - GET/POST /api/reservas/confirmacao/{token} (throttle 10/min); GET devolve pode_confirmar e
+    prazo_confirmacao.
+
+ReservaResource: confirmacao_enviada_em e confirmada_em.
+ListarReservasRequest / ReservaRepository: filtro confirmacao (só reservas de aluno).
+
+tests/Feature/ConfirmacaoTest.php (novo) — 12 testes; CancelamentoTest passou a reservar fora da
+janela (2026-11-12). 167 no total.

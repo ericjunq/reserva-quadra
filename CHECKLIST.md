@@ -6,15 +6,15 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 09/11/2026 · 155 testes passando
+Última atualização: 09/11/2026 · 167 testes passando
 
 ---
 
 ## 📍 Onde paramos
 
-- **Último passo concluído:** passo 2, item 8 (email "Reserva confirmada" com link de cancelamento e cancelamento pela API), em 09/11/2026.
-- **Próximo passo:** passo 3, item 9 (confirmação 2 dias antes e revogação automática). **Ainda não há proposta enviada**: enviar a proposta completa e esperar a aprovação. Ela deve reaproveitar o `TokenReservaService` com a finalidade `CONFIRMAR`.
-- **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` (tabela nova `tokens_reserva` e coluna `cancelada_em`). No `.env` local, conferir `FRONTEND_URL=http://localhost:4200`.
+- **Último passo concluído:** passo 3, item 9 (confirmação da reserva e revogação automática), em 09/11/2026.
+- **Próximo passo:** passo 4, agendador de tarefas. **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação. O que falta agendar: importação dos feriados do ano seguinte e limpeza da fila; documentar o cron e o worker de produção. O pedido de confirmação, a revogação e a limpeza de tokens do Sanctum **já estão agendados** em `routes/console.php`.
+- **O usuário precisa:** dar push. Não há migration nova neste passo. No `.env`, a variável `RESERVA_CONFIRMACAO_DIAS_ANTES` virou `RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES` (só importa se ela estiver definida lá).
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -51,7 +51,8 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Informar o RA ou o curso no calendário para ver quantas reservas o curso ainda tem na semana
 - [x] Reservar um espaço em um horário, com ou sem equipamentos
 - [x] Consultar as próprias reservas informando RA + email (futuras ou todas)
-- [x] Receber email "Reserva confirmada" e cancelar pelo link (até o início da reserva)
+- [x] Receber email "Reserva registrada" e cancelar pelo link (até o início da reserva)
+- [x] Confirmar a reserva pelo link do email (pedido 2 dias úteis antes; prazo até o dia anterior)
 - [x] Receber email quando a reserva é criada, cancelada ou revogada, e quando a devolução tem pendência
 
 ### Regras da reserva do aluno
@@ -63,6 +64,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Não reserva em data ou horário bloqueado (mostra o motivo)
 - [x] Equipamentos só se houver quantidade disponível naquele horário
 - [x] Aluno inativo não consegue reservar
+- [x] Reserva não confirmada no prazo é revogada sozinha (comando agendado)
 - [x] Limite de requisições por minuto contra abuso
 
 ### Admins (com login)
@@ -90,7 +92,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Código compatível com SQLite, MySQL e Postgres
 - [x] Código formatado com o Laravel Pint (`pint.json`)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
-- [x] 155 testes automáticos passando
+- [x] 167 testes automáticos passando
 
 ---
 
@@ -106,7 +108,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - Arquivos: `ConsultarMinhasReservasRequest`, um método novo no `ReservaRepository`, `MinhasReservasController`, `MinhasReservasTest`.
 
 ### 2. ✅ Item 8 — Email na criação com link de cancelamento — *concluído em 09/11/2026*
-- Ao reservar, o aluno recebe "Reserva confirmada" com um link para cancelar. Isso também protege contra o uso do RA por outra pessoa.
+- Ao reservar, o aluno recebe "Reserva registrada" (antes "Reserva confirmada") com um link para cancelar. Isso também protege contra o uso do RA por outra pessoa.
 - **Token aleatório:** só o hash dele fica no banco, e o token puro vai só no email.
 - **Link no front:** `FRONTEND_URL/reservas/cancelar/{token}`. O front chama:
   - `GET /api/reservas/cancelamento/{token}`: resumo da reserva;
@@ -116,20 +118,14 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - Eventos não recebem esses emails.
 - Decisões tomadas: cancelar **até o início**; link para o **front Angular** (`FRONTEND_URL`, opção A, sem Blade); **token genérico** em `tokens_reserva` (`CANCELAR`/`CONFIRMAR`); resumo do GET **sem o nome** do aluno.
 
-### 3. ⬜ Item 9 — Confirmação 2 dias antes e revogação automática — *próximo; proposta ainda não enviada*
-- Comando diário `reservas:pedir-confirmacao`: envia o email "Confirme sua reserva" para as reservas de aluno que acontecem daqui a `RESERVA_CONFIRMACAO_DIAS_ANTES` (2) dias, com o link de confirmação (token do passo 2). Grava `confirmacao_enviada_em`, e as colunas `confirmacao_enviada_em`/`confirmada_em` já existem.
-- `POST /api/reservas/confirmacao/{token}` grava `confirmada_em`.
-- Comando `reservas:revogar-nao-confirmadas`: revoga as que não forem confirmadas no prazo, com a justificativa "Reserva não confirmada" e email (reaproveita o email de revogação).
-- Decisões em aberto, com recomendação:
-  - **prazo para confirmar:** até 24h antes do início;
-  - **reserva criada já dentro da janela de 2 dias:** já nasce confirmada, para não exigir uma confirmação logo depois de reservar;
-  - eventos não precisam de confirmação.
-- Arquivos: 2 comandos, 2 emails, um service de confirmação, a rota e os testes, com a data simulada.
+### 3. ✅ Item 9 — Confirmação e revogação automática — *concluído em 09/11/2026*
+- Pedido de confirmação **2 dias úteis antes** (comando `reservas:pedir-confirmacao`, 08:00); prazo até as **23:59 do dia anterior** (dia corrido); revogação das não confirmadas no dia da reserva (comando `reservas:revogar-nao-confirmadas`, 00:05).
+- Na criação: reserva **para hoje** nasce confirmada; reserva **dentro da janela** já recebe "Confirme sua reserva" (um email só); fora da janela recebe "Reserva registrada" com a data do pedido.
+- Email de confirmação com **Confirmar** e **Cancelar**; `GET`/`POST /api/reservas/confirmacao/{token}`; filtro `confirmacao` na listagem do admin. Eventos não precisam de confirmação.
 
-### 4. ⬜ Agendador de tarefas (scheduler)
-- Em `routes/console.php`:
-  - pedido de confirmação e revogação das não confirmadas, todo dia;
-  - `sanctum:prune-expired`, todo dia;
+### 4. ⬜ Agendador de tarefas (scheduler) — *próximo; proposta ainda não enviada*
+- Já agendados em `routes/console.php`: pedido de confirmação (08:00), revogação das não confirmadas (00:05) e `sanctum:prune-expired` (diário).
+- Falta agendar:
   - `feriados:importar` do ano seguinte, todo 1º de dezembro;
   - `queue:prune-failed`.
 - Produção precisa de um cron chamando `php artisan schedule:run` a cada minuto e de um worker de fila (`queue:work`, com supervisor). Documentar isso.
@@ -184,9 +180,9 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 
 - [x] Reserva revogada (pelo admin, por evento, por data bloqueada ou por aluno desativado)
 - [x] Pendência na devolução de equipamentos (avaria ou não devolvido)
-- [x] Reserva confirmada, com link de cancelamento
+- [x] Reserva registrada, com link de cancelamento
 - [x] Reserva cancelada pelo aluno
-- [ ] Pedido de confirmação 2 dias antes (passo 3)
-- [ ] Reserva revogada por falta de confirmação (passo 3)
+- [x] Confirme sua reserva (2 dias úteis antes, ou já na criação dentro da janela)
+- [x] Reserva revogada por falta de confirmação
 - [ ] Convite de novo admin (passo 5)
 - [ ] Recuperação de senha do admin (passo 6)

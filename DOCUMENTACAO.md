@@ -63,6 +63,9 @@ O `--seed` cria:
 ```bash
 php artisan serve          # API em http://localhost:8000
 php artisan queue:work     # envia os emails (em dev eles aparecem em storage/logs/laravel.log)
+php artisan schedule:work  # roda o agendador em dev (pedido de confirmação às 08:00, revogação às 00:05)
+php artisan reservas:pedir-confirmacao          # dispara o pedido de confirmação na hora
+php artisan reservas:revogar-nao-confirmadas    # revoga as não confirmadas de hoje na hora
 php artisan test           # roda os testes
 ./vendor/bin/pint          # formata o código no padrão do projeto (pint.json)
 php artisan feriados:importar 2027                 # importa os feriados nacionais como datas bloqueadas
@@ -88,7 +91,9 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 |---|---|---|
 | `RESERVA_ANTECEDENCIA_MAXIMA_DIAS_UTEIS` | 10 | Até quantos dias úteis à frente o aluno pode reservar |
 | `RESERVA_MINUTOS_ANTES_DO_FIM` | 20 | Até quantos minutos antes do fim um horário de hoje pode ser reservado |
-| `RESERVA_CONFIRMACAO_DIAS_ANTES` | 2 | Quantos dias antes o pedido de confirmação é enviado (item 9) |
+| `RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES` | 2 | Quantos dias **úteis** antes da reserva sai o pedido de confirmação |
+| `RESERVA_HORARIO_PEDIDO_CONFIRMACAO` | 08:00 | Horário diário do comando que envia os pedidos |
+| `RESERVA_HORARIO_REVOGACAO_NAO_CONFIRMADAS` | 00:05 | Horário diário do comando que revoga as não confirmadas |
 | `APP_TIMEZONE` | America/Sao_Paulo | Fuso usado nas regras de "hoje" e no agendador |
 | `FRONTEND_URL` | http://localhost:4200 | Endereço do front Angular; base dos links enviados por email (ex.: cancelamento) |
 
@@ -164,9 +169,11 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | POST | `/api/minhas-reservas` | O aluno consulta as próprias reservas (RA + email no corpo) |
 | GET | `/api/reservas/cancelamento/{token}` | Resumo da reserva do link do email (`pode_cancelar`) |
 | POST | `/api/reservas/cancelamento/{token}` | Cancela a reserva do link do email |
+| GET | `/api/reservas/confirmacao/{token}` | Resumo da reserva do link de confirmação (`pode_confirmar`, `prazo_confirmacao`) |
+| POST | `/api/reservas/confirmacao/{token}` | Confirma a reserva |
 | POST | `/api/login` | Login do admin |
 
-`POST /api/alunos`, `POST /api/reservas`, `POST /api/minhas-reservas` e as rotas de cancelamento aceitam no máximo 10 requisições por minuto. O login aceita 5. A consulta de disponibilidade aceita 60.
+`POST /api/alunos`, `POST /api/reservas`, `POST /api/minhas-reservas` e as rotas de cancelamento e de confirmação aceitam no máximo 10 requisições por minuto. O login aceita 5. A consulta de disponibilidade aceita 60.
 
 **Consulta de disponibilidade:**
 
@@ -217,7 +224,7 @@ POST /api/reservas
 
 **Listagem de reservas:** `GET /api/admin/reservas?de=2026-11-01&ate=2026-11-30&curso_id=2&status=RESERVADO`
 
-- Filtros opcionais e combináveis: `periodo` (atalho: `HOJE`, `SEMANA_ATUAL`, `PROXIMA_SEMANA`, `MES_ATUAL`, `MES_ANTERIOR`, `ANO_ATUAL`; não combina com `de`/`ate`), `de`, `ate`, `espaco_id`, `tipo_espaco`, `curso_id`, `busca` (nome ou RA do aluno, busca parcial), `status`, `tipo`, `horario`, `devolucao` (situação de algum item: só reservas ativas que já começaram; sem `de`/`ate`, não aplica o padrão de hoje em diante, para achar pendências antigas).
+- Filtros opcionais e combináveis: `periodo` (atalho: `HOJE`, `SEMANA_ATUAL`, `PROXIMA_SEMANA`, `MES_ATUAL`, `MES_ANTERIOR`, `ANO_ATUAL`; não combina com `de`/`ate`), `de`, `ate`, `espaco_id`, `tipo_espaco`, `curso_id`, `busca` (nome ou RA do aluno, busca parcial), `status`, `tipo`, `horario`, `devolucao` (situação de algum item: só reservas ativas que já começaram; sem `de`/`ate`, não aplica o padrão de hoje em diante, para achar pendências antigas), `confirmacao` (`AGUARDANDO`, `CONFIRMADA` ou `NAO_SOLICITADA`; só reservas de aluno).
 - Sem `de` e `ate`, lista de hoje em diante. `ordem=asc|desc` (padrão `asc`, por data e horário). `per_page` até 100 (padrão 15).
 - Cada reserva traz `aluno` (nome, RA, email e curso), `espaco`, `equipamentos`, `criado_por` (eventos), `revogada_por` e a justificativa (revogadas).
 - `totais_por_status` traz a contagem de cada status com os mesmos filtros, menos o de status.
@@ -302,12 +309,25 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 
 ### Cancelamento pelo aluno (link do email)
 
-- Ao reservar, o aluno recebe **"Reserva confirmada"** com os detalhes e o botão **Cancelar reserva**, que leva a `FRONTEND_URL/reservas/cancelar/{token}` (página do front Angular).
+- Ao reservar, o aluno recebe **"Reserva registrada"** (ou, dentro da janela de confirmação, **"Confirme sua reserva"**, ver abaixo) com os detalhes e o botão **Cancelar reserva**, que leva a `FRONTEND_URL/reservas/cancelar/{token}` (página do front Angular).
 - O front chama `GET /api/reservas/cancelamento/{token}` para mostrar o resumo (sem RA, email ou nome) e `POST /api/reservas/cancelamento/{token}` para cancelar. **Só o POST cancela**: leitores de email e antivírus abrem links sozinhos.
 - O token tem 64 caracteres aleatórios; no banco fica só o **hash SHA-256**. Vale **até o início da reserva** e só pode ser usado **uma vez**. Token inválido, vencido ou usado: `404` com "Link inválido ou expirado.".
 - Cancelar: só reservas `RESERVADO` (409) que não começaram (422). Grava `CANCELADO` e `cancelada_em`, libera horário e equipamentos e envia **"Reserva cancelada"**. Na auditoria fica sem admin (foi o aluno).
 - Eventos não recebem esses emails nem token.
 - Até o front existir, o link do email não abre página nenhuma; em desenvolvimento os emails ficam em `storage/logs/laravel.log`, e o fluxo é testado pela API (Postman/curl) e pelos testes automáticos.
+
+### Confirmação da reserva (item 9)
+
+- **Pedido:** o comando `reservas:pedir-confirmacao` (todo dia às 08:00) envia **"Confirme sua reserva"** para as reservas de aluno ativas que acontecem até **2 dias úteis** à frente e ainda não receberam o pedido. Ex.: reserva de segunda → pedido na quinta. Grava `confirmacao_enviada_em`.
+- **Prazo:** até as **23:59 do dia anterior** à reserva (dia corrido). Ex.: reserva de segunda → pedido na quinta, prazo até domingo 23:59.
+- O email tem **Confirmar** (`FRONTEND_URL/reservas/confirmar/{token}`, token `CONFIRMAR` que vence no prazo) e **Cancelar** (token `CANCELAR` novo, vence no início). O front chama `GET`/`POST /api/reservas/confirmacao/{token}`; só o POST confirma (grava `confirmada_em`, token de uso único).
+- **Revogação automática:** o comando `reservas:revogar-nao-confirmadas` (todo dia às 00:05) revoga as reservas **do dia** que receberam o pedido e não foram confirmadas, com a justificativa "Reserva não confirmada no prazo." e o email de revogação. Na auditoria fica sem admin. O horário fica livre no próprio dia (reserva para hoje é aceita até 20 minutos antes do fim).
+- **Na criação**, depende da data:
+  - reserva **para hoje**: nasce **confirmada** (o prazo já teria passado) e recebe "Reserva registrada";
+  - reserva **dentro da janela** (o pedido já teria saído): o email da criação já é **"Confirme sua reserva"**, um email só, com os dois botões. Isso também confirma que quem reservou é o dono do email;
+  - reserva **fora da janela**: recebe "Reserva registrada", com a data em que chegará o pedido de confirmação.
+- **Eventos** não precisam de confirmação.
+- O `ReservaResource` mostra `confirmacao_enviada_em` e `confirmada_em`.
 
 ### Devolução de equipamentos (admin)
 
@@ -403,7 +423,13 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 | Consulta mostra **quem reservou** (nome e curso) | Facilita o mapeamento do uso. Por ser pública, não mostra RA nem email (LGPD) |
 | Consulta com RA ou curso **não filtra** as reservas | Mostra o espaço inteiro e apenas aponta o limite e a disponibilidade do curso |
 | Eventos podem revogar reservas de alunos | Eventos da faculdade têm prioridade; justificativa obrigatória e aluno avisado |
-| Reservas não confirmadas serão revogadas automaticamente | Libera horários de quem não vai usar (item 9) |
+| Reservas não confirmadas são revogadas automaticamente | Libera horários de quem não vai usar |
+| Pedido de confirmação **2 dias úteis** antes | Em dias corridos, reserva de segunda pediria confirmação no sábado, quando muita gente não abre o email da faculdade |
+| Prazo até as **23:59 do dia anterior** (dia corrido) | Dá o maior prazo possível (ex.: o fim de semana inteiro para reservas de segunda); a revogação às 00:05 ainda libera o horário no próprio dia |
+| Reserva dentro da janela pede a confirmação **já na criação** | Um email só; também confirma que quem reservou é o dono do email (reserva com RA de outra pessoa cai sozinha) |
+| Reserva **para hoje** nasce confirmada | O prazo (dia anterior) já teria passado; um prazo de poucas horas exigiria revogação de hora em hora para um caso raro |
+| Email de confirmação também tem **Cancelar** | Quem não vai mais libera o horário na hora, sem esperar a revogação |
+| Email da criação renomeado para "Reserva registrada" | "Confirmada" confundia com a confirmação do item 9 |
 | Datas bloqueadas em tabela própria | Uma fonte só para feriados (importados pela Yasumi), recesso e manutenção (cadastrados pelo admin) |
 | Bloqueios valem só para alunos | Eventos da faculdade podem acontecer em feriados e recessos |
 | Bloqueio de parte do dia | Manutenções pontuais sem fechar o dia inteiro; reaproveita a verificação por sobreposição |
@@ -425,6 +451,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `ConfirmacaoTest` | Reserva para hoje confirmada, dentro da janela pede confirmação na criação (prazo e links), fora da janela avisa a data do pedido, pedido 2 dias úteis antes e sem duplicar, o que o pedido ignora, confirmação pelo link, vencimento no fim do dia anterior, cancelar pelo email de confirmação, revogação só das não confirmadas do dia, fluxo completo pelos comandos, filtro do admin, agendamento |
 | `CancelamentoTest` | Email de criação com link do front, só o hash no banco e validade até o início, resumo sem dados pessoais, cancelamento liberando horário e equipamentos com email, uso único, token inválido e vencido, reserva revogada, evento sem email, criação sem expor o aluno |
 | `MinhasReservasTest` | Futuras e todas, ordem, espaço/equipamentos/justificativa, sem dados pessoais nem auditoria, email sem maiúsculas, resposta igual para dados errados, inativo x anonimizado, só POST, validações, paginação |
 | `DevolucaoTest` | Itens pendentes, devolução completa, avaria/falta com email, estoque e aluno não afetados, correção com histórico, coerência de quantidades, item fora da reserva, validações, reserva ativa e iniciada, evento sem email, filtro de pendências, coluna na exportação |
@@ -463,7 +490,8 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
-| Item 8 — Cancelamento pelo aluno | Email "Reserva confirmada" com link, tokens genéricos com hash, resumo e cancelamento pela API, email "Reserva cancelada", `FRONTEND_URL` |
+| Item 9 — Confirmação | Pedido 2 dias úteis antes (ou já na criação dentro da janela), prazo até o dia anterior, confirmação pela API, revogação automática, comandos agendados, filtro do admin |
+| Item 8 — Cancelamento pelo aluno | Email "Reserva registrada" com link, tokens genéricos com hash, resumo e cancelamento pela API, email "Reserva cancelada", `FRONTEND_URL` |
 | Minhas reservas (aluno) | Consulta por RA + email via POST, resposta genérica para dados errados, futuras/todas |
 | Devolução de equipamentos | Situação por item, registro e correção, email em avaria/falta, filtro de pendências, coluna na exportação, model `ItemReserva` |
 | Gestão de alunos e LGPD | Filtros, detalhe, edição, desativação com revogação das reservas futuras, anonimização com limpeza do histórico |
@@ -480,15 +508,14 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Item 9 — Confirmação:** pedido 2 dias antes e revogação automática das não confirmadas.
-2. **Agendador de tarefas:** confirmação, limpeza de tokens, feriados do ano seguinte.
-3. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
-4. **Recuperação de senha do admin** por email.
-5. **Consulta do histórico de auditoria** pelo admin.
-6. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
-7. **CI:** testes em MySQL e Postgres no GitHub Actions.
-8. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
-9. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **Agendador de tarefas:** completar com os feriados do ano seguinte e a limpeza da fila (confirmação, revogação e tokens já estão agendados); documentar cron e worker de produção.
+2. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
+3. **Recuperação de senha do admin** por email.
+4. **Consulta do histórico de auditoria** pelo admin.
+5. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
+6. **CI:** testes em MySQL e Postgres no GitHub Actions.
+7. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
+8. **Front-end em Angular** (projeto separado; não será com Blade).
 
 ### Emails do sistema
 
@@ -496,10 +523,10 @@ Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e re
 |---|---|---|---|
 | Reserva revogada | Aluno | Admin revoga, evento ocupa o horário ou data é bloqueada | ✅ Pronto |
 | Pendência na devolução | Aluno | Item registrado como devolvido com avaria ou não devolvido | ✅ Pronto |
-| Reserva confirmada (com link de cancelamento) | Aluno | Ao reservar | ✅ Pronto |
+| Reserva registrada (com link de cancelamento) | Aluno | Ao reservar (fora da janela de confirmação ou para hoje) | ✅ Pronto |
 | Reserva cancelada | Aluno | Ao cancelar pelo link | ✅ Pronto |
-| Pedido de confirmação | Aluno | 2 dias antes da reserva | Item 9 |
-| Reserva revogada por falta de confirmação | Aluno | Prazo de confirmação vencido (reaproveita o email de revogação) | Item 9 |
+| Confirme sua reserva (Confirmar + Cancelar) | Aluno | 2 dias úteis antes, ou já na criação se a reserva cair dentro da janela | ✅ Pronto |
+| Reserva revogada por falta de confirmação | Aluno | No dia da reserva, às 00:05, se não confirmou (reaproveita o email de revogação) | ✅ Pronto |
 | Convite de novo admin | Admin novo | Admin cadastra outro admin | Item 10 |
 | Recuperação de senha | Admin | Pedido de "esqueci a senha" | Passo 9 |
 
