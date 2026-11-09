@@ -1508,6 +1508,7 @@ Pedido do usuário (09/11/2026): a documentação completa passa a ser o README.
 mostra na página do repositório.
 
 - README.md padrão do Laravel apagado (só tinha o texto de apresentação do framework).
-- DOCUMENTACAO.md renomeado para README.md com git mv (o histórico do arquivo continua).
+- DOCUMENTACAO.md renomeado para README.md. Como já existia um README, o git registrou a troca
+  como exclusão + alteração: o histórico antigo do texto está em "git log -- DOCUMENTACAO.md".
 - Referências trocadas em CLAUDE.md, CHECKLIST.md, DATABASE.md e DEPLOY.md. As seções
   anteriores deste txt mantêm o nome antigo (DOCUMENTACAO.md), como registro histórico.
