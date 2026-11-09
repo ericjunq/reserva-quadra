@@ -56,6 +56,17 @@ class TokenReservaService
         $registro->update(['usado_em' => now()]);
     }
 
+    public function limparAntigos(int $dias): int
+    {
+        $limite = now()->subDays($dias);
+
+        return TokenReserva::query()
+            ->where(fn ($q) => $q
+                ->where('usado_em', '<', $limite)
+                ->orWhere('expira_em', '<', $limite))
+            ->delete();
+    }
+
     private function hash(string $token): string
     {
         return hash('sha256', $token);

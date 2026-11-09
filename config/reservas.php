@@ -12,4 +12,10 @@ return [
 
     'horario_revogacao_nao_confirmadas' => env('RESERVA_HORARIO_REVOGACAO_NAO_CONFIRMADAS', '00:05'),
 
+    'feriados_facultativos' => (bool) env('RESERVA_FERIADOS_FACULTATIVOS', false),
+
+    'tokens_retencao_dias' => (int) env('RESERVA_TOKENS_RETENCAO_DIAS', 30),
+
+    'jobs_falhos_retencao_horas' => (int) env('RESERVA_JOBS_FALHOS_RETENCAO_HORAS', 168),
+
 ];
