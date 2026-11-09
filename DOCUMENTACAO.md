@@ -159,9 +159,10 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | GET | `/api/espacos/{id}/equipamentos` | Equipamentos reserváveis no espaço (os dele + os compartilháveis) |
 | GET | `/api/espacos/{id}/disponibilidade?de=&ate=` | Calendário do espaço: situação de cada horário e equipamentos disponíveis |
 | POST | `/api/reservas` | Cria uma reserva |
+| POST | `/api/minhas-reservas` | O aluno consulta as próprias reservas (RA + email no corpo) |
 | POST | `/api/login` | Login do admin |
 
-`POST /api/alunos` e `POST /api/reservas` aceitam no máximo 10 requisições por minuto. O login aceita 5. A consulta de disponibilidade aceita 60.
+`POST /api/alunos`, `POST /api/reservas` e `POST /api/minhas-reservas` aceitam no máximo 10 requisições por minuto. O login aceita 5. A consulta de disponibilidade aceita 60.
 
 **Consulta de disponibilidade:**
 
@@ -326,7 +327,8 @@ POST /api/admin/reservas/15/devolucao
 ### LGPD
 
 - **Rotas públicas** nunca mostram RA nem email; o calendário mostra só nome e curso de quem reservou.
-- **Consulta das próprias reservas** (passo futuro) exigirá RA + email.
+- **Consulta das próprias reservas** (`POST /api/minhas-reservas`): exige RA **e** email do mesmo aluno (email sem diferenciar maiúsculas), enviados no **corpo** da requisição, nunca na URL. Dados errados recebem sempre `404` com a mesma mensagem ("Não encontramos reservas para esses dados."), sem revelar se o RA existe. Aluno inativo consulta o próprio histórico; aluno anonimizado não aparece. A resposta não traz RA, email nem auditoria.
+  - `periodo`: `FUTURAS` (padrão; de hoje em diante, ordem crescente, todos os status) ou `TODAS` (ordem decrescente). Paginada (`per_page` na URL).
 - **Anonimização** (`POST /api/admin/alunos/{id}/anonimizar`, irreversível, exige `"confirmar": true`): troca nome por "Aluno anonimizado", RA por `A` + id (ex.: `A000000042`) e email por um endereço inválido; desativa o aluno; revoga as reservas futuras **sem enviar email**; e substitui nome, RA e email por `[anonimizado]` no histórico de auditoria. As reservas passadas continuam, para as estatísticas, ligadas ao aluno anônimo. O RA original fica livre para um novo cadastro.
 - Aluno anonimizado não pode mais ser editado, desativado ou anonimizado de novo (409).
 - **Fora do sistema:** CSVs já exportados e emails já enviados não são alcançados pela anonimização. Em desenvolvimento, `MAIL_MAILER=log` grava os emails (com dados pessoais) em `storage/logs`; em produção, usar um serviço de envio e não o log.
@@ -405,6 +407,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `MinhasReservasTest` | Futuras e todas, ordem, espaço/equipamentos/justificativa, sem dados pessoais nem auditoria, email sem maiúsculas, resposta igual para dados errados, inativo x anonimizado, só POST, validações, paginação |
 | `DevolucaoTest` | Itens pendentes, devolução completa, avaria/falta com email, estoque e aluno não afetados, correção com histórico, coerência de quantidades, item fora da reserva, validações, reserva ativa e iniciada, evento sem email, filtro de pendências, coluna na exportação |
 | `AlunoAdminTest` | Filtros, detalhe, edição, desativação com revogação e email, reativação, aluno inativo sem reservar, mudança de curso no limite semanal, anonimização (confirmação, dados e histórico limpos, sem email, bloqueio de alterações, RA liberado) |
 | `EspacoTest` | CRUD, PATCH, filtros, bloqueio de desativação com reservas futuras, paginação padronizada |
@@ -441,6 +444,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Minhas reservas (aluno) | Consulta por RA + email via POST, resposta genérica para dados errados, futuras/todas |
 | Devolução de equipamentos | Situação por item, registro e correção, email em avaria/falta, filtro de pendências, coluna na exportação, model `ItemReserva` |
 | Gestão de alunos e LGPD | Filtros, detalhe, edição, desativação com revogação das reservas futuras, anonimização com limpeza do histórico |
 | Limpeza do código | Índices para o Postgres, contagem semanal e totais por status no `ReservaRepository`, paginação no controller base, nomes do `AlunoService`, código morto removido, Laravel Pint |
@@ -456,17 +460,16 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Consulta das próprias reservas pelo aluno** (RA + email, via POST).
-2. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link de cancelamento (token).
-3. **Item 9 — Confirmação:** pedido 2 dias antes e revogação automática das não confirmadas.
-4. **Agendador de tarefas:** confirmação, limpeza de tokens, feriados do ano seguinte.
-5. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
-6. **Recuperação de senha do admin** por email.
-7. **Consulta do histórico de auditoria** pelo admin.
-8. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
-9. **CI:** testes em MySQL e Postgres no GitHub Actions.
-10. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
-11. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link de cancelamento (token).
+2. **Item 9 — Confirmação:** pedido 2 dias antes e revogação automática das não confirmadas.
+3. **Agendador de tarefas:** confirmação, limpeza de tokens, feriados do ano seguinte.
+4. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
+5. **Recuperação de senha do admin** por email.
+6. **Consulta do histórico de auditoria** pelo admin.
+7. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
+8. **CI:** testes em MySQL e Postgres no GitHub Actions.
+9. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
+10. **Front-end em Angular** (projeto separado; não será com Blade).
 
 ### Emails do sistema
 

@@ -877,3 +877,34 @@ ReservaController + routes: POST /api/admin/reservas/{reserva}/devolucao.
 
 tests/Feature/DevolucaoTest.php (novo) — 13 testes; ExportacaoReservasTest ajustado
 (137 no total).
+
+========================================================================
+24. ALUNO CONSULTA AS PRÓPRIAS RESERVAS (RA + EMAIL)
+========================================================================
+
+routes/api.php
+  - POST /api/minhas-reservas (pública, throttle 10/min). POST para RA e email não irem na
+    URL (logs de servidor/proxy/histórico) — LGPD. GET na mesma rota responde 405.
+
+app/Http/Requests/ConsultarMinhasReservasRequest.php (novo)
+  - registro_academico (size:10), email, periodo FUTURAS|TODAS. Sem regra exists: a existência
+    do RA não pode ser revelada por erro de validação.
+
+app/Services/MinhasReservasService.php (novo)
+  - Busca o aluno por RA + LOWER(email) (compatível com os 3 bancos), ignorando anonimizados.
+    Não achou: RegraNegocioException 404 com mensagem única ("Não encontramos reservas para
+    esses dados."), igual para RA inexistente, email errado ou RA de outra pessoa.
+  - Aluno inativo pode consultar (histórico).
+  - FUTURAS: data_reserva >= hoje, ordem crescente, qualquer status (o aluno vê as revogadas e
+    o motivo). TODAS: ordem decrescente. Eager loading de espaco e equipamentos.
+
+app/Repositories/ReservaRepository.php
+  - doAluno(alunoId, somenteFuturas): usa o índice reservas(aluno_id, data_reserva).
+
+app/Http/Controllers/MinhasReservasController.php (novo)
+  - Paginação com porPagina(). ReservaResource sem aluno/criador/revogador carregados, então a
+    resposta não traz RA, email nem auditoria.
+
+tests/Feature/MinhasReservasTest.php (novo) — 9 testes (146 no total).
+
+Guias atualizados: CHECKLIST (seção "Onde paramos", passo 1 concluído), DOCUMENTACAO.

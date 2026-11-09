@@ -6,9 +6,15 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 06/11/2026 · 137 testes passando
+Última atualização: 09/11/2026 · 146 testes passando
 
 ---
+
+## 📍 Onde paramos
+
+- **Último passo concluído:** passo 1, o aluno consulta as próprias reservas (RA + email).
+- **Próximo passo:** passo 2, item 8 (email na criação com link de cancelamento). A proposta foi enviada; **faltam as respostas do usuário** para as 3 decisões em aberto (prazo, link do front, token genérico).
+- **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` se ainda não rodou depois das mudanças em `alunos` e `item_reservas`.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -44,6 +50,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Ver o calendário de um espaço (até 31 dias): horários livres, reservados, eventos e bloqueios, quem reservou e equipamentos disponíveis
 - [x] Informar o RA ou o curso no calendário para ver quantas reservas o curso ainda tem na semana
 - [x] Reservar um espaço em um horário, com ou sem equipamentos
+- [x] Consultar as próprias reservas informando RA + email (futuras ou todas)
 - [x] Receber email quando a reserva é revogada ou quando a devolução tem pendência
 
 ### Regras da reserva do aluno
@@ -82,7 +89,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Código compatível com SQLite, MySQL e Postgres
 - [x] Código formatado com o Laravel Pint (`pint.json`)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
-- [x] 137 testes automáticos passando
+- [x] 146 testes automáticos passando
 
 ---
 
@@ -90,14 +97,14 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 
 Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a proposta detalhada e esperar a aprovação. As **recomendações** são sugestões e ainda precisam de aprovação.
 
-### 1. ⬜ Aluno consulta as próprias reservas — *proposta enviada, aguardando aprovação*
+### 1. ✅ Aluno consulta as próprias reservas — *concluído em 09/11/2026*
 - `POST /api/minhas-reservas` com `registro_academico` e `email`. É POST para o RA e o email não irem na URL nem nos logs.
 - RA e email precisam ser do mesmo aluno (email comparado sem diferenciar maiúsculas). Dados errados recebem sempre a mesma resposta genérica, que não revela se o RA existe. Limite de 10 consultas por minuto.
 - Aluno inativo pode consultar. Aluno anonimizado não aparece.
 - Devolve a lista paginada das reservas dele: espaço, data, horário, status, equipamentos com a devolução e a justificativa da revogação. Filtro `periodo`: `FUTURAS` (padrão) ou `TODAS`.
 - Arquivos: `ConsultarMinhasReservasRequest`, um método novo no `ReservaRepository`, `MinhasReservasController`, `MinhasReservasTest`.
 
-### 2. ⬜ Item 8 — Email na criação com link de cancelamento — *proposta enviada, aguardando aprovação*
+### 2. ⬜ Item 8 — Email na criação com link de cancelamento — *próximo; proposta enviada, aguardando as decisões em aberto*
 - Ao reservar, o aluno recebe "Reserva confirmada" com um link para cancelar. Isso também protege contra o uso do RA por outra pessoa.
 - **Token aleatório:** só o hash dele fica no banco, e o token puro vai só no email.
 - **Link no front:** `FRONTEND_URL/reservas/cancelar/{token}`. O front chama:
