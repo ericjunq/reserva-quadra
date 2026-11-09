@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Constants\SituacaoConfirmacaoConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Models\Reserva;
@@ -26,6 +27,15 @@ class ReservaRepository
                 ->where('status', StatusConstant::RESERVADO)
                 ->jaIniciadas()
                 ->whereHas('equipamentos', fn ($e) => $e->where('item_reservas.situacao_devolucao', $situacao)))
+            ->when($filtros['confirmacao'] ?? null, fn ($q, $situacao) => $q
+                ->where('tipo', TipoReservaConstant::ALUNO)
+                ->when($situacao === SituacaoConfirmacaoConstant::CONFIRMADA->value, fn ($q) => $q->whereNotNull('confirmada_em'))
+                ->when($situacao === SituacaoConfirmacaoConstant::AGUARDANDO->value, fn ($q) => $q
+                    ->whereNotNull('confirmacao_enviada_em')
+                    ->whereNull('confirmada_em'))
+                ->when($situacao === SituacaoConfirmacaoConstant::NAO_SOLICITADA->value, fn ($q) => $q
+                    ->whereNull('confirmacao_enviada_em')
+                    ->whereNull('confirmada_em')))
             ->when($filtros['busca'] ?? null, fn ($q, $busca) => $q->whereHas('aluno', fn ($a) => $a->where(fn ($w) => $w
                 ->whereLike('nome_completo', "%{$busca}%", caseSensitive: false)
                 ->orWhereLike('registro_academico', "%{$busca}%", caseSensitive: false))));

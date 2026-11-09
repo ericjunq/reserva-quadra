@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Constants\HorarioReservaConstant;
 use App\Constants\PeriodoConstant;
+use App\Constants\SituacaoConfirmacaoConstant;
 use App\Constants\SituacaoDevolucaoConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoEspacoConstant;
@@ -32,6 +33,7 @@ class ListarReservasRequest extends FormRequest
             'tipo'        => ['nullable', Rule::enum(TipoReservaConstant::class)],
             'horario'     => ['nullable', Rule::enum(HorarioReservaConstant::class)],
             'devolucao'   => ['nullable', Rule::enum(SituacaoDevolucaoConstant::class)],
+            'confirmacao' => ['nullable', Rule::enum(SituacaoConfirmacaoConstant::class)],
             'ordem'       => ['nullable', 'in:asc,desc'],
             'per_page'    => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
