@@ -12,9 +12,9 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 
 ## 📍 Onde paramos
 
-- **Último passo concluído:** passo 9, CI no GitHub Actions (`.github/workflows/ci.yml`), em 09/11/2026. **A primeira execução em MySQL e Postgres ainda não foi vista**: depois do push, o usuário traz o resultado (ou o link da aba Actions). Se algum teste falhar só num banco, corrigir com um commit `fix` por problema antes de seguir.
-- **Próximo passo:** depois do CI verde, passo 10, preparação para produção. **Ainda não há proposta enviada.**
-- **O usuário precisa:** dar push (dispara o CI) e rodar `php artisan migrate:fresh --seed` se ainda não rodou depois do passo 8.
+- **Último passo concluído:** passo 9, CI no GitHub Actions. **Primeira execução verde em 09/11/2026** (commit `43a0e74`): os 226 testes passaram em SQLite, **MySQL 8.0** e **Postgres 16**, além do Pint e do `composer audit`.
+- **Próximo passo:** passo 10, preparação para produção. **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação.
+- **O usuário precisa:** nada pendente além do `migrate:fresh --seed` local, se ainda não rodou depois do passo 8.
 - **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions.
 - **Conceitos já explicados ao usuário:** fila e jobs; por que email não deve diferenciar maiúsculas (seção de decisões do DOCUMENTACAO).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
@@ -159,11 +159,11 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - Reserva LIVRE com `hora_inicio`/`hora_fim` (alinhados, dentro da janela, até a duração máxima); eventos podem sair da janela. Limite semanal conta reservas.
 - Equipamentos pelo **pico de uso** (inclusive na redução de estoque). Calendário LIVRE em blocos, sem equipamentos por bloco; `GET /api/espacos/{id}/equipamentos/disponibilidade` para um intervalo.
 
-### 9. ✅ CI (GitHub Actions) — *concluído em 09/11/2026; aguardando a primeira execução*
+### 9. ✅ CI (GitHub Actions) — *concluído em 09/11/2026; primeira execução verde nos três bancos*
 - `.github/workflows/ci.yml`: push e PR na `main`; job de Pint (`--test`) + `composer audit`; testes em matriz SQLite, MySQL 8.0 e Postgres 16 (serviços do Actions), PHP 8.3, cache do Composer.
 - Sem branch protection por enquanto (trabalho direto na `main`); explicado no DOCUMENTACAO como ativar.
 
-### 10. ⬜ Preparação para produção — *próximo, depois do CI verde; proposta ainda não enviada*
+### 10. ⬜ Preparação para produção — *próximo; proposta ainda não enviada*
 - `.env` de produção: `APP_DEBUG=false`, `APP_ENV=production`, `APP_URL`, `FRONTEND_URL`, banco, SMTP (SES, Mailgun, Resend...), fila e cache.
 - **CORS** liberado só para o domínio do front Angular (`config/cors.php`).
 - HTTPS, worker de fila com supervisor, cron do scheduler, backup do banco, logs sem dados pessoais (nada de `MAIL_MAILER=log`) e senha forte no admin inicial (o seeder de demonstração não roda fora de `local`).

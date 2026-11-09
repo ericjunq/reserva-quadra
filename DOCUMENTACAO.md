@@ -593,6 +593,7 @@ Arquivo: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Roda a cada **p
 | `Pint e composer audit` | `vendor/bin/pint --test` (acusa código fora do padrão, sem alterar) e `composer audit` (dependência com vulnerabilidade conhecida) |
 | `Testes (sqlite)` · `Testes (mysql)` · `Testes (pgsql)` | `php artisan test` em cada banco, em paralelo. MySQL 8.0 e Postgres 16 sobem como serviços temporários do GitHub |
 
+- Primeira execução (09/11/2026): os 226 testes passaram nos três bancos, sem nenhum ajuste de compatibilidade.
 - PHP 8.3, com cache do Composer. O `phpunit.xml` continua com SQLite por padrão; no CI, as variáveis de ambiente de cada banco têm prioridade.
 - **Como ler um erro:** na aba *Actions* do repositório, abrir a execução com ❌, entrar no job que falhou e expandir o passo vermelho. Um job falhar não cancela os outros (`fail-fast: false`), então dá para ver se o problema é de um banco só.
 - Um push novo na mesma branch cancela a execução anterior que ainda estiver rodando.

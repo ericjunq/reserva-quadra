@@ -1335,3 +1335,8 @@ sem limite de minutos.
 DOCUMENTACAO.md: badge do CI no topo, seção "CI (GitHub Actions)" (jobs, como ler um erro,
 branches/PR e branch protection), decisões, histórico, roadmap.
 CHECKLIST.md: passo 9 concluído aguardando a primeira execução; próximo é o passo 10.
+
+Atualização da seção 34 (09/11/2026): primeira execução do CI verde no commit 43a0e74 — Pint e
+composer audit ok; 226 testes passando em SQLite, MySQL 8.0 e Postgres 16, sem nenhuma correção
+de compatibilidade (os ajustes da seção 20 — whereLike, NomeUnico, datas sem whereDate — e o
+cálculo do pico em PHP já cobriam as diferenças entre os bancos).
