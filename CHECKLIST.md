@@ -6,15 +6,15 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 09/11/2026 · 146 testes passando
+Última atualização: 09/11/2026 · 155 testes passando
 
 ---
 
 ## 📍 Onde paramos
 
-- **Último passo concluído:** passo 1, o aluno consulta as próprias reservas (RA + email).
-- **Próximo passo:** passo 2, item 8 (email na criação com link de cancelamento). **Proposta aprovada em 09/11/2026.** As decisões 1 (cancelar até o início), 3 (token genérico em `tokens_reserva`) e 4 (resumo do GET sem o nome do aluno) estão aprovadas. A decisão 2 (link do email apontando para o front Angular, `FRONTEND_URL`) aguarda a confirmação do usuário, depois de uma explicação mais detalhada.
-- **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` se ainda não rodou depois das mudanças em `alunos` e `item_reservas`.
+- **Último passo concluído:** passo 2, item 8 (email "Reserva confirmada" com link de cancelamento e cancelamento pela API), em 09/11/2026.
+- **Próximo passo:** passo 3, item 9 (confirmação 2 dias antes e revogação automática). **Ainda não há proposta enviada**: enviar a proposta completa e esperar a aprovação. Ela deve reaproveitar o `TokenReservaService` com a finalidade `CONFIRMAR`.
+- **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` (tabela nova `tokens_reserva` e coluna `cancelada_em`). No `.env` local, conferir `FRONTEND_URL=http://localhost:4200`.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -51,7 +51,8 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Informar o RA ou o curso no calendário para ver quantas reservas o curso ainda tem na semana
 - [x] Reservar um espaço em um horário, com ou sem equipamentos
 - [x] Consultar as próprias reservas informando RA + email (futuras ou todas)
-- [x] Receber email quando a reserva é revogada ou quando a devolução tem pendência
+- [x] Receber email "Reserva confirmada" e cancelar pelo link (até o início da reserva)
+- [x] Receber email quando a reserva é criada, cancelada ou revogada, e quando a devolução tem pendência
 
 ### Regras da reserva do aluno
 - [x] Só em dias úteis (sem fim de semana)
@@ -89,7 +90,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Código compatível com SQLite, MySQL e Postgres
 - [x] Código formatado com o Laravel Pint (`pint.json`)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
-- [x] 146 testes automáticos passando
+- [x] 155 testes automáticos passando
 
 ---
 
@@ -104,7 +105,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - Devolve a lista paginada das reservas dele: espaço, data, horário, status, equipamentos com a devolução e a justificativa da revogação. Filtro `periodo`: `FUTURAS` (padrão) ou `TODAS`.
 - Arquivos: `ConsultarMinhasReservasRequest`, um método novo no `ReservaRepository`, `MinhasReservasController`, `MinhasReservasTest`.
 
-### 2. ⬜ Item 8 — Email na criação com link de cancelamento — *próximo; proposta enviada, aguardando as decisões em aberto*
+### 2. ✅ Item 8 — Email na criação com link de cancelamento — *concluído em 09/11/2026*
 - Ao reservar, o aluno recebe "Reserva confirmada" com um link para cancelar. Isso também protege contra o uso do RA por outra pessoa.
 - **Token aleatório:** só o hash dele fica no banco, e o token puro vai só no email.
 - **Link no front:** `FRONTEND_URL/reservas/cancelar/{token}`. O front chama:
@@ -113,12 +114,9 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - Só reservas `RESERVADO`, até o horário de início.
 - Status `CANCELADO` com `cancelada_em`. Horário e equipamentos ficam livres, e o aluno recebe "Reserva cancelada".
 - Eventos não recebem esses emails.
-- Decisões em aberto, com recomendação:
-  - prazo para cancelar **até o início**;
-  - o link aponta para o front mesmo antes de o Angular existir (sem Blade);
-  - **token genérico**, por finalidade (`CANCELAR`/`CONFIRMAR`), para reaproveitar no item 9. Ex.: tabela `tokens_reserva` (reserva_id, finalidade, token_hash, expira_em, usado_em).
+- Decisões tomadas: cancelar **até o início**; link para o **front Angular** (`FRONTEND_URL`, opção A, sem Blade); **token genérico** em `tokens_reserva` (`CANCELAR`/`CONFIRMAR`); resumo do GET **sem o nome** do aluno.
 
-### 3. ⬜ Item 9 — Confirmação 2 dias antes e revogação automática
+### 3. ⬜ Item 9 — Confirmação 2 dias antes e revogação automática — *próximo; proposta ainda não enviada*
 - Comando diário `reservas:pedir-confirmacao`: envia o email "Confirme sua reserva" para as reservas de aluno que acontecem daqui a `RESERVA_CONFIRMACAO_DIAS_ANTES` (2) dias, com o link de confirmação (token do passo 2). Grava `confirmacao_enviada_em`, e as colunas `confirmacao_enviada_em`/`confirmada_em` já existem.
 - `POST /api/reservas/confirmacao/{token}` grava `confirmada_em`.
 - Comando `reservas:revogar-nao-confirmadas`: revoga as que não forem confirmadas no prazo, com a justificativa "Reserva não confirmada" e email (reaproveita o email de revogação).
@@ -186,8 +184,8 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 
 - [x] Reserva revogada (pelo admin, por evento, por data bloqueada ou por aluno desativado)
 - [x] Pendência na devolução de equipamentos (avaria ou não devolvido)
-- [ ] Reserva criada, com link de cancelamento (passo 2)
-- [ ] Reserva cancelada (passo 2)
+- [x] Reserva confirmada, com link de cancelamento
+- [x] Reserva cancelada pelo aluno
 - [ ] Pedido de confirmação 2 dias antes (passo 3)
 - [ ] Reserva revogada por falta de confirmação (passo 3)
 - [ ] Convite de novo admin (passo 5)

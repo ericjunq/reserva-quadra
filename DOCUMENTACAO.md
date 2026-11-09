@@ -90,6 +90,7 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `RESERVA_MINUTOS_ANTES_DO_FIM` | 20 | Até quantos minutos antes do fim um horário de hoje pode ser reservado |
 | `RESERVA_CONFIRMACAO_DIAS_ANTES` | 2 | Quantos dias antes o pedido de confirmação é enviado (item 9) |
 | `APP_TIMEZONE` | America/Sao_Paulo | Fuso usado nas regras de "hoje" e no agendador |
+| `FRONTEND_URL` | http://localhost:4200 | Endereço do front Angular; base dos links enviados por email (ex.: cancelamento) |
 
 ---
 
@@ -138,7 +139,8 @@ users (admins) ──< reservas (criador de eventos / quem revogou)
 | `alunos` | `nome_completo`, `registro_academico` (RA, único, 10 dígitos), `email`, `curso_id`, `ativo`, `anonimizado_em` |
 | `espacos` | `nome` (único), `tipo` (QUADRA, LABORATORIO, SALA), `ativo`, `limite_semanal_por_curso` (vazio = sem limite) |
 | `equipamentos` | `espaco_id`, `nome` (único dentro do espaço), `quantidade_total`, `ativo`, `compartilhavel` |
-| `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `confirmacao_enviada_em`, `confirmada_em` |
+| `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `cancelada_em`, `confirmacao_enviada_em`, `confirmada_em` |
+| `tokens_reserva` | `reserva_id`, `finalidade` (CANCELAR, CONFIRMAR), `token_hash` (SHA-256, único), `expira_em`, `usado_em` |
 | `item_reservas` | `reserva_id`, `equipamento_id`, `quantidade`, `situacao_devolucao` (PENDENTE, DEVOLVIDO, DEVOLVIDO_COM_AVARIA, NAO_DEVOLVIDO), `quantidade_devolvida`, `observacao_devolucao`, `devolvido_em`, `devolvido_por` (model `ItemReserva`, pivot auditado) |
 | `datas_bloqueadas` | `data_inicio`, `data_fim`, `hora_inicio`/`hora_fim` (vazias = dia inteiro), `espaco_id` (vazio = todos), `motivo`, `origem` (MANUAL, FERIADO) |
 | `auditorias` | `auditavel_type`/`auditavel_id` (registro alterado), `acao` (CRIACAO, ATUALIZACAO, EXCLUSAO), `antes`, `depois` (JSON), `user_id` (admin), `created_at` |
@@ -160,9 +162,11 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | GET | `/api/espacos/{id}/disponibilidade?de=&ate=` | Calendário do espaço: situação de cada horário e equipamentos disponíveis |
 | POST | `/api/reservas` | Cria uma reserva |
 | POST | `/api/minhas-reservas` | O aluno consulta as próprias reservas (RA + email no corpo) |
+| GET | `/api/reservas/cancelamento/{token}` | Resumo da reserva do link do email (`pode_cancelar`) |
+| POST | `/api/reservas/cancelamento/{token}` | Cancela a reserva do link do email |
 | POST | `/api/login` | Login do admin |
 
-`POST /api/alunos`, `POST /api/reservas` e `POST /api/minhas-reservas` aceitam no máximo 10 requisições por minuto. O login aceita 5. A consulta de disponibilidade aceita 60.
+`POST /api/alunos`, `POST /api/reservas`, `POST /api/minhas-reservas` e as rotas de cancelamento aceitam no máximo 10 requisições por minuto. O login aceita 5. A consulta de disponibilidade aceita 60.
 
 **Consulta de disponibilidade:**
 
@@ -296,6 +300,15 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 - O preenchimento é automático, pelo trait `App\Models\Concerns\Auditavel`, nos eventos do Eloquent. Por isso as alterações precisam passar pelo model (`$model->update()`); um `update` em massa direto no query builder não é auditado.
 - Nas rotas do admin, as respostas trazem `criado_por` e `atualizado_por` (id e nome), `criado_em` e `atualizado_em`. As rotas públicas não mostram esses campos.
 
+### Cancelamento pelo aluno (link do email)
+
+- Ao reservar, o aluno recebe **"Reserva confirmada"** com os detalhes e o botão **Cancelar reserva**, que leva a `FRONTEND_URL/reservas/cancelar/{token}` (página do front Angular).
+- O front chama `GET /api/reservas/cancelamento/{token}` para mostrar o resumo (sem RA, email ou nome) e `POST /api/reservas/cancelamento/{token}` para cancelar. **Só o POST cancela**: leitores de email e antivírus abrem links sozinhos.
+- O token tem 64 caracteres aleatórios; no banco fica só o **hash SHA-256**. Vale **até o início da reserva** e só pode ser usado **uma vez**. Token inválido, vencido ou usado: `404` com "Link inválido ou expirado.".
+- Cancelar: só reservas `RESERVADO` (409) que não começaram (422). Grava `CANCELADO` e `cancelada_em`, libera horário e equipamentos e envia **"Reserva cancelada"**. Na auditoria fica sem admin (foi o aluno).
+- Eventos não recebem esses emails nem token.
+- Até o front existir, o link do email não abre página nenhuma; em desenvolvimento os emails ficam em `storage/logs/laravel.log`, e o fluxo é testado pela API (Postman/curl) e pelos testes automáticos.
+
 ### Devolução de equipamentos (admin)
 
 - Todo item de reserva nasce `PENDENTE`. Depois que a reserva começa, o admin registra cada item:
@@ -351,11 +364,16 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 
 | Decisão | Motivo |
 |---|---|
-| Aluno sem login, só com RA | Simplicidade de uso. Risco: alguém usar o RA de outra pessoa. Mitigação prevista: email com link de cancelamento a cada reserva (item 8) |
+| Aluno sem login, só com RA | Simplicidade de uso. Risco: alguém usar o RA de outra pessoa. Mitigação: a cada reserva o dono do RA recebe email com link de cancelamento |
 | Listagem de alunos só para admin | Evita expor nome, RA e email publicamente |
 | Desativar aluno revoga as reservas futuras | Normalmente o aluno saiu da faculdade; manter as reservas só prenderia horários |
 | Anonimizar em vez de apagar o aluno | Atende o pedido de exclusão da LGPD sem perder as estatísticas de uso; o histórico de auditoria também é limpo |
 | Anonimização exige `confirmar: true` | É irreversível; evita execução acidental |
+| Cancelamento até o **início** da reserva | Com a tolerância de 20 minutos, outra pessoa ainda consegue reservar o horário liberado |
+| Link do email aponta para o **front Angular** (`FRONTEND_URL`) | Padrão do projeto é Angular, sem Blade; a API fica pronta e testada, e a página entra com o front (passo 11 do CHECKLIST) |
+| Token genérico em `tokens_reserva` (`CANCELAR`/`CONFIRMAR`) | Reaproveitado no item 9 (confirmação); só o hash no banco, validade e uso único |
+| Resumo do cancelamento sem o nome do aluno | O link pode ser encaminhado; o resumo não expõe ninguém |
+| Só o POST cancela | GET pode ser disparado por leitores de email e antivírus |
 | Devolução registrada por item, na própria `item_reservas` | Cada equipamento pode voltar de um jeito; a intermediária já é a linha "item da reserva" |
 | Model `ItemReserva` como *pivot* (`->using()`) | A intermediária ganhou regras e auditoria; o `attach()` e as relações continuam iguais |
 | Só a devolução, sem registro de retirada | A retirada é implícita no horário da reserva; pode entrar depois |
@@ -407,6 +425,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `CancelamentoTest` | Email de criação com link do front, só o hash no banco e validade até o início, resumo sem dados pessoais, cancelamento liberando horário e equipamentos com email, uso único, token inválido e vencido, reserva revogada, evento sem email, criação sem expor o aluno |
 | `MinhasReservasTest` | Futuras e todas, ordem, espaço/equipamentos/justificativa, sem dados pessoais nem auditoria, email sem maiúsculas, resposta igual para dados errados, inativo x anonimizado, só POST, validações, paginação |
 | `DevolucaoTest` | Itens pendentes, devolução completa, avaria/falta com email, estoque e aluno não afetados, correção com histórico, coerência de quantidades, item fora da reserva, validações, reserva ativa e iniciada, evento sem email, filtro de pendências, coluna na exportação |
 | `AlunoAdminTest` | Filtros, detalhe, edição, desativação com revogação e email, reativação, aluno inativo sem reservar, mudança de curso no limite semanal, anonimização (confirmação, dados e histórico limpos, sem email, bloqueio de alterações, RA liberado) |
@@ -444,6 +463,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Item 8 — Cancelamento pelo aluno | Email "Reserva confirmada" com link, tokens genéricos com hash, resumo e cancelamento pela API, email "Reserva cancelada", `FRONTEND_URL` |
 | Minhas reservas (aluno) | Consulta por RA + email via POST, resposta genérica para dados errados, futuras/todas |
 | Devolução de equipamentos | Situação por item, registro e correção, email em avaria/falta, filtro de pendências, coluna na exportação, model `ItemReserva` |
 | Gestão de alunos e LGPD | Filtros, detalhe, edição, desativação com revogação das reservas futuras, anonimização com limpeza do histórico |
@@ -460,16 +480,15 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Item 8 — Cancelamento pelo aluno:** email na criação da reserva com link de cancelamento (token).
-2. **Item 9 — Confirmação:** pedido 2 dias antes e revogação automática das não confirmadas.
-3. **Agendador de tarefas:** confirmação, limpeza de tokens, feriados do ano seguinte.
-4. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
-5. **Recuperação de senha do admin** por email.
-6. **Consulta do histórico de auditoria** pelo admin.
-7. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
-8. **CI:** testes em MySQL e Postgres no GitHub Actions.
-9. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
-10. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **Item 9 — Confirmação:** pedido 2 dias antes e revogação automática das não confirmadas.
+2. **Agendador de tarefas:** confirmação, limpeza de tokens, feriados do ano seguinte.
+3. **Item 10 — Admins:** `UserResource` no `/me`, cadastro de admins por convite, desativação.
+4. **Recuperação de senha do admin** por email.
+5. **Consulta do histórico de auditoria** pelo admin.
+6. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
+7. **CI:** testes em MySQL e Postgres no GitHub Actions.
+8. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
+9. **Front-end em Angular** (projeto separado; não será com Blade).
 
 ### Emails do sistema
 
@@ -477,8 +496,8 @@ Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e re
 |---|---|---|---|
 | Reserva revogada | Aluno | Admin revoga, evento ocupa o horário ou data é bloqueada | ✅ Pronto |
 | Pendência na devolução | Aluno | Item registrado como devolvido com avaria ou não devolvido | ✅ Pronto |
-| Reserva criada (com link de cancelamento) | Aluno | Ao reservar | Item 8 |
-| Reserva cancelada | Aluno | Ao cancelar pelo link | Item 8 |
+| Reserva confirmada (com link de cancelamento) | Aluno | Ao reservar | ✅ Pronto |
+| Reserva cancelada | Aluno | Ao cancelar pelo link | ✅ Pronto |
 | Pedido de confirmação | Aluno | 2 dias antes da reserva | Item 9 |
 | Reserva revogada por falta de confirmação | Aluno | Prazo de confirmação vencido (reaproveita o email de revogação) | Item 9 |
 | Convite de novo admin | Admin novo | Admin cadastra outro admin | Item 10 |

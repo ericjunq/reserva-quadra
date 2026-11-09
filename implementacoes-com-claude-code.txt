@@ -908,3 +908,63 @@ app/Http/Controllers/MinhasReservasController.php (novo)
 tests/Feature/MinhasReservasTest.php (novo) — 9 testes (146 no total).
 
 Guias atualizados: CHECKLIST (seção "Onde paramos", passo 1 concluído), DOCUMENTACAO.
+
+========================================================================
+25. ITEM 8 — EMAIL NA CRIAÇÃO E CANCELAMENTO PELO LINK
+========================================================================
+
+Decisões do usuário (09/11/2026): cancelar até o início da reserva; link aponta para o front
+Angular (FRONTEND_URL, opção A — sem página em Blade); token genérico (CANCELAR/CONFIRMAR) para
+reaproveitar no item 9; resumo do GET sem o nome do aluno.
+
+config/app.php / .env / .env.example
+  - frontend_url = env FRONTEND_URL (padrão http://localhost:4200, porta padrão do Angular).
+
+app/Constants/FinalidadeTokenConstant.php (novo): CANCELAR, CONFIRMAR.
+
+database/migrations/2026_11_09_120000_create_tokens_reserva_table.php (nova)
+  - reserva_id (cascade), finalidade, token_hash (64, único), expira_em, usado_em; índice
+    (reserva_id, finalidade).
+database/migrations/..._create_reservas_table.php (editada): cancelada_em.
+
+app/Models/TokenReserva.php (novo)
+  - token_hash em $hidden; valido() = não usado e expira_em no futuro.
+app/Models/Reserva.php
+  - tokens() (hasMany), inicio() (data + hora_inicio); iniciada() passou a usar inicio();
+    cancelada_em no fillable e nos casts.
+
+app/Services/TokenReservaService.php (novo)
+  - gerar(): Str::random(64), grava só hash('sha256') e devolve o token puro.
+  - buscarValido(token, finalidade, travar): procura pelo hash; inválido/vencido/usado lança
+    RegraNegocioException 404 "Link inválido ou expirado." (mesma resposta em todos os casos).
+  - marcarComoUsado().
+
+app/Services/ReservaService.php
+  - create(): depois de anexar os equipamentos, gera o token CANCELAR (expira no início) e
+    enfileira ReservaCriadaMail (afterCommit) com o link FRONTEND_URL/reservas/cancelar/{token}.
+    Só reserva de aluno (eventos não passam por create()).
+  - O nome do aluno vai como string para o email (não depende do aluno no momento do envio).
+  - Observação: o link com o token fica no payload do job da fila até o envio.
+
+app/Services/CancelamentoService.php (novo)
+  - resumo(token): reserva com espaço e equipamentos. podeCancelar(): RESERVADO e não iniciada.
+  - cancelar(token): transação; token travado; reserva travada; 409 se não RESERVADO; 422 se já
+    iniciou; status CANCELADO + cancelada_em; token usado; ReservaCanceladaMail (afterCommit).
+  - O aluno do email é buscado com $reserva->aluno()->first() para NÃO carregar a relação na
+    reserva: o ReservaResource mostraria RA e email na resposta pública.
+
+app/Mail/ReservaCriadaMail.php + emails/reserva-criada.blade.php (novos)
+  - Detalhes, equipamentos, botão "Cancelar reserva" e aviso "Não foi você?".
+app/Mail/ReservaCanceladaMail.php + emails/reserva-cancelada.blade.php (novos).
+
+app/Http/Controllers/CancelamentoController.php (novo) + routes/api.php
+  - GET e POST /api/reservas/cancelamento/{token} (públicas, throttle 10/min). GET devolve
+    additional pode_cancelar.
+
+app/Http/Resources/ReservaResource.php
+  - cancelada_em quando o status é CANCELADO.
+
+tests/Feature/CancelamentoTest.php (novo) — 9 testes (155 no total).
+
+Guias: CHECKLIST (Onde paramos, passo 2 concluído), DOCUMENTACAO (endpoints, regras, decisões,
+emails, testes, histórico), DATABASE (tokens_reserva, cancelada_em, decisões 25 e 26).

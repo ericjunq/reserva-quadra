@@ -22,6 +22,7 @@ erDiagram
     espacos |o--o{ datas_bloqueadas : "bloqueado em"
     users |o--o{ datas_bloqueadas : "cadastra"
     reservas ||--o{ item_reservas : "pede"
+    reservas ||--o{ tokens_reserva : "tem links"
     equipamentos ||--o{ item_reservas : "é pedido em"
 
     cursos {
@@ -80,6 +81,7 @@ erDiagram
         text justificativa_revogacao
         timestamp revogada_em
         bigint revogada_por FK
+        timestamp cancelada_em "pelo aluno"
         timestamp confirmacao_enviada_em "item 9"
         timestamp confirmada_em "item 9"
     }
@@ -107,6 +109,15 @@ erDiagram
         string origem "MANUAL, FERIADO"
         bigint criado_por FK
         bigint atualizado_por FK
+    }
+
+    tokens_reserva {
+        bigint id PK
+        bigint reserva_id FK
+        string finalidade "CANCELAR, CONFIRMAR"
+        string token_hash UK "SHA-256"
+        timestamp expira_em
+        timestamp usado_em
     }
 
     auditorias {
@@ -221,6 +232,14 @@ Os valores antes/depois guardados em `auditorias` repetiriam nome, RA e email; n
 
 **24. RA anonimizado começa com `A`.**
 `A` + id com 9 dígitos cabe nos 10 caracteres da coluna, é único e nunca colide com um RA real (só dígitos). O RA original fica livre para um novo cadastro.
+
+### Links por email
+
+**25. Tokens em tabela própria e genérica (`tokens_reserva`).**
+Os links dos emails (cancelar agora, confirmar no item 9) usam a mesma tabela, diferenciados por `finalidade`. Uma reserva pode ter vários tokens, cada um com validade (`expira_em`) e uso único (`usado_em`). Colunas de token dentro de `reservas` exigiriam um par de colunas novo a cada finalidade.
+
+**26. No banco fica só o hash do token.**
+O token puro (64 caracteres aleatórios) só existe no email. O banco guarda o SHA-256, com índice único, então quem tiver acesso ao banco não consegue montar um link válido. SHA-256 sem salt é suficiente aqui porque o token já é aleatório e longo (diferente de uma senha).
 
 ---
 
