@@ -112,7 +112,7 @@ server {
 
 ## 6. Agendador e fila
 
-O cron e o supervisor estão em [`DOCUMENTACAO.md`](DOCUMENTACAO.md#em-produção-agendador-e-fila). Resumo:
+O cron e o supervisor estão em [`README.md`](README.md#em-produção-agendador-e-fila). Resumo:
 
 ```cron
 * * * * * cd /var/www/reservas && php artisan schedule:run >> /dev/null 2>&1
@@ -149,7 +149,7 @@ chmod 600 .env
 
 ## 9. Backup (pendente: decidir com a plataforma)
 
-Por decisão do usuário (09/11/2026), o backup é definido na hora do deploy. As opções estão em [`DOCUMENTACAO.md`](DOCUMENTACAO.md#ideias-registradas-para-depois):
+Por decisão do usuário (09/11/2026), o backup é definido na hora do deploy. As opções estão em [`README.md`](README.md#ideias-registradas-para-depois):
 - banco gerenciado com backup automático (mais simples);
 - ou `spatie/laravel-backup` com cópia num armazenamento externo;
 - regra 3-2-1, retenção de 7 diários, 4 semanais e 6 mensais, e um teste de restauração por mês.

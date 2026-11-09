@@ -2,7 +2,7 @@
 
 Estado do sistema, plano completo até a finalização e as regras de trabalho combinadas. Atualizado a cada etapa concluída.
 
-- Regras de negócio, endpoints e como rodar: [`DOCUMENTACAO.md`](DOCUMENTACAO.md)
+- Regras de negócio, endpoints e como rodar: [`README.md`](README.md)
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
@@ -18,12 +18,12 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - **Pendente para o deploy (decisão do usuário):** escolher a plataforma (ver `HOSPEDAGEM.md`), definir o backup e o monitor externo.
 - **O usuário precisa:** dar push dos commits; o `.env` local dele ganhou `ADMIN_INICIAL_NOME/EMAIL/SENHA` (Eric / admin@email.com / Admin), `ALERTAS_EMAIL`, `APP_LOCALE=pt_BR`, `LOG_STACK=daily` e `APP_NAME`; **no outro PC**, copiar essas linhas do `.env.example` para o `.env` de lá, senão o `migrate:fresh --seed` não cria o admin (o seeder avisa e segue).
 - **Para retomar o passo 11 em outro PC (instruções para o Claude):**
-  1. Ler este arquivo inteiro e o `CLAUDE.md`; a proposta completa, com o porquê de cada decisão, está no passo 11 do plano (abaixo) e a identidade visual no DOCUMENTACAO, seção "Front-end: identidade visual".
+  1. Ler este arquivo inteiro e o `CLAUDE.md`; a proposta completa, com o porquê de cada decisão, está no passo 11 do plano (abaixo) e a identidade visual no README, seção "Front-end: identidade visual".
   2. Conferir com `git log` se o último commit local é o mesmo do GitHub (o usuário precisa ter dado push neste PC e pull no outro).
   3. Perguntar ao usuário só o que falta: **se aprova as decisões 1 a 8** do passo 11 (ou quais ajusta). Não reabrir a base visual nem a stack (Angular + Tailwind), que já foram aceitas.
   4. Antes do 11.1, conferir se o PC tem **Node.js LTS** e o **npm** (`node -v`, `npm -v`); o Angular CLI pode rodar com `npx @angular/cli@latest`. Se faltar o Node, pedir ao usuário para instalar.
   5. Enviar a proposta curta do 11.1 (arquivos, comandos, decisões menores) e só implementar depois do ok.
-  6. A referência visual é `github.com/ericjunq/unifg-reservas` (pasta `frontend`, React + Tailwind, feita por um colega). Vale **só o visual**; a paleta e os ajustes aprovados estão no DOCUMENTACAO. Se precisar olhar, clonar numa pasta temporária fora do projeto.
+  6. A referência visual é `github.com/ericjunq/unifg-reservas` (pasta `frontend`, React + Tailwind, feita por um colega). Vale **só o visual**; a paleta e os ajustes aprovados estão no README. Se precisar olhar, clonar numa pasta temporária fora do projeto.
 - **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions. Antes: fila e jobs; por que email não deve diferenciar maiúsculas; opção A do link do front (Angular, sem Blade); prazo da confirmação até a véspera (alternativa avaliada e descartada). Em 09/11 (passo 10): **alertas** (o que falha em silêncio hoje; alerta sem dados pessoais, enviado sem passar pela fila, no máximo 1 por hora por problema; monitor externo do `/up` para quando o próprio email cair) e **backup** (regra 3-2-1; banco gerenciado > `spatie/laravel-backup` com armazenamento externo > script manual; `.env` separado num gerenciador de senhas; retenção 7 diários/4 semanais/6 mensais; teste mensal de restauração; LGPD: criptografia, acesso restrito e refazer as anonimizações depois de uma restauração). Também em 09/11: **plataformas de hospedagem** (Laravel Cloud × VPS em São Paulo × VPS + Forge × servidor da faculdade; perguntar antes à TI; registrado em `HOSPEDAGEM.md`); **análise visual do front de referência** (pontos fortes e ajustes); e, na proposta do passo 11, **onde guardar o token** (`sessionStorage` some ao fechar a aba; `localStorage` fica exposto por mais tempo a um ataque XSS; cookie do Sanctum é o mais seguro, mas exige o mesmo domínio e mudanças na API) e **por que não usar o Google Fonts** (o Google recebe o IP de cada visitante, que é dado pessoal, e o site fica mais lento).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
@@ -50,8 +50,9 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Passo 10 implementado (09/11):** o laravel-lang exigia a extensão `bcmath` (ausente no PHP local), então foi instalado só para gerar `lang/pt_BR` e removido (sem dependência). CORS com uma origem só devolve sempre essa origem e o navegador bloqueia as outras. Alertas sem a mensagem do erro (pode ter dados pessoais), enviados sem fila, 1 por hora por problema, e abandonam o envio no primeiro erro de SMTP (desempenho).
 - **Front de referência (09/11):** o usuário mostrou o front que um amigo começou em React + Tailwind (`github.com/ericjunq/unifg-reservas`, pasta `frontend`: Home, Reserva, Cadastro). Análise: a identidade visual é boa (azul e amarelo da UniFG, Montserrat, títulos em itálico, tela de reserva com calendário e resumo lateral), mas há problemas: imagens de 2,7 MB e 2,2 MB; hero com texto dentro da imagem e cara de gerado por IA; telas só da quadra; dados fixos que não batem com a API (horários, fins de semana, materiais, cursos); campo de telefone que a API não coleta; email que falta; acessibilidade e cores inconsistentes. Recomendação: manter a identidade e o layout, refazer em Angular (com Tailwind) ligado à API.
 - **Esclarecimento do usuário (09/11):** do front de referência, interessa **só a identidade visual** (cores, fonte, estilo), não o código nem as telas. Feedback dado só sobre o visual.
-- **Base visual aprovada (09/11):** o usuário aprovou seguir a identidade de referência com os ajustes (paleta única, foto real, ícones de traço, admin neutro). Documentada no DOCUMENTACAO.
+- **Base visual aprovada (09/11):** o usuário aprovou seguir a identidade de referência com os ajustes (paleta única, foto real, ícones de traço, admin neutro). Documentada no README.
 - **Proposta do passo 11 (09/11):** Angular + Tailwind + CDK, em subpassos 11.1 a 11.8. Recomendações: pasta `frontend/` neste repositório; token em `sessionStorage`; sem biblioteca de componentes pesada; signals; fonte hospedada no site (LGPD); página de privacidade; sem rastreamento.
+- **Documentação renomeada (09/11):** a pedido do usuário, o `DOCUMENTACAO.md` virou o `README.md` (é o que o GitHub mostra na página do repositório) e o README padrão do Laravel foi apagado.
 - **Agora:** proposta do passo 11 enviada e salva nos guias; o usuário deve aprovar e implementar no outro PC. Próxima ação: confirmar as decisões 1 a 8 e mandar a proposta curta do 11.1.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
@@ -180,7 +181,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 
 ### 4. ✅ Agendador de tarefas — *concluído em 09/11/2026*
 - `routes/console.php`: revogação (00:05), limpeza de links de email com mais de 30 dias (03:10), tokens de login vencidos (03:20), jobs falhos com mais de 7 dias (03:30), pedido de confirmação (08:00) e feriados do ano seguinte (1º/12, 03:00, sem facultativos por padrão). Todas com `withoutOverlapping`.
-- Produção documentada no DOCUMENTACAO: cron do `schedule:run` e worker da fila com supervisor. Aviso de falha por email fica para o passo 10.
+- Produção documentada no README: cron do `schedule:run` e worker da fila com supervisor. Aviso de falha por email fica para o passo 10.
 
 ### 5. ✅ Item 10 — Admins — *concluído em 09/11/2026 (junto com o passo 6)*
 - `UserResource` no login e no `/me`; `GET/POST/PATCH/DELETE /api/admin/admins` e reenvio de convite. Convite por email com link para definir a senha (**2 dias**). Desativado não faz login e perde as sessões; ninguém desativa a si mesmo; sempre sobra um ativo.
@@ -201,7 +202,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 
 ### 9. ✅ CI (GitHub Actions) — *concluído em 09/11/2026; primeira execução verde nos três bancos*
 - `.github/workflows/ci.yml`: push e PR na `main`; job de Pint (`--test`) + `composer audit`; testes em matriz SQLite, MySQL 8.0 e Postgres 16 (serviços do Actions), PHP 8.3, cache do Composer.
-- Sem branch protection por enquanto (trabalho direto na `main`); explicado no DOCUMENTACAO como ativar.
+- Sem branch protection por enquanto (trabalho direto na `main`); explicado no README como ativar.
 
 ### 10. ✅ Preparação para produção — *concluído em 09/11/2026 (239 testes)*
 - **Código:**
@@ -220,13 +221,13 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
   3. seeder de admin: **decisão do usuário (09/11): dados do admin inicial no `.env`** (`ADMIN_INICIAL_*`), enquanto estiver em desenvolvimento. Histórico da discussão: O usuário disse (09/11) que o admin de teste vai virar o admin dele. Recomendação enviada: em produção, o admin dele é criado como **principal** pelo `admin:criar-principal` (mesmo nome e email, senha forte digitada na hora, nunca no código); o `AdminSeeder` com a senha `Admin` continua só em dev. Alternativa: o seeder ler nome, email e senha do `.env` em produção (descartada por deixar a senha num arquivo);
   4. backup: **decisão do usuário (09/11): fica para a hora do deploy**, quando a plataforma for escolhida (as opções explicadas estão em "Conceitos já explicados"). O `DEPLOY.md` traz a seção de backup como pendente, com as opções;
   5. onde vai hospedar? **O usuário ainda vai decidir** e pediu recomendação (dada em 09/11, ver Trilha de ideias). Até lá, o guia é genérico, com o caminho de VPS Linux com Nginx;
-  6. **monitor externo do `/up`** (UptimeRobot ou Healthchecks.io): **fica para depois**, por decisão do usuário. A ideia está documentada nos opcionais e no DOCUMENTACAO.
+  6. **monitor externo do `/up`** (UptimeRobot ou Healthchecks.io): **fica para depois**, por decisão do usuário. A ideia está documentada nos opcionais e no README.
 - **Desempenho (reenviado em 09/11 com as prioridades permanentes):** `config/route/view/event:cache`, `--optimize-autoloader`, OPcache, fila com worker e logs em `warning`; o verificador confere os caches. Redis para cache e sessões fica documentado como evolução.
 - **LGPD:** HTTPS e HSTS, CORS restrito, `APP_DEBUG` desligado, **alertas sem dados pessoais** (só a tarefa, a data e o tipo do erro), logs por 14 dias e sem dados pessoais, backups criptografados com acesso restrito e prazo de guarda, sem dados de teste em produção.
-- **Antes:** CORS, fila, cron e supervisor já estavam previstos aqui; cron e supervisor já estão documentados no DOCUMENTACAO (passo 4).
+- **Antes:** CORS, fila, cron e supervisor já estavam previstos aqui; cron e supervisor já estão documentados no README (passo 4).
 
 ### 11. ⬜ Front-end em Angular — *proposta enviada em 09/11/2026, aguardando aprovação*
-- **Base visual (decisão do usuário, 09/11):** a identidade do front de referência (`github.com/ericjunq/unifg-reservas`, pasta `frontend`), **com os ajustes**: paleta única, foto real no topo com o título em texto, ícones de traço em vez de emojis, tom esportivo só na área pública e admin neutro. Do front de referência vale **só o visual**, não o código. Detalhes em DOCUMENTACAO, "Front-end: identidade visual".
+- **Base visual (decisão do usuário, 09/11):** a identidade do front de referência (`github.com/ericjunq/unifg-reservas`, pasta `frontend`), **com os ajustes**: paleta única, foto real no topo com o título em texto, ícones de traço em vez de emojis, tom esportivo só na área pública e admin neutro. Do front de referência vale **só o visual**, não o código. Detalhes em README, "Front-end: identidade visual".
 - **Stack proposta:** Angular (versão estável mais recente, componentes standalone, signals, sem zone.js), Tailwind CSS v4, Angular CDK (diálogos, foco e teclado acessíveis), ícones Lucide, Montserrat hospedada no próprio site, testes unitários com o runner padrão do Angular e Playwright nos fluxos principais.
 - **Telas que o front precisa ter** (links dos emails já usados pela API): `/reservas/cancelar/:token`, `/reservas/confirmar/:token`, `/aceitar-convite/:token`, `/redefinir-senha/:token`.
 - **Subpassos (cada um com proposta curta, testes e commit):**

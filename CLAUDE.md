@@ -28,18 +28,18 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - Aprovação vale só para o que foi aprovado. Se o usuário recusar uma recomendação, implementar sem ela e registrar a decisão.
 - Ao concluir cada etapa, **atualizar a documentação**:
   - `CHECKLIST.md`: marcar itens, data e número de testes, e **sempre** atualizar a seção "📍 Onde paramos" (último passo concluído, próximo passo, pendências do usuário). O usuário alterna entre PCs, e uma conversa nova precisa entender em segundos o que foi feito, o que está em andamento e o que vem depois;
-  - `DOCUMENTACAO.md`: endpoints, regras, decisões, testes, histórico e próximos passos;
+  - `README.md` (a documentação completa do projeto; até 09/11/2026 se chamava `DOCUMENTACAO.md`, nome que ainda aparece nas seções antigas do txt): endpoints, regras, decisões, testes, histórico e próximos passos;
   - `DATABASE.md`: diagrama Mermaid e decisões de modelagem, sempre que o banco mudar;
   - `implementacoes-com-claude-code.txt`: uma seção nova por implementação, arquivo por arquivo.
-- Decisões tomadas não são reabertas. Ficam registradas no `CHECKLIST.md` e no `DOCUMENTACAO.md`.
+- Decisões tomadas não são reabertas. Ficam registradas no `CHECKLIST.md` e no `README.md`.
 
 ### Continuidade entre conversas (o usuário alterna entre PCs e chats)
 - A memória da conversa **não** vai para outro PC. O que garante a continuidade são os arquivos do repositório: **este `CLAUDE.md`** (como trabalhar) e o **`CHECKLIST.md`** (onde estamos, o que foi decidido e o que vem). Escreva-os como instruções **para você mesmo** numa conversa nova, com contexto suficiente para seguir a mesma linha de ideias, sem precisar perguntar o que já foi combinado.
 - **Mantenha tudo atualizado o tempo todo**, e não só ao concluir uma etapa. Atualize e commite os guias sempre que:
   - enviar uma **proposta**: resumo e decisões em aberto no passo do plano, e "Onde paramos" como "proposta enviada, aguardando aprovação";
   - o usuário **aprovar, recusar ou ajustar** algo: registrar a decisão e o motivo;
-  - **explicar um conceito** ao usuário: anotar em "Conceitos já explicados" e, se for útil, numa seção do DOCUMENTACAO;
-  - concluir uma etapa: todos os guias (CHECKLIST, DOCUMENTACAO, DATABASE se mexer no banco, txt).
+  - **explicar um conceito** ao usuário: anotar em "Conceitos já explicados" e, se for útil, numa seção do README;
+  - concluir uma etapa: todos os guias (CHECKLIST, README, DATABASE se mexer no banco, txt).
 - A seção **"🧵 Trilha de ideias"** do CHECKLIST ganha uma linha a cada nova ideia, decisão ou mudança de rumo, com o porquê. A última linha ("Agora:") é sempre atualizada.
 - A seção **"📍 Onde paramos"** do CHECKLIST sempre traz: o último passo concluído, o que está em andamento (proposta enviada? decisões pendentes?), o próximo passo, o que o usuário precisa fazer (push, `migrate:fresh` etc.) e os conceitos já explicados.
 - **Novas instruções de comportamento** do usuário (como trabalhar, responder, commitar, documentar) entram **neste `CLAUDE.md` na mesma hora**, em vez de ficar só na conversa.
@@ -62,10 +62,10 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - **Formatação:** rodar `./vendor/bin/pint` antes de commitar (`pint.json` mantém o alinhamento de `=>`).
 - **Migrations** existentes são editadas no lugar, porque o banco de desenvolvimento é recriado com frequência. Quem roda `php artisan migrate:fresh --seed` é **o usuário**.
 - O `AdminSeeder` lê nome, email e senha do `.env` (`ADMIN_INICIAL_*`); a senha `Admin` do `.env.example` é **intencional**, para desenvolvimento (decisão do usuário: o admin de teste vira o admin dele). Não apontar como problema, a menos que o assunto seja produção (lá, `admin:criar-principal` e `ADMIN_INICIAL_SENHA` vazia).
-- Configuração nova que depende do ambiente vai para `config/*.php` lendo o `.env`, e entra no `.env.example`, no `.env.production.example` e na tabela de variáveis do DOCUMENTACAO. Nunca usar `env()` fora de `config/`, porque o `config:cache` de produção o ignora.
+- Configuração nova que depende do ambiente vai para `config/*.php` lendo o `.env`, e entra no `.env.example`, no `.env.production.example` e na tabela de variáveis do README. Nunca usar `env()` fora de `config/`, porque o `config:cache` de produção o ignora.
 - O campo de data da reserva se chama `data_reserva`, nunca `data`, porque um campo `data` faria o resource perder o wrapper `{"data": ...}`.
 - O **front-end será em Angular**, num projeto separado (proposta: pasta `frontend/` neste repositório, a confirmar no passo 11). **Não criar telas em Blade.** Links de email apontam para `FRONTEND_URL`.
-- **No front valem as mesmas regras:** nenhum comentário (TS, HTML, CSS), nomes em português, um commit por alteração, testes antes de cada commit, proposta antes de cada subpasso, desempenho e LGPD em toda decisão. A identidade visual aprovada está no DOCUMENTACAO ("Front-end: identidade visual").
+- **No front valem as mesmas regras:** nenhum comentário (TS, HTML, CSS), nomes em português, um commit por alteração, testes antes de cada commit, proposta antes de cada subpasso, desempenho e LGPD em toda decisão. A identidade visual aprovada está no README ("Front-end: identidade visual").
 
 ### Compatibilidade entre bancos (SQLite, MySQL e Postgres)
 - Busca por texto: `whereLike(..., caseSensitive: false)`, nunca `where(..., 'like', ...)`. No Postgres, o `like` diferencia maiúsculas.

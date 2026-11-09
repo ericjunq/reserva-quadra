@@ -1499,3 +1499,15 @@ CHECKLIST.md
     explicados (hospedagem, token, Google Fonts). Trilha de ideias atualizada.
 CLAUDE.md
   - As regras do projeto valem também no front; local proposto: pasta frontend/.
+
+========================================================================
+39. DOCUMENTAÇÃO RENOMEADA PARA README.md
+========================================================================
+
+Pedido do usuário (09/11/2026): a documentação completa passa a ser o README.md, que o GitHub
+mostra na página do repositório.
+
+- README.md padrão do Laravel apagado (só tinha o texto de apresentação do framework).
+- DOCUMENTACAO.md renomeado para README.md com git mv (o histórico do arquivo continua).
+- Referências trocadas em CLAUDE.md, CHECKLIST.md, DATABASE.md e DEPLOY.md. As seções
+  anteriores deste txt mantêm o nome antigo (DOCUMENTACAO.md), como registro histórico.

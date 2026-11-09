@@ -2,7 +2,7 @@
 
 Visão do modelo de dados do sistema de reservas e o porquê das principais decisões de modelagem.
 
-> Mais detalhes: [`DOCUMENTACAO.md`](DOCUMENTACAO.md) (regras e endpoints) e [`CHECKLIST.md`](CHECKLIST.md) (o que já existe e o que falta).
+> Mais detalhes: [`README.md`](README.md) (regras e endpoints) e [`CHECKLIST.md`](CHECKLIST.md) (o que já existe e o que falta).
 
 Última atualização: 06/11/2026
 
