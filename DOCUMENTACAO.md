@@ -92,6 +92,7 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | Variável | Padrão | O que controla |
 |---|---|---|
 | `RESERVA_ANTECEDENCIA_MAXIMA_DIAS_UTEIS` | 10 | Até quantos dias úteis à frente o aluno pode reservar |
+| `RESERVA_BLOCO_MINUTOS` | 30 | Tamanho do bloco dos horários livres (início, fim e duração são múltiplos dele) |
 | `RESERVA_MINUTOS_ANTES_DO_FIM` | 20 | Até quantos minutos antes do fim um horário de hoje pode ser reservado |
 | `RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES` | 2 | Quantos dias **úteis** antes da reserva sai o pedido de confirmação |
 | `RESERVA_HORARIO_PEDIDO_CONFIRMACAO` | 08:00 | Horário diário do comando que envia os pedidos |
@@ -198,7 +199,7 @@ users (admins) ──< reservas (criador de eventos / quem revogou)
 |---|---|
 | `cursos` | `nome` (único), `ativo` |
 | `alunos` | `nome_completo`, `registro_academico` (RA, único, 10 dígitos), `email`, `curso_id`, `ativo`, `anonimizado_em` |
-| `espacos` | `nome` (único), `tipo` (QUADRA, LABORATORIO, SALA), `ativo`, `limite_semanal_por_curso` (vazio = sem limite) |
+| `espacos` | `nome` (único), `tipo` (QUADRA, LABORATORIO, SALA), `ativo`, `limite_semanal_por_curso` (vazio = sem limite), `modo_horario` (FIXO, LIVRE), `abre_as`, `fecha_as`, `duracao_maxima_minutos` (só no LIVRE) |
 | `equipamentos` | `espaco_id`, `nome` (único dentro do espaço), `quantidade_total`, `ativo`, `compartilhavel` |
 | `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `cancelada_em`, `confirmacao_enviada_em`, `confirmada_em` |
 | `tokens_reserva` | `reserva_id`, `finalidade` (CANCELAR, CONFIRMAR), `token_hash` (SHA-256, único), `expira_em`, `usado_em` |
@@ -220,6 +221,7 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | POST | `/api/alunos` | Cadastro de aluno |
 | GET | `/api/espacos?tipo=QUADRA` | Espaços ativos (filtro opcional) |
 | GET | `/api/espacos/{id}/equipamentos` | Equipamentos reserváveis no espaço (os dele + os compartilháveis) |
+| GET | `/api/espacos/{id}/equipamentos/disponibilidade?data=&hora_inicio=&hora_fim=` | Disponível de cada equipamento num intervalo (usado nos espaços LIVRE) |
 | GET | `/api/espacos/{id}/disponibilidade?de=&ate=` | Calendário do espaço: situação de cada horário e equipamentos disponíveis |
 | POST | `/api/reservas` | Cria uma reserva |
 | POST | `/api/minhas-reservas` | O aluno consulta as próprias reservas (RA + email no corpo) |
@@ -243,6 +245,7 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 - `reservas_ate`: último dia que aceita reservas de alunos (10 dias úteis à frente).
 - Cada dia tem `reservavel` e `motivo` (data passada, fim de semana, fora da antecedência ou bloqueio do dia inteiro).
 - Cada horário tem `situacao`: `LIVRE`, `RESERVADO`, `EVENTO`, `BLOQUEADO`, `INDISPONIVEL` (o dia não aceita reservas) ou `ENCERRADO` (horário de hoje passou do limite). Também traz `motivo`, `reserva` (com `reservado_por`: nome e curso do aluno, ou nome do admin; RA e email nunca aparecem) e `equipamentos` (`total` e `disponivel` naquele horário, incluindo os compartilháveis).
+- **Espaços LIVRE:** `espaco` traz `modo_horario`, `abre_as`, `fecha_as`, `duracao_maxima_minutos` e `bloco_minutos`; cada dia lista os **blocos** da janela (ex.: 07:00–07:30, 07:30–08:00…) com a mesma `situacao`/`reserva`, `horario: null` e **sem** `equipamentos` (para o intervalo escolhido, usar `/equipamentos/disponibilidade`).
 
 
 **Exemplo de reserva:**
@@ -258,6 +261,8 @@ POST /api/reservas
 }
 ```
 
+Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim": "15:30"`.
+
 ### Admin (exigem `Authorization: Bearer <token>`)
 
 | Método | Rota | Descrição |
@@ -272,7 +277,7 @@ POST /api/reservas
 | PATCH | `/api/admin/admins/{id}` | Edita nome, email e `ativo` (reativar) |
 | DELETE | `/api/admin/admins/{id}` | Desativa o admin (sem login e sem sessões) |
 | POST | `/api/admin/admins/{id}/reenviar-convite` | Reenvia o convite de quem ainda não definiu a senha |
-| GET/POST/PATCH/DELETE | `/api/admin/espacos` | CRUD de espaços (`?tipo=`) |
+| GET/POST/PATCH/DELETE | `/api/admin/espacos` | CRUD de espaços (`?tipo=`); `modo_horario`, `abre_as`, `fecha_as`, `duracao_maxima_minutos` para horário livre |
 | GET/POST/PATCH/DELETE | `/api/admin/equipamentos` | CRUD de equipamentos (`?espaco_id=`, `?nome=`, `?ativo=`) |
 | GET/POST/PATCH/DELETE | `/api/admin/cursos` | CRUD de cursos |
 | GET | `/api/admin/alunos` | Lista de alunos (`?busca=` nome/RA/email, `?curso_id=`, `?ativo=`) |
@@ -321,6 +326,16 @@ POST /api/reservas
 | Espaço com `limite_semanal_por_curso` (quadra = 3): no máximo N reservas do mesmo curso de **segunda a sexta** | 409 |
 | Data/horário não pode estar numa **data bloqueada** (mensagem traz o motivo) | 422 |
 
+### Horários fixos e livres
+
+- **FIXO** (padrão; a quadra): a reserva usa `horario` (`PRIMEIRO_HORARIO` 19:00–20:30, `SEGUNDO_HORARIO` 20:30–22:00, iguais para todos os espaços). Mandar `hora_inicio`/`hora_fim` é recusado.
+- **LIVRE**: o espaço tem janela (`abre_as`–`fecha_as`) e `duracao_maxima_minutos`; a reserva usa `hora_inicio` e `hora_fim`:
+  - múltiplos do bloco (30 min), dentro da janela, fim depois do início, duração de 30 min até a máxima do espaço (422);
+  - mandar `horario` é recusado;
+  - as outras regras valem igual: dia útil, antecedência, hoje até 20 min antes do **fim escolhido**, bloqueios (inclusive de parte do dia), conflito por sobreposição (14:00–15:00 e 15:00–16:00 não conflitam), limite semanal (conta reservas, não horas), confirmação, cancelamento e devolução.
+- **Eventos** em espaço LIVRE: blocos de 30 min, podendo sair da janela e sem duração máxima.
+- **Configuração:** o admin define no cadastro/edição do espaço (no LIVRE, os três campos são obrigatórios, alinhados ao bloco, fechamento depois da abertura, duração máxima múltipla do bloco e que caiba na janela). **Trocar o modo** com reservas futuras é recusado (409). Mudar a janela ou a duração não afeta as reservas já feitas.
+
 ### Equipamentos na reserva
 
 | Regra | Erro |
@@ -329,7 +344,7 @@ POST /api/reservas
 | Sem equipamento repetido; quantidade ≥ 1 e ≤ estoque total | 422 |
 | Quantidade ≤ **disponível** naquela data/horário | 409 (lista o que faltou e quanto há) |
 
-**Disponível** = `quantidade_total` − soma do que está reservado (status `RESERVADO`) em horários que se sobrepõem, **em qualquer espaço**.
+**Disponível** = `quantidade_total` − **pico de uso** no intervalo: o maior total reservado (status `RESERVADO`, **em qualquer espaço**) em um mesmo momento. Ex.: 2 projetores das 14:00 às 15:00 e outros 2 das 15:00 às 16:00 dão pico 2 no intervalo 14:00–16:00 (e não 4). Nos horários fixos o resultado é o mesmo da soma.
 O cálculo fica todo em `DisponibilidadeEquipamentoRepository`: uma única consulta agrupada por equipamento, independente de quantos itens forem pedidos.
 Exemplo: 2 microscópios compartilháveis e 3 labs no mesmo horário → o terceiro recebe 409.
 
@@ -503,7 +518,16 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 | Repositórios **só para consultas complexas** | Entidades com operações simples usam o Eloquent direto nos services; repositório onde a query é complexa ou reaproveitada |
 | Data da reserva gravada como `Y-m-d` | Permite comparar a coluna diretamente e usar índices (o `whereDate` impede o uso de índice) |
 | Espaço exclusivo por horário | Regra atual da quadra. Está isolada em `verificarConflitoDeEspaco()` e pode ser removida se um dia o espaço for compartilhado |
-| Reserva guarda `hora_inicio` e `hora_fim`; conflito por **sobreposição** | Preparação para horários livres (ex.: 7h–22h com duração máxima por espaço). A quadra continua com horários fixos |
+| Reserva guarda `hora_inicio` e `hora_fim`; conflito por **sobreposição** | Funciona igual nos horários fixos e livres |
+| Modo de horário **por espaço** (FIXO/LIVRE) | A quadra continua fixa; laboratórios e salas podem ter horário livre |
+| Bloco de **30 min global** (configurável) | Simplifica calendário e cálculo de pico; por espaço só faria sentido com espaços muito diferentes |
+| Duração mínima de 1 bloco; **máxima por espaço** | Cada espaço decide quanto tempo uma reserva pode ocupar |
+| Equipamentos pelo **pico de uso** | Somar reservas que se sobrepõem ao intervalo superestima o uso quando elas não acontecem ao mesmo tempo |
+| Calendário LIVRE em blocos, **sem equipamentos por bloco** | A resposta ficaria enorme (blocos × equipamentos × dias); os equipamentos vêm da consulta por intervalo |
+| Eventos podem sair da janela e passar da duração máxima | Decisão do admin (ex.: palestra até 23:00) |
+| Limite semanal continua contando **reservas**, não horas | Mantém a regra combinada para a quadra |
+| Trocar o modo com reservas futuras é recusado | Reserva fixa em espaço livre (ou o contrário) ficaria incoerente |
+| Horários fixos iguais para todos os espaços | Horários fixos por espaço ficam como opcional |
 | Regras de entrada em `app/Rules` (uma linha no request) | Fáceis de ligar e desligar quando a regra mudar |
 | Números do negócio em `config/reservas.php` | Mudar 10 dias úteis, 20 minutos ou 2 dias sem mexer no código |
 | Antecedência em **dias úteis** | Com dias corridos, quem reservava na sexta só alcançava 5 dias úteis; contando dias úteis, a janela é a mesma qualquer dia da semana. Feriados contam como dia útil na contagem e aparecem no calendário como bloqueados: a janela fica previsível e não muda quando um bloqueio é cadastrado. Prazo de 10 dias úteis |
@@ -562,6 +586,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
+| `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela, equipamentos pelo pico, redução de estoque pelo pico, calendário em blocos, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
 | `AuditoriaConsultaTest` | Histórico de um registro em ordem, nome curto no banco, filtros por admin e sem admin, por ação e período, senha oculta e aluno anonimizado, validações, paginação |
 | `AdminPrincipalTest` | Principal não desativado nem editado por outros, edita a si mesmo, desativa os outros, flag não muda pela API, seeder, comandos de criação (senha fraca, duplicado) e de transferência |
 | `SenhaTest` | Esqueci a senha (link só com token, 60 min), resposta igual para inexistente/inativo, redefinição derrubando sessões com email de aviso, uso único e vencimento, token/email errados, regras da senha, aceite de convite em até 2 dias, link de redefinição não serve no convite, troca logado mantendo a sessão atual |
@@ -605,6 +630,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Horários livres (passo 8) | Modo FIXO/LIVRE por espaço, reserva e evento com início/fim em blocos de 30 min, equipamentos pelo pico de uso, calendário em blocos, consulta de equipamentos por intervalo |
 | Consulta do histórico (passo 7) | `GET /api/admin/auditorias` com filtros, morph map com nomes curtos |
 | Admin principal | Flag `principal`, proteções contra desativação e edição por outros, comandos `admin:criar-principal` e `admin:transferir-principal` |
 | Admins e senhas (itens 5 e 6) | `UserResource`, gestão de admins com convite, desativação, esqueci/redefinir/aceitar/trocar senha, email "senha alterada", email em minúsculas |
@@ -627,10 +653,9 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
-2. **CI:** testes em MySQL e Postgres no GitHub Actions.
-3. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
-4. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **CI:** testes em MySQL e Postgres no GitHub Actions.
+2. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
+3. **Front-end em Angular** (projeto separado; não será com Blade).
 
 ### Emails do sistema
 

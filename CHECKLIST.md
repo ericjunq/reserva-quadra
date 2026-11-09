@@ -6,15 +6,15 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 09/11/2026 · 211 testes passando
+Última atualização: 09/11/2026 · 226 testes passando
 
 ---
 
 ## 📍 Onde paramos
 
-- **Último passo concluído:** passo 7, consulta do histórico de alterações (`GET /api/admin/auditorias`) e morph map, em 09/11/2026.
-- **Próximo passo:** passo 8, horários livres (modo FIXO/LIVRE por espaço, equipamentos pelo pico de uso). **Ainda não há proposta enviada**: é um passo grande; enviar a proposta completa e esperar a aprovação.
-- **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` (o morph map muda o que é gravado em `auditorias` e nos tokens de login).
+- **Último passo concluído:** passo 8, horários livres (modo FIXO/LIVRE por espaço, equipamentos pelo pico de uso, calendário em blocos), em 09/11/2026.
+- **Próximo passo:** passo 9, CI (testes em MySQL e Postgres no GitHub Actions, mais Pint e `composer audit`). **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação.
+- **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` (colunas novas em `espacos`). O "Laboratório de Informática" do DemoSeeder é LIVRE (07:00–22:00, até 120 min) para testar.
 - **Conceitos já explicados ao usuário:** fila e jobs; por que email não deve diferenciar maiúsculas (seção de decisões do DOCUMENTACAO).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
@@ -54,6 +54,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Ver o calendário de um espaço (até 31 dias): horários livres, reservados, eventos e bloqueios, quem reservou e equipamentos disponíveis
 - [x] Informar o RA ou o curso no calendário para ver quantas reservas o curso ainda tem na semana
 - [x] Reservar um espaço em um horário, com ou sem equipamentos
+- [x] Em espaços com horário livre, escolher início e fim (blocos de 30 min, dentro da janela e até a duração máxima)
 - [x] Consultar as próprias reservas informando RA + email (futuras ou todas)
 - [x] Receber email "Reserva registrada" e cancelar pelo link (até o início da reserva)
 - [x] Confirmar a reserva pelo link do email (pedido 2 dias úteis antes; prazo até o dia anterior)
@@ -79,6 +80,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Trocar a própria senha logado e recuperar a senha por email ("esqueci minha senha")
 - [x] Admin principal (conta de manutenção): não pode ser desativado nem editado por outros; criado e transferido por comando no servidor
 - [x] Cadastrar, editar, listar e desativar espaços, equipamentos e cursos
+- [x] Configurar o espaço como horário fixo ou livre (janela de funcionamento e duração máxima)
 - [x] Marcar equipamento como compartilhável entre espaços
 - [x] Listar alunos com filtros (nome/RA/email, curso, ativo) e ver o detalhe
 - [x] Editar, desativar e reativar alunos (desativar revoga as reservas futuras e avisa o aluno)
@@ -102,7 +104,8 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Código compatível com SQLite, MySQL e Postgres
 - [x] Código formatado com o Laravel Pint (`pint.json`)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
-- [x] 211 testes automáticos passando
+- [x] Equipamentos calculados pelo pico de uso no intervalo
+- [x] 226 testes automáticos passando
 
 ---
 
@@ -149,14 +152,12 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - `GET /api/admin/auditorias`: uma rota só, com filtros `tipo`, `registro_id`, `admin_id`, `sem_admin`, `acao`, `periodo`/`de`/`ate`; mais recente primeiro; `campos_alterados`, `antes`, `depois`, `feito_por`.
 - Morph map: `auditavel_type` com nomes curtos. Histórico guardado sem prazo; exportação do histórico ficou como opcional.
 
-### 8. ⬜ Horários livres (modo LIVRE por espaço) — *próximo; proposta ainda não enviada*
-- `espacos` ganha `modo_horario` (FIXO/LIVRE), `abre_as`, `fecha_as`, `duracao_maxima_minutos` e o tamanho do bloco (30 min).
-- No modo LIVRE, a reserva informa `hora_inicio`/`hora_fim` (múltiplos do bloco, dentro da janela, até a duração máxima). A verificação de conflito por sobreposição já existe.
-- **Equipamentos pelo pico de uso:** a disponibilidade no intervalo é o **menor** saldo entre os blocos de 30 minutos, e não a soma das reservas que se sobrepõem.
-- O calendário de disponibilidade passa a mostrar blocos nesses espaços. A quadra continua FIXO.
-- Revisar: tolerância de 20 minutos, limite semanal e bloqueios de parte do dia (devem continuar funcionando, por sobreposição).
+### 8. ✅ Horários livres — *concluído em 09/11/2026*
+- `espacos`: `modo_horario` (FIXO/LIVRE), `abre_as`, `fecha_as`, `duracao_maxima_minutos`. Bloco global de 30 min (`RESERVA_BLOCO_MINUTOS`). Trocar o modo com reservas futuras é recusado.
+- Reserva LIVRE com `hora_inicio`/`hora_fim` (alinhados, dentro da janela, até a duração máxima); eventos podem sair da janela. Limite semanal conta reservas.
+- Equipamentos pelo **pico de uso** (inclusive na redução de estoque). Calendário LIVRE em blocos, sem equipamentos por bloco; `GET /api/espacos/{id}/equipamentos/disponibilidade` para um intervalo.
 
-### 9. ⬜ Testes no banco de produção (CI)
+### 9. ⬜ Testes no banco de produção (CI) — *próximo; proposta ainda não enviada*
 - Pipeline no GitHub Actions rodando `php artisan test` em **MySQL e Postgres** (services do Actions), além do Pint e do `composer audit`.
 
 ### 10. ⬜ Preparação para produção
@@ -177,6 +178,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - [ ] **Registro de retirada** dos equipamentos (hoje só a devolução é registrada)
 - [ ] **Exportação muito grande:** trocar o `lazy()` (OFFSET) por paginação por chave quando o volume passar de dezenas de milhares de linhas
 - [ ] **Perfis de permissão** para admins (ver passo 5)
+- [ ] **Horários fixos diferentes por espaço** (hoje 19:00 e 20:30 valem para todos)
 - [ ] **Exportar o histórico de auditoria** em CSV (reaproveitar o exportador de reservas)
 - [ ] **Retenção do histórico de auditoria** (ex.: apagar depois de N anos), se o volume pedir
 

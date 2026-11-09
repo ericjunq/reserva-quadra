@@ -1244,3 +1244,69 @@ tests
     "auditavel_type = Classe::class" passaram a usar a relação $model->auditorias().
   - Observação: User agora é auditado, então criar admins pela factory também gera histórico;
     os testes da consulta filtram por tipo quando precisam isolar. 211 testes no total.
+
+========================================================================
+33. PASSO 8 — HORÁRIOS LIVRES
+========================================================================
+
+Decisões do usuário (09/11/2026), todas as recomendações: bloco global de 30 min; duração
+mínima de 1 bloco e máxima por espaço; calendário LIVRE em blocos sem equipamentos por bloco
+(+ consulta por intervalo); eventos podem sair da janela; limite semanal conta reservas; trocar
+o modo com reservas futuras é recusado; horários fixos continuam iguais para todos.
+
+config/reservas.php: bloco_minutos (RESERVA_BLOCO_MINUTOS, 30).
+app/Constants/ModoHorarioConstant.php (novo): FIXO, LIVRE.
+
+app/Support/IntervaloReserva.php (novo)
+  - normalizar("H:i" -> "H:i:s"), minutos, hora, curta, alinhada (múltiplo do bloco),
+    doPedido(dados) -> [inicio, fim] pelo "horario" (fixo) ou por hora_inicio/hora_fim (livre),
+    blocos(inicio, fim). Usado por regras, requests e services.
+
+database/migrations/..._create_espacos_table.php (editada): modo_horario (FIXO), abre_as,
+fecha_as, duracao_maxima_minutos.
+app/Models/Espaco.php: fillable, casts, mutators de abre_as/fecha_as (H:i:s), livre().
+database/factories/EspacoFactory.php: estado livre(abre, fecha, duracao).
+
+app/Http/Requests/Concerns/ValidaConfiguracaoDeHorario.php (novo)
+  - Regras dos 4 campos + validação do estado EFETIVO (na edição, junta o que veio com o que o
+    espaço já tem): no LIVRE, os três obrigatórios, alinhados, fechamento > abertura, duração
+    múltipla do bloco e <= janela. Usado em Store/UpdateEspacoRequest (after()).
+app/Services/EspacoService.php
+  - limparConfiguracaoFixa(): no FIXO, abre/fecha/duração ficam null. Troca de modo com
+    reservas futuras -> 409 (reaproveita verificarReservasFuturas com a ação na mensagem).
+app/Http/Resources/EspacoResource.php: modo_horario, abre_as, fecha_as (H:i), duração.
+
+app/Repositories/DisponibilidadeEquipamentoRepository.php
+  - emUso() agora devolve o PICO por equipamento no intervalo (antes: soma). intervalosEmUso()
+    é a consulta única agrupada por data/hora_inicio/hora_fim/equipamento; pico() percorre os
+    eventos (+q no início, -q no fim, fins antes de inícios no mesmo horário) e pega o máximo.
+  - maiorUsoFuturo(): pico por dia (antes: soma por data+hora_inicio, errado com intervalos
+    livres que se sobrepõem parcialmente).
+  - DisponibilidadeService usa pico() no calendário FIXO (resultado igual ao anterior).
+
+app/Rules/HorarioAindaReservavel.php / DataNaoBloqueada.php
+  - Trabalham com o intervalo de IntervaloReserva::doPedido (fixo ou livre). limiteParaHoje()
+    recebe a hora de fim. HorarioAindaReservavel fica em "horario" e em "hora_fim".
+
+app/Http/Requests/Concerns/ValidaHorarioDaReserva.php (novo)
+  - regrasHorario() e validarHorarioDoEspaco(validator, respeitarJanela): FIXO exige horario
+    e recusa hora_*; LIVRE exige hora_inicio/hora_fim e recusa horario; alinhamento; fim > início;
+    janela e duração máxima só para alunos (eventos: respeitarJanela = false).
+app/Http/Requests/Concerns/ValidaEquipamentosDaReserva.php
+  - after() virou validarEstoqueDosEquipamentos(), para cada request compor seus after().
+StoreReservaRequest / StoreEventoRequest: usam os dois traits.
+
+app/Services/ReservaService.php: resolverIntervalo() por IntervaloReserva::doPedido; horario
+null no LIVRE.
+
+app/Services/DisponibilidadeService.php
+  - intervalosDoDia(): FIXO = os 2 horários; LIVRE = blocos da janela. montarHorario() genérico
+    (horario null no LIVRE; sem equipamentos no LIVRE). espaco traz modo/janela/duração/bloco.
+
+app/Services/EquipamentoService.php: disponibilidadeNoIntervalo().
+app/Http/Requests/ConsultarEquipamentosNoIntervaloRequest.php (novo) + EquipamentoController::
+disponibilidade + rota GET /api/espacos/{espaco}/equipamentos/disponibilidade (throttle 60).
+
+database/seeders/DemoSeeder.php: Laboratório de Informática LIVRE (07:00–22:00, 120 min).
+
+tests/Feature/HorarioLivreTest.php (novo) — 15 testes (226 no total).

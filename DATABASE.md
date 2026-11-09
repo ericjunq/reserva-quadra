@@ -64,6 +64,10 @@ erDiagram
         string tipo "QUADRA, LABORATORIO, SALA"
         boolean ativo
         tinyint limite_semanal_por_curso "null = sem limite"
+        string modo_horario "FIXO, LIVRE"
+        time abre_as "só LIVRE"
+        time fecha_as "só LIVRE"
+        smallint duracao_maxima_minutos "só LIVRE"
     }
 
     equipamentos {
@@ -175,7 +179,7 @@ A disponibilidade muda a cada data e horário. Um número fixo não representa i
 **7. Alunos e eventos na mesma tabela `reservas`, diferenciados por `tipo`.**
 Os dois ocupam o espaço da mesma forma, então a verificação de conflito é uma só. O que muda é quem criou: `aluno_id` para o aluno, `criado_por` para o admin no evento.
 
-**8. A reserva guarda `hora_inicio` e `hora_fim`, além do `horario`.**
+**8. A reserva guarda `hora_inicio` e `hora_fim`, além do `horario`.** *(usado pelos horários livres desde 09/11/2026)*
 Hoje os horários são fixos (19:00 e 20:30). Guardar o intervalo prepara o sistema para horários livres (ex.: 7h às 22h) sem migração de dados. O conflito é verificado por **sobreposição** de intervalos, o que funciona nos dois modelos.
 
 **9. `data_reserva` é gravada como `Y-m-d`, e não como `data`.**
@@ -256,6 +260,12 @@ Os dois usam o Password Broker do Laravel (token com hash, um por email). Com a 
 
 **29. Senha nunca entra no histórico.**
 `users` usa o trait de auditoria como as outras tabelas, mas `password` e `remember_token` aparecem só como `[oculto]` (o trait aceita uma lista de campos sensíveis por model).
+
+**32. Modo de horário é configuração do espaço.**
+`modo_horario`, `abre_as`, `fecha_as` e `duracao_maxima_minutos` ficam em `espacos`. No FIXO os três últimos ficam vazios. A reserva não muda: `horario` fica preenchido no FIXO e vazio no LIVRE, e `hora_inicio`/`hora_fim` sempre têm o intervalo real, então conflito, bloqueios, confirmação e cancelamento funcionam igual nos dois modos.
+
+**33. Equipamentos pelo pico de uso, calculado em PHP sobre uma consulta.**
+O banco devolve, numa consulta agrupada, o total de cada equipamento por intervalo reservado; o pico (maior uso simultâneo) é calculado em PHP percorrendo inícios e fins em ordem. Fazer isso em SQL exigiria funções de janela, com sintaxe e desempenho diferentes entre SQLite, MySQL e Postgres.
 
 **31. `auditavel_type` guarda nomes curtos (morph map).**
 Em vez de `App\Models\Reserva`, a coluna guarda `reserva` (e `aluno`, `espaco`, `equipamento`, `curso`, `data_bloqueada`, `item_reserva`, `admin`). O mapa fica em `TipoAuditavelConstant` e é registrado com `enforceMorphMap` no `AppServiceProvider`: renomear ou mover uma classe não quebra o histórico, e um model polimórfico fora do mapa dá erro em vez de gravar um nome inesperado. Vale também para `personal_access_tokens.tokenable_type` (admins aparecem como `admin`).
