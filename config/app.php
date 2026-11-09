@@ -12,6 +12,8 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:4200'),
 
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
     'timezone' => env('APP_TIMEZONE', 'America/Sao_Paulo'),
 
     'locale' => env('APP_LOCALE', 'pt_BR'),
