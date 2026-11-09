@@ -19,7 +19,13 @@ class DemoSeeder extends Seeder
         );
         $labQuimica = Espaco::firstOrCreate(['nome' => 'Laboratório de Química'], ['tipo' => TipoEspacoConstant::LABORATORIO]);
         $labBiologia = Espaco::firstOrCreate(['nome' => 'Laboratório de Biologia'], ['tipo' => TipoEspacoConstant::LABORATORIO]);
-        Espaco::firstOrCreate(['nome' => 'Laboratório de Informática'], ['tipo' => TipoEspacoConstant::LABORATORIO]);
+        Espaco::firstOrCreate(['nome' => 'Laboratório de Informática'], [
+            'tipo'                   => TipoEspacoConstant::LABORATORIO,
+            'modo_horario'           => 'LIVRE',
+            'abre_as'                => '07:00',
+            'fecha_as'               => '22:00',
+            'duracao_maxima_minutos' => 120,
+        ]);
         Espaco::firstOrCreate(['nome' => 'Sala 101'], ['tipo' => TipoEspacoConstant::SALA]);
         Espaco::firstOrCreate(['nome' => 'Sala 102'], ['tipo' => TipoEspacoConstant::SALA]);
 
