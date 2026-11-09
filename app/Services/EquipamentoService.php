@@ -24,6 +24,19 @@ class EquipamentoService
             ->get();
     }
 
+    public function disponibilidadeNoIntervalo(Espaco $espaco, string $data, string $inicio, string $fim): array
+    {
+        $equipamentos = $this->listarAtivos($espaco);
+        $disponiveis = $this->disponibilidade->disponiveis($equipamentos, $data, $inicio, $fim);
+
+        return $equipamentos->map(fn (Equipamento $equipamento) => [
+            'id'         => $equipamento->id,
+            'nome'       => $equipamento->nome,
+            'total'      => $equipamento->quantidade_total,
+            'disponivel' => $disponiveis[$equipamento->id],
+        ])->values()->all();
+    }
+
     public function listarPaginado(
         int $porPagina = 15,
         ?int $espacoId = null,

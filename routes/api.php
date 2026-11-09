@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/cursos', [CursoController::class, 'ativos']);
 Route::get('/espacos', [EspacoController::class, 'ativos']);
 Route::get('/espacos/{espaco}/equipamentos', [EquipamentoController::class, 'ativos']);
+Route::get('/espacos/{espaco}/equipamentos/disponibilidade', [EquipamentoController::class, 'disponibilidade'])->middleware('throttle:60,1');
 Route::get('/espacos/{espaco}/disponibilidade', [EspacoController::class, 'disponibilidade'])->middleware('throttle:60,1');
 
 Route::post('/alunos', [AlunoController::class, 'store'])->middleware('throttle:10,1');

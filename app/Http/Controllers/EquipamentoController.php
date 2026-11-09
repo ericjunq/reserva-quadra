@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ConsultarEquipamentosNoIntervaloRequest;
 use App\Http\Requests\StoreEquipamentoRequest;
 use App\Http\Requests\UpdateEquipamentoRequest;
 use App\Http\Resources\EquipamentoResource;
@@ -34,6 +35,17 @@ class EquipamentoController extends Controller
         abort_unless($espaco->ativo, 404);
 
         return EquipamentoResource::collection($this->equipamentoService->listarAtivos($espaco));
+    }
+
+    public function disponibilidade(ConsultarEquipamentosNoIntervaloRequest $request, Espaco $espaco)
+    {
+        abort_unless($espaco->ativo, 404);
+
+        [$inicio, $fim] = $request->intervalo();
+
+        return response()->json([
+            'data' => $this->equipamentoService->disponibilidadeNoIntervalo($espaco, $request->input('data'), $inicio, $fim),
+        ]);
     }
 
     public function store(StoreEquipamentoRequest $request)
