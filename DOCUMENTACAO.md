@@ -1,5 +1,7 @@
 # Sistema de Reservas de Espaços — Documentação de Desenvolvimento
 
+[![CI](https://github.com/ericjunq/reserva-quadra/actions/workflows/ci.yml/badge.svg)](https://github.com/ericjunq/reserva-quadra/actions/workflows/ci.yml)
+
 API (backend) em Laravel para reservar os espaços da faculdade (quadra, laboratórios e salas) e os equipamentos desses espaços.
 
 > Este documento descreve **o que o sistema faz, como rodar, as decisões tomadas e o que vem pela frente**.
@@ -479,7 +481,7 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 - Não há SQL específico de um banco; as consultas escritas à mão usam só `SUM`, `COUNT` e `GROUP BY`.
 - O SQLite ignora `lockForUpdate` (ele trava o banco inteiro na escrita). No MySQL e no Postgres, as travas por linha passam a valer de fato.
 
-**Pendente:** os testes rodam em SQLite em memória. Ao escolher o banco de produção, rodar `php artisan test` também nele (localmente ou em CI). No SQLite, `LOWER` só converte letras sem acento, então "Ética" e "ética" passam como nomes diferentes; no MySQL e no Postgres, não.
+Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQL 8.0** e **Postgres 16** (ver seção 8). No SQLite, `LOWER` só converte letras sem acento, então "Ética" e "ética" passam como nomes diferentes; no MySQL e no Postgres, não.
 
 ---
 
@@ -510,6 +512,8 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 | Auditoria com colunas **e** tabela de histórico | As colunas mostram o último a alterar; o histórico mostra o que mudou em cada alteração (antes/depois) |
 | Auditoria por trait nos eventos do Eloquent | Nenhum service precisa lembrar de preencher; vale para qualquer alteração feita pelo model |
 | `reservas.user_id` renomeado para `criado_por` | Mesmo nome de coluna em todas as tabelas auditadas |
+| CI no GitHub Actions com SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` | Primeira verificação real nos bancos de produção possíveis; roda em push e pull request para a `main`; só PHP 8.3 (a do projeto) |
+| Sem obrigar branches/pull requests (por enquanto) | Só o usuário mexe no projeto; o CI avisa a cada push. Proteção de branch quando houver mais pessoas |
 | Código compatível com SQLite, MySQL e Postgres | O banco de produção ainda não foi escolhido; buscas e nomes únicos se comportam igual nos três |
 | Proteção contra fórmulas no CSV | Nome ou descrição começando com `=` poderia virar fórmula no Excel (*CSV injection*) |
 | Cursos em **tabela**, não enum | Permitir reaproveitar o sistema em outras instituições da rede |
@@ -580,6 +584,20 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 php artisan test
 ```
 
+### CI (GitHub Actions)
+
+Arquivo: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Roda a cada **push na `main`** e em **pull requests para a `main`** (repositório público: sem limite de minutos).
+
+| Job | O que faz |
+|---|---|
+| `Pint e composer audit` | `vendor/bin/pint --test` (acusa código fora do padrão, sem alterar) e `composer audit` (dependência com vulnerabilidade conhecida) |
+| `Testes (sqlite)` · `Testes (mysql)` · `Testes (pgsql)` | `php artisan test` em cada banco, em paralelo. MySQL 8.0 e Postgres 16 sobem como serviços temporários do GitHub |
+
+- PHP 8.3, com cache do Composer. O `phpunit.xml` continua com SQLite por padrão; no CI, as variáveis de ambiente de cada banco têm prioridade.
+- **Como ler um erro:** na aba *Actions* do repositório, abrir a execução com ❌, entrar no job que falhou e expandir o passo vermelho. Um job falhar não cancela os outros (`fail-fast: false`), então dá para ver se o problema é de um banco só.
+- Um push novo na mesma branch cancela a execução anterior que ainda estiver rodando.
+- **Hoje se trabalha direto na `main`:** o CI avisa (❌), mas não impede o push. Para **bloquear** código que quebra os testes, usar uma branch por funcionalidade + pull request e ativar no GitHub *Settings → Branches → Branch protection rules* → "Require status checks to pass" (marcar os 4 jobs). Recomendado quando mais pessoas mexerem no projeto.
+
 Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories de `database/factories`. A data dos testes é fixada em **segunda-feira, 09/11/2026, 10:00** (`tests/TestCase.php`), para não dependerem do dia em que rodam. O limite de requisições por minuto fica desligado nos testes.
 
 | Arquivo | O que cobre |
@@ -630,6 +648,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
 | Horários livres (passo 8) | Modo FIXO/LIVRE por espaço, reserva e evento com início/fim em blocos de 30 min, equipamentos pelo pico de uso, calendário em blocos, consulta de equipamentos por intervalo |
 | Consulta do histórico (passo 7) | `GET /api/admin/auditorias` com filtros, morph map com nomes curtos |
 | Admin principal | Flag `principal`, proteções contra desativação e edição por outros, comandos `admin:criar-principal` e `admin:transferir-principal` |
@@ -653,9 +672,8 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **CI:** testes em MySQL e Postgres no GitHub Actions.
-2. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
-3. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
+2. **Front-end em Angular** (projeto separado; não será com Blade).
 
 ### Emails do sistema
 

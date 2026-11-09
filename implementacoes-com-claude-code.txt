@@ -1310,3 +1310,28 @@ disponibilidade + rota GET /api/espacos/{espaco}/equipamentos/disponibilidade (t
 database/seeders/DemoSeeder.php: Laboratório de Informática LIVRE (07:00–22:00, 120 min).
 
 tests/Feature/HorarioLivreTest.php (novo) — 15 testes (226 no total).
+
+========================================================================
+34. PASSO 9 — CI NO GITHUB ACTIONS
+========================================================================
+
+Decisões do usuário (09/11/2026): roda em push e PR na main; MySQL 8.0 e Postgres 16; só PHP
+8.3; sem branch protection por enquanto (ele trabalha só na main). Repositório público: Actions
+sem limite de minutos.
+
+.github/workflows/ci.yml (novo)
+  - concurrency por ref com cancel-in-progress: push novo cancela a execução anterior.
+  - Job "qualidade": checkout, setup-php 8.3 (sem coverage), cache de vendor pela hash do
+    composer.lock, composer install, pint --test, composer audit.
+  - Job "testes": matriz banco = sqlite | mysql | pgsql, fail-fast false (um banco falhar não
+    esconde o resultado dos outros). Serviços mysql:8.0 e postgres:16 com health check (sobem
+    nos três jobs; é mais simples do que serviços condicionais e o custo é pequeno).
+    Extensões pdo_sqlite, pdo_mysql, pdo_pgsql. .env copiado do .env.example + key:generate
+    (o CI não tem .env). Variáveis DB_* por banco no passo de testes: como o phpunit.xml usa
+    <env> sem force, a variável do ambiente tem prioridade sobre o sqlite :memory: de lá.
+  - Simulado localmente o job sqlite com as mesmas variáveis: 226 testes passando; pint e
+    composer audit ok. MySQL e Postgres só serão verificados na primeira execução no GitHub.
+
+DOCUMENTACAO.md: badge do CI no topo, seção "CI (GitHub Actions)" (jobs, como ler um erro,
+branches/PR e branch protection), decisões, histórico, roadmap.
+CHECKLIST.md: passo 9 concluído aguardando a primeira execução; próximo é o passo 10.
