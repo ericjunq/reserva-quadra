@@ -13,7 +13,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 ## 📍 Onde paramos
 
 - **Último passo concluído:** passo 4, agendador de tarefas (feriados do ano seguinte, limpeza de links de email e de jobs falhos, documentação de cron e supervisor), em 09/11/2026.
-- **Próximo passo:** passo 5, item 10 (admins: `UserResource` no `/me` e no login, cadastro de admins por convite, desativação). **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação. O convite reaproveita a redefinição de senha do passo 6; avaliar na proposta se os dois passos devem ser feitos juntos.
+- **Próximo passo:** passos 5 e 6 juntos (gestão de admins e senhas). **Proposta aprovada em 09/11/2026** com ajustes do usuário: convite vale **2 dias** (redefinição 60 min); ter **as duas opções**, trocar a senha logado (`PATCH /api/me/senha`) e "esqueci minha senha"; link só com o token (email digitado no form); email "senha alterada"; senha mínima de 8 com letras e números; sem perfis de permissão. **Pendente:** o usuário pediu email com diferenciação de maiúsculas "para mais segurança"; foi explicado o risco (contas duplicadas como `Ana@` e `ana@`) e aguarda a confirmação de como fica, antes de implementar.
 - **O usuário precisa:** dar push. Não há migration nova.
 - **Conceitos já explicados ao usuário:** fila e jobs (seção "Fila e jobs" do DOCUMENTACAO).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
