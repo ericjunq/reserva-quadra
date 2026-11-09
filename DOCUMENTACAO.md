@@ -676,6 +676,11 @@ Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e re
 1. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
 2. **Front-end em Angular** (projeto separado; não será com Blade).
 
+### Ideias registradas para depois
+
+- **Monitor externo da API:** um serviço gratuito (UptimeRobot ou Healthchecks.io) consulta `GET /up` a cada poucos minutos e avisa por outro canal (app, SMS, Telegram) quando a API não responde. Cobre o caso em que o próprio serviço de email cai e os alertas por email não saem. É configurado fora do código, na hora do deploy.
+- **Backup do banco:** definido na hora do deploy, conforme a plataforma. Regra 3-2-1; banco gerenciado com backup automático **ou** `spatie/laravel-backup` com armazenamento externo (Backblaze B2, Cloudflare R2, S3); retenção de 7 diários, 4 semanais e 6 mensais; teste mensal de restauração; `.env` guardado à parte num gerenciador de senhas. LGPD: backup criptografado, acesso restrito, e refazer as anonimizações depois de uma restauração.
+
 ### Emails do sistema
 
 | Email | Para quem | Quando | Situação |

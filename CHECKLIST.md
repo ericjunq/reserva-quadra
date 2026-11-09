@@ -35,7 +35,8 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **CI:** GitHub Actions com os 3 bancos. Primeira execução verde, sem ajustes. O usuário trabalha só na `main` (sem branch protection por enquanto).
 - **Prioridades reforçadas pelo usuário (09/11):** **desempenho sempre priorizado** e **LGPD no sistema inteiro**, não só em partes; a trilha de ideias é atualizada a cada ideia, implementação, alteração ou decisão.
 - **Alertas e backup explicados (09/11):** alertas sem dados pessoais, fora da fila, com limite de repetição, mais monitor externo do `/up`. Backup 3-2-1, com retenção e teste de restauração; LGPD no backup (criptografia; refazer anonimizações após restaurar). Recomendação: banco gerenciado, senão `spatie/laravel-backup` com armazenamento externo. Pergunta em aberto: incluir o spatie já no passo 10 ou esperar a hospedagem.
-- **Agora:** passo 10 (preparação para produção) com proposta **reenviada** (com seções de desempenho e LGPD), aguardando aprovação, as respostas das decisões 1 a 5 e se o `spatie/laravel-backup` entra já.
+- **Respostas do usuário (09/11):** alertas para os admins ativos e para ele (`ALERTAS_EMAIL`); monitor externo depois (documentado); backup na hora do deploy; plataforma ainda não escolhida. **Recomendação de plataforma dada:** primeiro perguntar à TI da faculdade se há exigência de servidor próprio ou de dados no Brasil. Se não houver e o orçamento em dólar for ok: **Laravel Cloud** (menos manutenção: fila, agendador e banco gerenciado com backup). Se precisar de dados no Brasil ou de custo menor: **VPS na região de São Paulo** (com o guia do DEPLOY.md, ou com o Laravel Forge para automatizar). Front Angular em hospedagem estática (Cloudflare Pages, Netlify ou Vercel).
+- **Agora:** passo 10 aguardando a confirmação para implementar (decisões 1 e 3 como recomendado, 2 ajustada, backup e monitor fora).
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -194,10 +195,11 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - **`DEPLOY.md`:** requisitos, `.env.production.example`, passos de implantação, primeira vez (principal, feriados, verificação), Nginx com HTTPS, cron, supervisor, backup do banco por cron com cópia externa e checklist de LGPD.
 - **Decisões em aberto, com recomendação:**
   1. traduções pt_BR geradas com o laravel-lang (só dev), com os arquivos no projeto e sem comentários: sim;
-  2. alertas para um email configurável, e não para todos os admins: sim;
+  2. alertas: **decisão do usuário (09/11): para todos os admins ativos** (são eles que cuidam da gerência) **e também para `ALERTAS_EMAIL`** (o email dele ou da TI), sem dados pessoais;
   3. seeder de admin só em dev, principal por comando: sim;
-  4. backup documentado com dump por cron agora, pacote só quando a hospedagem for escolhida: sim;
-  5. onde vai hospedar? Se não souber, o guia é para VPS Linux com Nginx.
+  4. backup: **decisão do usuário (09/11): fica para a hora do deploy**, quando a plataforma for escolhida (as opções explicadas estão em "Conceitos já explicados"). O `DEPLOY.md` traz a seção de backup como pendente, com as opções;
+  5. onde vai hospedar? **O usuário ainda vai decidir** e pediu recomendação (dada em 09/11, ver Trilha de ideias). Até lá, o guia é genérico, com o caminho de VPS Linux com Nginx;
+  6. **monitor externo do `/up`** (UptimeRobot ou Healthchecks.io): **fica para depois**, por decisão do usuário. A ideia está documentada nos opcionais e no DOCUMENTACAO.
 - **Desempenho (reenviado em 09/11 com as prioridades permanentes):** `config/route/view/event:cache`, `--optimize-autoloader`, OPcache, fila com worker e logs em `warning`; o verificador confere os caches. Redis para cache e sessões fica documentado como evolução.
 - **LGPD:** HTTPS e HSTS, CORS restrito, `APP_DEBUG` desligado, **alertas sem dados pessoais** (só a tarefa, a data e o tipo do erro), logs por 14 dias e sem dados pessoais, backups criptografados com acesso restrito e prazo de guarda, sem dados de teste em produção.
 - **Antes:** CORS, fila, cron e supervisor já estavam previstos aqui; cron e supervisor já estão documentados no DOCUMENTACAO (passo 4).
@@ -216,6 +218,8 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - [ ] **Exportação muito grande:** trocar o `lazy()` (OFFSET) por paginação por chave quando o volume passar de dezenas de milhares de linhas
 - [ ] **Perfis de permissão** para admins (ver passo 5)
 - [ ] **Horários fixos diferentes por espaço** (hoje 19:00 e 20:30 valem para todos)
+- [ ] **Monitor externo da API** (UptimeRobot ou Healthchecks.io consultando `/up`): avisa por outro canal (app, SMS, Telegram) quando a API cai ou quando o próprio email está fora do ar, caso em que os alertas por email não saem. Gratuito; configura-se fora do código, na hora do deploy
+- [ ] **Backup do banco**: decidir na hora do deploy, conforme a plataforma (banco gerenciado com backup automático, ou `spatie/laravel-backup` com armazenamento externo)
 - [ ] **Exportar o histórico de auditoria** em CSV (reaproveitar o exportador de reservas)
 - [ ] **Retenção do histórico de auditoria** (ex.: apagar depois de N anos), se o volume pedir
 
