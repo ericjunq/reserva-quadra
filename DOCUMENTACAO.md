@@ -265,6 +265,7 @@ POST /api/reservas
 | POST | `/api/logout` · `/api/logout-geral` | Encerra o token atual ou todos os tokens |
 | GET | `/api/me` | Admin logado (`UserResource`) |
 | PATCH | `/api/me/senha` | Troca a própria senha (`senha_atual`, `password`, `password_confirmation`) |
+| GET | `/api/admin/auditorias` | Histórico de alterações (filtros abaixo) |
 | GET | `/api/admin/admins` | Lista de admins (`?busca=` nome/email, `?ativo=`) |
 | POST | `/api/admin/admins` | Convida um admin (`nome`, `email`); ele recebe o link para definir a senha |
 | GET | `/api/admin/admins/{id}` | Detalhe do admin |
@@ -372,6 +373,14 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 - Toda criação, alteração e exclusão grava uma linha em `auditorias` com os valores **antes** e **depois** (só os campos que mudaram), quem fez e quando. Alteração sem mudança real não gera linha.
 - O preenchimento é automático, pelo trait `App\Models\Concerns\Auditavel`, nos eventos do Eloquent. Por isso as alterações precisam passar pelo model (`$model->update()`); um `update` em massa direto no query builder não é auditado.
 - Nas rotas do admin, as respostas trazem `criado_por` e `atualizado_por` (id e nome), `criado_em` e `atualizado_em`. As rotas públicas não mostram esses campos.
+- Admins (`users`) e itens de reserva (`item_reservas`) também são auditados.
+- No banco, `auditavel_type` guarda um **nome curto** (`reserva`, `aluno`, `espaco`, `equipamento`, `curso`, `data_bloqueada`, `item_reserva`, `admin`), não o nome da classe PHP (morph map no `AppServiceProvider`).
+
+**Consulta do histórico:** `GET /api/admin/auditorias`, paginada, da mais recente para a mais antiga.
+
+- Filtros: `tipo` (`RESERVA`, `ALUNO`, `ESPACO`, `EQUIPAMENTO`, `CURSO`, `DATA_BLOQUEADA`, `ITEM_RESERVA`, `ADMIN`), `registro_id` (exige `tipo`; ex.: `?tipo=RESERVA&registro_id=15` é o histórico da reserva 15), `admin_id` (o que um admin fez), `sem_admin=true` (feito pela rota pública ou pelo sistema; não combina com `admin_id`), `acao` (`CRIACAO`, `ATUALIZACAO`, `EXCLUSAO`), `periodo` ou `de`/`ate`.
+- Cada item: `tipo`, `registro_id`, `acao`, `campos_alterados`, `antes`, `depois`, `feito_por` (`{id, nome}` ou `null`) e `em`.
+- Senhas aparecem como `[oculto]`; dados de aluno anonimizado, como `[anonimizado]`.
 
 ### Cancelamento pelo aluno (link do email)
 
@@ -517,6 +526,10 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 | **Admin principal** que não pode ser desativado | Pedido do usuário: conta garantida para testes e manutenção. A única diferença de poder é não poder ser desativado |
 | Outros admins não editam o principal | Se pudessem trocar o email dele, bastaria usar "esqueci a senha" para tomar a conta |
 | Principal só criado/transferido por comando no servidor | Quem tem acesso ao servidor já responde pelo sistema; a API não promove ninguém |
+| Histórico em **uma rota só, com filtros** | O histórico de qualquer registro sai com `?tipo=&registro_id=`, sem uma rota por entidade |
+| **Morph map** (nomes curtos em `auditavel_type`) | O histórico não quebra se uma classe for renomeada ou movida |
+| Histórico guardado **sem prazo** (por enquanto) | Rastreabilidade foi o motivo da auditoria; retenção entra na preparação de produção se o volume pedir |
+| Sem exportação do histórico (por enquanto) | Opcional; dá para reaproveitar o exportador de reservas |
 | Fila no banco (`QUEUE_CONNECTION=database`) para os emails | A requisição não espera o envio, e uma falha no servidor de email não derruba a reserva |
 | Jobs que falharam apagados após **7 dias** | Guardam dados pessoais (LGPD); 7 dias dão tempo de investigar |
 | Links de email usados/vencidos apagados após **30 dias** | Não guardar o que não serve mais; 30 dias ajudam a responder "cliquei e não funcionou" |
@@ -549,6 +562,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
+| `AuditoriaConsultaTest` | Histórico de um registro em ordem, nome curto no banco, filtros por admin e sem admin, por ação e período, senha oculta e aluno anonimizado, validações, paginação |
 | `AdminPrincipalTest` | Principal não desativado nem editado por outros, edita a si mesmo, desativa os outros, flag não muda pela API, seeder, comandos de criação (senha fraca, duplicado) e de transferência |
 | `SenhaTest` | Esqueci a senha (link só com token, 60 min), resposta igual para inexistente/inativo, redefinição derrubando sessões com email de aviso, uso único e vencimento, token/email errados, regras da senha, aceite de convite em até 2 dias, link de redefinição não serve no convite, troca logado mantendo a sessão atual |
 | `AgendadorTest` | Horários e `withoutOverlapping` de todas as tarefas, feriados do ano seguinte sem facultativos, retenção de 7 dias dos jobs falhos, limpeza só dos tokens antigos |
@@ -591,6 +605,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Consulta do histórico (passo 7) | `GET /api/admin/auditorias` com filtros, morph map com nomes curtos |
 | Admin principal | Flag `principal`, proteções contra desativação e edição por outros, comandos `admin:criar-principal` e `admin:transferir-principal` |
 | Admins e senhas (itens 5 e 6) | `UserResource`, gestão de admins com convite, desativação, esqueci/redefinir/aceitar/trocar senha, email "senha alterada", email em minúsculas |
 | Agendador | Feriados do ano seguinte, limpeza de tokens e de jobs falhos, horários escalonados, documentação de cron e supervisor, explicação de fila e jobs |
@@ -612,11 +627,10 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Consulta do histórico de auditoria** pelo admin.
-2. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
-3. **CI:** testes em MySQL e Postgres no GitHub Actions.
-4. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
-5. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **Horários livres:** modo FIXO/LIVRE por espaço e equipamentos pelo pico de uso.
+2. **CI:** testes em MySQL e Postgres no GitHub Actions.
+3. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
+4. **Front-end em Angular** (projeto separado; não será com Blade).
 
 ### Emails do sistema
 

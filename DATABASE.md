@@ -132,7 +132,7 @@ erDiagram
 
     auditorias {
         bigint id PK
-        string auditavel_type "model alterado"
+        string auditavel_type "nome curto: reserva, aluno..."
         bigint auditavel_id "registro alterado"
         string acao "CRIACAO, ATUALIZACAO, EXCLUSAO"
         json antes
@@ -256,6 +256,9 @@ Os dois usam o Password Broker do Laravel (token com hash, um por email). Com a 
 
 **29. Senha nunca entra no histórico.**
 `users` usa o trait de auditoria como as outras tabelas, mas `password` e `remember_token` aparecem só como `[oculto]` (o trait aceita uma lista de campos sensíveis por model).
+
+**31. `auditavel_type` guarda nomes curtos (morph map).**
+Em vez de `App\Models\Reserva`, a coluna guarda `reserva` (e `aluno`, `espaco`, `equipamento`, `curso`, `data_bloqueada`, `item_reserva`, `admin`). O mapa fica em `TipoAuditavelConstant` e é registrado com `enforceMorphMap` no `AppServiceProvider`: renomear ou mover uma classe não quebra o histórico, e um model polimórfico fora do mapa dá erro em vez de gravar um nome inesperado. Vale também para `personal_access_tokens.tokenable_type` (admins aparecem como `admin`).
 
 **30. Admin principal é uma flag em `users`.**
 Uma coluna booleana basta para marcar a conta de manutenção. A garantia de existir só um fica nos comandos (`admin:criar-principal` recusa se já houver um; `admin:transferir-principal` desmarca o atual e marca o novo na mesma transação), porque um índice único parcial (`WHERE principal = true`) não funciona igual nos três bancos.

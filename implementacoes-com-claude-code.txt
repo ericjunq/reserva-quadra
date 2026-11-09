@@ -1206,3 +1206,41 @@ database/seeders/AdminSeeder.php: admin@email.com vira principal se ainda não h
 database/factories/UserFactory.php: estado principal().
 
 tests/Feature/AdminPrincipalTest.php (novo) — 10 testes (203 no total).
+
+========================================================================
+32. PASSO 7 — CONSULTA DO HISTÓRICO DE ALTERAÇÕES
+========================================================================
+
+Decisões do usuário (09/11/2026): uma rota só com filtros; morph map com nomes curtos; histórico
+sem prazo por enquanto; sem exportação do histórico por enquanto (opcional no CHECKLIST).
+
+app/Constants/TipoAuditavelConstant.php (novo)
+  - ADMIN, ALUNO, CURSO, DATA_BLOQUEADA, EQUIPAMENTO, ESPACO, ITEM_RESERVA, RESERVA.
+    apelido() = minúsculas (valor gravado no banco), model(), mapaMorph(), doApelido().
+
+app/Providers/AppServiceProvider.php
+  - Relation::enforceMorphMap(TipoAuditavelConstant::mapaMorph()). Afeta auditorias e também
+    personal_access_tokens (tokenable_type = "admin"). enforce: model polimórfico fora do mapa
+    lança erro em vez de gravar o nome da classe.
+
+app/Http/Requests/ListarAuditoriasRequest.php (novo)
+  - tipo (required_with registro_id), registro_id, admin_id (exists; prohibits sem_admin),
+    sem_admin, acao, periodo (prohibits de/ate), de/ate. filtros() converte tipo em enum e
+    periodo em de/ate. Sem período padrão.
+
+app/Services/AuditoriaService.php (novo)
+  - listarPaginado: eager loading de usuario (id, name); filtros com where simples (usam os
+    índices morphs, user_id e created_at); de/ate comparados como "Y-m-d 00:00:00"/"23:59:59"
+    (funciona nos três bancos); ordem created_at desc, id desc.
+
+app/Http/Resources/AuditoriaResource.php (novo)
+  - tipo (apelido -> enum), registro_id, acao, campos_alterados (chaves do depois, ou do antes
+    na exclusão), antes, depois, feito_por {id, nome} | null, em.
+
+app/Http/Controllers/AuditoriaController.php (novo) + routes/api.php: GET /api/admin/auditorias.
+
+tests
+  - AuditoriaConsultaTest.php (novo) — 8 testes. Testes antigos que procuravam o histórico por
+    "auditavel_type = Classe::class" passaram a usar a relação $model->auditorias().
+  - Observação: User agora é auditado, então criar admins pela factory também gera histórico;
+    os testes da consulta filtram por tipo quando precisam isolar. 211 testes no total.
