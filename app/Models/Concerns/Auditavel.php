@@ -44,6 +44,11 @@ trait Auditavel
         ));
     }
 
+    protected function camposSensiveisDaAuditoria(): array
+    {
+        return [];
+    }
+
     public function criador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'criado_por');
@@ -83,6 +88,12 @@ trait Auditavel
         }
 
         $valores = array_diff_key($valores, array_flip(self::CAMPOS_IGNORADOS));
+
+        foreach ($this->camposSensiveisDaAuditoria() as $campo) {
+            if (array_key_exists($campo, $valores)) {
+                $valores[$campo] = '[oculto]';
+            }
+        }
 
         foreach ($valores as $campo => $valor) {
             if ($valor !== null && $this->hasCast($campo, ['bool', 'boolean'])) {

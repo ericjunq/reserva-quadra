@@ -18,7 +18,19 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password'          => static::$password ??= Hash::make('password'),
             'remember_token'    => Str::random(10),
+            'ativo'             => true,
+            'convite_aceito_em' => now(),
         ];
+    }
+
+    public function inativo(): static
+    {
+        return $this->state(['ativo' => false]);
+    }
+
+    public function convitePendente(): static
+    {
+        return $this->state(['convite_aceito_em' => null]);
     }
 
     public function unverified(): static

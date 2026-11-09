@@ -12,8 +12,9 @@ class AdminSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'admin@email.com'],
             [
-                'name'     => 'Eric',
-                'password' => 'Admin',
+                'name'              => 'Eric',
+                'password'          => 'Admin',
+                'convite_aceito_em' => now(),
             ]
         );
     }

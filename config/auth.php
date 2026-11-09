@@ -6,7 +6,7 @@ return [
 
     'defaults' => [
         'guard'     => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
+        'passwords' => env('AUTH_PASSWORD_BROKER', 'admins'),
     ],
 
     'guards' => [
@@ -25,11 +25,17 @@ return [
     ],
 
     'passwords' => [
-        'users' => [
+        'admins' => [
             'provider' => 'users',
             'table'    => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire'   => 60,
+            'expire'   => (int) env('AUTH_REDEFINICAO_EXPIRA_MINUTOS', 60),
             'throttle' => 60,
+        ],
+        'convites' => [
+            'provider' => 'users',
+            'table'    => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire'   => (int) env('AUTH_CONVITE_EXPIRA_MINUTOS', 2880),
+            'throttle' => 0,
         ],
     ],
 

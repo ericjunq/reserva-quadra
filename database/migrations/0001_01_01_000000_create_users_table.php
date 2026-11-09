@@ -15,6 +15,10 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
+            $table->boolean('ativo')->default(true);
+            $table->timestamp('convite_aceito_em')->nullable();
+            $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
 
