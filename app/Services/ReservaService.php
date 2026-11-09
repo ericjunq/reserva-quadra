@@ -27,6 +27,7 @@ class ReservaService
         private DisponibilidadeEquipamentoRepository $disponibilidade,
         private ReservaRepository $reservas,
         private TokenReservaService $tokens,
+        private ConfirmacaoService $confirmacao,
     ) {}
 
     public const RELACOES_ADMIN = ['aluno.curso', 'espaco', 'equipamentos', 'criador', 'atualizador', 'revogador'];
@@ -66,7 +67,7 @@ class ReservaService
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
-            $this->enviarConfirmacaoDeCriacao($reserva, $aluno);
+            $this->notificarCriacao($reserva, $aluno);
 
             return $reserva->load('equipamentos');
         });
@@ -140,14 +141,53 @@ class ReservaService
         });
     }
 
-    private function enviarConfirmacaoDeCriacao(Reserva $reserva, Aluno $aluno): void
+    public const JUSTIFICATIVA_NAO_CONFIRMADA = 'Reserva não confirmada no prazo.';
+
+    public function revogarNaoConfirmadas(): int
+    {
+        $reservas = Reserva::query()
+            ->where('tipo', TipoReservaConstant::ALUNO)
+            ->where('data_reserva', today()->toDateString())
+            ->whereNotNull('confirmacao_enviada_em')
+            ->whereNull('confirmada_em')
+            ->ativasFuturas()
+            ->get();
+
+        foreach ($reservas as $reserva) {
+            $this->revogar($reserva, null, self::JUSTIFICATIVA_NAO_CONFIRMADA);
+        }
+
+        return $reservas->count();
+    }
+
+    private function notificarCriacao(Reserva $reserva, Aluno $aluno): void
+    {
+        if ($reserva->data_reserva->isToday()) {
+            $reserva->update(['confirmada_em' => now()]);
+            $this->enviarReservaRegistrada($reserva, $aluno, null);
+
+            return;
+        }
+
+        if ($this->confirmacao->dentroDaJanela($reserva)) {
+            $this->confirmacao->enviarPedido($reserva, $aluno, recemCriada: true);
+
+            return;
+        }
+
+        $this->enviarReservaRegistrada($reserva, $aluno, $this->confirmacao->dataDoPedido($reserva));
+    }
+
+    private function enviarReservaRegistrada(Reserva $reserva, Aluno $aluno, ?Carbon $pedidoConfirmacaoEm): void
     {
         $token = $this->tokens->gerar($reserva, FinalidadeTokenConstant::CANCELAR, $reserva->inicio());
-        $link = rtrim(config('app.frontend_url'), '/').'/reservas/cancelar/'.$token;
 
-        Mail::to($aluno->email)->queue(
-            (new ReservaCriadaMail($reserva->load('espaco', 'equipamentos'), $aluno->nome_completo, $link))->afterCommit()
-        );
+        Mail::to($aluno->email)->queue((new ReservaCriadaMail(
+            $reserva->load('espaco', 'equipamentos'),
+            $aluno->nome_completo,
+            $this->tokens->link(FinalidadeTokenConstant::CANCELAR, $token),
+            $pedidoConfirmacaoEm,
+        ))->afterCommit());
     }
 
     private function resolverIntervalo(array $data): array

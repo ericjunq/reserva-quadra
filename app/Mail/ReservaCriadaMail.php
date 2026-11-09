@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Reserva;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -14,11 +15,16 @@ class ReservaCriadaMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Reserva $reserva, public string $nome, public string $linkCancelamento) {}
+    public function __construct(
+        public Reserva $reserva,
+        public string $nome,
+        public string $linkCancelamento,
+        public ?Carbon $pedidoConfirmacaoEm = null,
+    ) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Reserva confirmada');
+        return new Envelope(subject: 'Reserva registrada');
     }
 
     public function content(): Content

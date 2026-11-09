@@ -1,5 +1,5 @@
 <x-mail::message>
-# Reserva confirmada
+# Reserva registrada
 
 Olá, {{ $nome }}.
 
@@ -11,6 +11,10 @@ Sua reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_r
 @foreach ($reserva->equipamentos as $equipamento)
 - {{ $equipamento->nome }} x{{ $equipamento->pivot->quantidade }}
 @endforeach
+@endif
+
+@if ($pedidoConfirmacaoEm)
+Em **{{ $pedidoConfirmacaoEm->format('d/m/Y') }}** você receberá um email pedindo a confirmação. Sem a confirmação no prazo, a reserva é revogada.
 @endif
 
 Se não puder comparecer, cancele para liberar o horário. O link vale até o início da reserva.

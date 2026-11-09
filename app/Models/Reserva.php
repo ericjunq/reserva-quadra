@@ -34,6 +34,8 @@ class Reserva extends Model
         'revogada_em',
         'revogada_por',
         'cancelada_em',
+        'confirmacao_enviada_em',
+        'confirmada_em',
     ];
 
     protected $attributes = [
@@ -44,12 +46,14 @@ class Reserva extends Model
     protected function casts(): array
     {
         return [
-            'data_reserva' => 'date',
-            'horario'      => HorarioReservaConstant::class,
-            'status'       => StatusConstant::class,
-            'tipo'         => TipoReservaConstant::class,
-            'revogada_em'  => 'datetime',
-            'cancelada_em' => 'datetime',
+            'data_reserva'           => 'date',
+            'horario'                => HorarioReservaConstant::class,
+            'status'                 => StatusConstant::class,
+            'tipo'                   => TipoReservaConstant::class,
+            'revogada_em'            => 'datetime',
+            'cancelada_em'           => 'datetime',
+            'confirmacao_enviada_em' => 'datetime',
+            'confirmada_em'          => 'datetime',
         ];
     }
 

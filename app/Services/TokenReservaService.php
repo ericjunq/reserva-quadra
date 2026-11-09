@@ -26,6 +26,16 @@ class TokenReservaService
         return $token;
     }
 
+    public function link(FinalidadeTokenConstant $finalidade, string $token): string
+    {
+        $caminho = match ($finalidade) {
+            FinalidadeTokenConstant::CANCELAR  => 'reservas/cancelar',
+            FinalidadeTokenConstant::CONFIRMAR => 'reservas/confirmar',
+        };
+
+        return rtrim(config('app.frontend_url'), '/')."/{$caminho}/{$token}";
+    }
+
     public function buscarValido(string $token, FinalidadeTokenConstant $finalidade, bool $travar = false): TokenReserva
     {
         $registro = TokenReserva::query()
