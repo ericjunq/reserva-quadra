@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualidade:
+    name: Pint e composer audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Cache do Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Padrão de código (Pint)
+        run: vendor/bin/pint --test
+
+      - name: Vulnerabilidades (composer audit)
+        run: composer audit
+
+  testes:
+    name: Testes (${{ matrix.banco }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        banco: [sqlite, mysql, pgsql]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, pdo_mysql, pdo_pgsql
+          coverage: none
+
+      - name: Cache do Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Preparar .env
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Rodar os testes
+        env:
+          DB_CONNECTION: ${{ matrix.banco }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ matrix.banco == 'mysql' && '3306' || '5432' }}
+          DB_DATABASE: ${{ matrix.banco == 'sqlite' && ':memory:' || 'testing' }}
+          DB_USERNAME: ${{ matrix.banco == 'mysql' && 'root' || 'postgres' }}
+          DB_PASSWORD: password
+        run: php artisan test
