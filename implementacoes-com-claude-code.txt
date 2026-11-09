@@ -1357,3 +1357,23 @@ CLAUDE.md
 CHECKLIST.md
   - "Como continuar" aponta para "Onde paramos" e para as regras de continuidade; "Conceitos já
     explicados" consolidado numa linha só.
+
+========================================================================
+36. PRIORIDADES PERMANENTES E TRILHA DE IDEIAS (documentação)
+========================================================================
+
+Pedido do usuário (09/11/2026): sempre priorizar desempenho; seguir a LGPD no sistema inteiro,
+não só em partes; deixar a trilha de ideias a cada nova ideia, implementação, alteração ou
+decisão, para outro chat seguir a mesma linha.
+
+CLAUDE.md
+  - Nova seção no topo "Prioridades permanentes": desempenho primeiro (custo de consultas,
+    índices, volume, tamanho da resposta), LGPD em tudo (finalidade, mínima exposição,
+    segurança, retenção, direitos do titular, transparência; citar a LGPD em toda proposta) e
+    trilha de ideias.
+  - Desempenho e LGPD ganharam itens que já eram prática (cálculo em PHP sobre consulta única,
+    respostas enxutas, admins também são titulares, respostas genéricas, retenções).
+  - "Continuidade entre conversas" cita a Trilha de ideias.
+CHECKLIST.md
+  - Nova seção "🧵 Trilha de ideias", com o histórico resumido do raciocínio desde o início e a
+    linha "Agora:".

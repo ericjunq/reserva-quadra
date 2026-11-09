@@ -2,6 +2,20 @@
 
 Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLIST.md), que tem o estado do sistema, as decisões já tomadas e o plano até a finalização. As regras abaixo foram pedidas pelo usuário e valem para **todas** as conversas.
 
+## Prioridades permanentes (valem para toda decisão, em qualquer parte do sistema)
+
+1. **Desempenho sempre priorizado.** Toda proposta, consulta, endpoint, comando ou mudança de modelo é pensada primeiro pelo custo: quantas consultas ao banco, se usa índice, quanto cresce com o volume, quanto pesa a resposta. Quando houver troca entre simplicidade e desempenho, explicar a troca e recomendar.
+2. **LGPD em tudo, não só em pontos específicos.** Todo dado pessoal (de aluno ou de admin) segue os princípios da lei:
+   - **finalidade e necessidade:** coletar e guardar só o que tem uso claro;
+   - **mínima exposição:** cada rota mostra só o necessário para quem a chama;
+   - **segurança:** hash, tokens com validade, HTTPS, nada pessoal em URL ou log;
+   - **retenção:** apagar ou anonimizar o que perdeu a finalidade;
+   - **direitos do titular:** acesso, correção e anonimização;
+   - **transparência:** avisos por email quando algo muda.
+
+   Em toda proposta, dizer como a LGPD foi considerada, mesmo quando o assunto não parece envolver dados pessoais.
+3. **Trilha de ideias para outro chat.** A cada nova ideia, implementação, alteração ou decisão, registrar no `CHECKLIST.md`: na seção "📍 Onde paramos" e na **"🧵 Trilha de ideias"**, que guarda o histórico curto do raciocínio (o que foi pensado, decidido e por quê). Uma conversa nova precisa conseguir seguir a mesma linha de ideias só lendo os guias.
+
 ## Regras de desenvolvimento combinadas com o usuário
 
 ### Comunicação
@@ -26,6 +40,7 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
   - o usuário **aprovar, recusar ou ajustar** algo: registrar a decisão e o motivo;
   - **explicar um conceito** ao usuário: anotar em "Conceitos já explicados" e, se for útil, numa seção do DOCUMENTACAO;
   - concluir uma etapa: todos os guias (CHECKLIST, DOCUMENTACAO, DATABASE se mexer no banco, txt).
+- A seção **"🧵 Trilha de ideias"** do CHECKLIST ganha uma linha a cada nova ideia, decisão ou mudança de rumo, com o porquê. A última linha ("Agora:") é sempre atualizada.
 - A seção **"📍 Onde paramos"** do CHECKLIST sempre traz: o último passo concluído, o que está em andamento (proposta enviada? decisões pendentes?), o próximo passo, o que o usuário precisa fazer (push, `migrate:fresh` etc.) e os conceitos já explicados.
 - **Novas instruções de comportamento** do usuário (como trabalhar, responder, commitar, documentar) entram **neste `CLAUDE.md` na mesma hora**, em vez de ficar só na conversa.
 
@@ -58,18 +73,23 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - Índice explícito em toda chave estrangeira usada em filtro ou join, porque o Postgres não cria sozinho.
 - O SQLite ignora `lockForUpdate`, mas o código usa travas de linha mesmo assim, porque em produção elas valem.
 
-### Desempenho
+### Desempenho (ver "Prioridades permanentes")
 - Eager loading em toda listagem, sem N+1. Os testes podem conferir o número de consultas.
 - Consultas por conjunto (agrupar e somar no banco) em vez de uma consulta por item dentro de um loop.
 - Índices alinhados às consultas mais usadas.
 - Exportação em stream e em lotes.
+- Cálculos que dependem de banco: uma consulta agrupada e o resto em PHP, em vez de SQL específico de um banco (ex.: pico de uso).
+- Respostas enxutas: não devolver relações nem listas que o front não precisa (ex.: calendário LIVRE sem equipamentos por bloco).
 
-### LGPD
+### LGPD (ver "Prioridades permanentes"; vale para o sistema todo)
 - Coletar e expor só o necessário. **Rotas públicas nunca mostram RA nem email.**
 - Consultar dados pessoais exige mais de um identificador: **RA + email**.
 - Dados pessoais nunca vão em URL (usar POST) nem em log.
 - Os dados do aluno podem ser **anonimizados** a pedido, inclusive no histórico de auditoria.
 - Avisar o usuário quando uma escolha envolver dados pessoais.
+- Dados de admins também são pessoais: senha nunca no histórico; email sem enumeração (respostas genéricas).
+- Respostas genéricas onde a diferença revelaria se alguém está cadastrado (consulta por RA + email, "esqueci a senha", links inválidos).
+- Retenção definida para o que se acumula: links de email (30 dias), jobs falhos (7 dias), logs (planejado: 14 dias). O histórico de auditoria é guardado sem prazo por decisão do usuário, a rever na produção.
 
 ### Testes
 - Todo passo vem com feature tests, usando factories (com estados em closure quando houver `unique`).

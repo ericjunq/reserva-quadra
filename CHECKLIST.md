@@ -18,6 +18,24 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions. Antes: fila e jobs; por que email não deve diferenciar maiúsculas; opção A do link do front (Angular, sem Blade); prazo da confirmação até a véspera (alternativa avaliada e descartada).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
+## 🧵 Trilha de ideias (histórico curto do raciocínio, mais recente no fim)
+
+Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em uma ou duas linhas. Serve para uma conversa nova seguir a mesma linha de pensamento.
+
+- **Base (05–06/11):** API Laravel só backend; aluno sem login (RA), admin com Sanctum. Disponibilidade de equipamentos **calculada** (o usuário quis uma coluna "disponível"; foi explicado que ela não representa data e horário). Repositório só para consulta complexa.
+- **Regras de data:** antecedência passou de 7 dias para **10 dias úteis**; limite de 3 por curso na quadra; reservas para hoje até 20 min antes do fim. Datas bloqueadas e feriados (Yasumi) revogam reservas com email.
+- **Qualidade (06/11):** auditoria (colunas + histórico antes/depois); compatibilidade SQLite/MySQL/Postgres; limpeza (Pint, código morto); **nenhum comentário no código**; commits separados sem coautoria; guias para continuar em outro PC.
+- **LGPD virou padrão (06/11):** gestão de alunos com desativação e **anonimização** (inclusive no histórico); consulta das próprias reservas exige **RA + email via POST**.
+- **Devolução de equipamentos:** registro por item no próprio `item_reservas` (model pivot). O usuário **recusou** bloquear o aluno com item não devolvido; o controle fica no registro, no filtro e no email.
+- **Links por email (09/11):** token aleatório com hash, uso único e validade, em tabela genérica (`CANCELAR`/`CONFIRMAR`). Link aponta para o **front Angular** (opção A, sem Blade).
+- **Confirmação:** pedido **2 dias úteis** antes; prazo até a **véspera** (dia corrido). Ideia do usuário: reserva dentro da janela pede confirmação **já na criação**. Alternativa "24h depois do email" foi avaliada e descartada (ganho pequeno, casos estranhos).
+- **Admins e senhas:** convite (2 dias) e redefinição (60 min) em tabelas de token separadas. O usuário pediu email com maiúsculas diferenciadas; foi explicado o risco (contas duplicadas, login falhando, bancos diferentes) e ficou **minúsculas**. Ideia do usuário: **admin principal** que não pode ser desativado nem editado por outros.
+- **Histórico de auditoria:** uma rota só, com filtros; morph map com nomes curtos para o histórico não depender do nome das classes.
+- **Horários livres:** modo FIXO/LIVRE por espaço; blocos de 30 min; equipamentos pelo **pico de uso** (calculado em PHP, para manter a compatibilidade entre bancos e o desempenho); calendário LIVRE sem equipamentos por bloco, para a resposta não ficar enorme.
+- **CI:** GitHub Actions com os 3 bancos. Primeira execução verde, sem ajustes. O usuário trabalha só na `main` (sem branch protection por enquanto).
+- **Prioridades reforçadas pelo usuário (09/11):** **desempenho sempre priorizado** e **LGPD no sistema inteiro**, não só em partes; a trilha de ideias é atualizada a cada ideia, implementação, alteração ou decisão.
+- **Agora:** passo 10 (preparação para produção) com proposta enviada, aguardando aprovação.
+
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
 Leia este arquivo e o `CLAUDE.md` antes de qualquer coisa. Juntos, eles substituem a memória da conversa anterior. Comece pela seção "📍 Onde paramos" e mantenha-a atualizada a cada proposta, decisão, explicação e etapa concluída (regras em "Continuidade entre conversas", no `CLAUDE.md`).
