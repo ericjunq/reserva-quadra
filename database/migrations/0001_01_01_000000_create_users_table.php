@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('password');
             $table->rememberToken();
             $table->boolean('ativo')->default(true);
+            $table->boolean('principal')->default(false);
             $table->timestamp('convite_aceito_em')->nullable();
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();

@@ -23,6 +23,11 @@ class UserFactory extends Factory
         ];
     }
 
+    public function principal(): static
+    {
+        return $this->state(['principal' => true]);
+    }
+
     public function inativo(): static
     {
         return $this->state(['ativo' => false]);

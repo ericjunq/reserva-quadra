@@ -18,7 +18,8 @@ class User extends Authenticatable
     use Auditavel, HasApiTokens, HasFactory, Notifiable;
 
     protected $attributes = [
-        'ativo' => true,
+        'ativo'     => true,
+        'principal' => false,
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'convite_aceito_em' => 'datetime',
             'ativo'             => 'boolean',
+            'principal'         => 'boolean',
             'password'          => 'hashed',
         ];
     }
@@ -44,6 +46,11 @@ class User extends Authenticatable
     protected function camposSensiveisDaAuditoria(): array
     {
         return ['password', 'remember_token'];
+    }
+
+    public static function buscarPrincipal(): ?self
+    {
+        return self::where('principal', true)->first();
     }
 
     public function conviteAceito(): bool

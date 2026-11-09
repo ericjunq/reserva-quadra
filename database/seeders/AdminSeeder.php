@@ -9,7 +9,7 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => 'admin@email.com'],
             [
                 'name'              => 'Eric',
@@ -17,5 +17,9 @@ class AdminSeeder extends Seeder
                 'convite_aceito_em' => now(),
             ]
         );
+
+        if (! User::buscarPrincipal()) {
+            $admin->forceFill(['principal' => true])->save();
+        }
     }
 }

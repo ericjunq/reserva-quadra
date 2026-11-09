@@ -64,6 +64,10 @@ class AdminService
     public function atualizar(User $admin, array $data, User $responsavel): User
     {
         return DB::transaction(function () use ($admin, $data, $responsavel) {
+            if ($admin->principal && ! $admin->is($responsavel)) {
+                throw new RegraNegocioException('O admin principal só pode ser alterado por ele mesmo.', 403);
+            }
+
             if (array_key_exists('ativo', $data) && ! $data['ativo']) {
                 $this->verificarDesativacao($admin, $responsavel);
             }
@@ -91,6 +95,10 @@ class AdminService
 
     private function verificarDesativacao(User $admin, User $responsavel): void
     {
+        if ($admin->principal) {
+            throw new RegraNegocioException('O admin principal não pode ser desativado.', 409);
+        }
+
         if ($admin->is($responsavel)) {
             throw new RegraNegocioException('Você não pode desativar a si mesmo.');
         }
