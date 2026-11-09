@@ -64,12 +64,12 @@ class AdminService
     public function atualizar(User $admin, array $data, User $responsavel): User
     {
         return DB::transaction(function () use ($admin, $data, $responsavel) {
-            if ($admin->principal && ! $admin->is($responsavel)) {
-                throw new RegraNegocioException('O admin principal só pode ser alterado por ele mesmo.', 403);
-            }
-
             if (array_key_exists('ativo', $data) && ! $data['ativo']) {
                 $this->verificarDesativacao($admin, $responsavel);
+            }
+
+            if ($admin->principal && ! $admin->is($responsavel)) {
+                throw new RegraNegocioException('O admin principal só pode ser alterado por ele mesmo.', 403);
             }
 
             $campos = array_filter([
