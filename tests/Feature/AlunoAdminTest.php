@@ -6,7 +6,6 @@ use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Mail\ReservaRevogadaMail;
 use App\Models\Aluno;
-use App\Models\Auditoria;
 use App\Models\Curso;
 use App\Models\Espaco;
 use App\Models\Reserva;
@@ -201,7 +200,7 @@ class AlunoAdminTest extends TestCase
         $this->assertSame(TipoReservaConstant::ALUNO, $passada->fresh()->tipo);
         Mail::assertNothingQueued();
 
-        $historico = Auditoria::where('auditavel_type', Aluno::class)->where('auditavel_id', $aluno->id)->get()->toJson();
+        $historico = $aluno->auditorias()->get()->toJson();
         $this->assertStringNotContainsString('Maria Souza', $historico);
         $this->assertStringNotContainsString('2024000001', $historico);
         $this->assertStringNotContainsString('maria', $historico);

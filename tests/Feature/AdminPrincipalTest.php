@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Auditoria;
 use App\Models\User;
 use Database\Seeders\AdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -128,7 +127,7 @@ class AdminPrincipalTest extends TestCase
         $this->assertTrue($novo->fresh()->principal);
         $this->assertSame(1, User::where('principal', true)->count());
 
-        $historico = Auditoria::where('auditavel_type', User::class)->where('auditavel_id', $novo->id)->get()->last();
+        $historico = $novo->auditorias()->orderBy('id')->get()->last();
         $this->assertTrue($historico->depois['principal']);
     }
 

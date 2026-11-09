@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Constants\AcaoAuditoriaConstant;
-use App\Models\Auditoria;
 use App\Models\Curso;
 use App\Models\DataBloqueada;
 use App\Models\Espaco;
@@ -20,7 +19,7 @@ class AuditoriaTest extends TestCase
 
     private function historico($model)
     {
-        return Auditoria::where('auditavel_type', $model::class)->where('auditavel_id', $model->id)->orderBy('id')->get();
+        return $model->auditorias()->orderBy('id')->get();
     }
 
     public function test_criacao_pelo_admin_preenche_colunas_e_historico(): void

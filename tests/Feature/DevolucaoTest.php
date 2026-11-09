@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Constants\AcaoAuditoriaConstant;
 use App\Mail\DevolucaoComPendenciaMail;
-use App\Models\Auditoria;
 use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Models\ItemReserva;
@@ -140,7 +139,7 @@ class DevolucaoTest extends TestCase
         $this->assertSame('DEVOLVIDO', $item->situacao_devolucao->value);
         $this->assertNull($item->observacao_devolucao);
 
-        $correcao = Auditoria::where('auditavel_type', ItemReserva::class)->where('auditavel_id', $item->id)->get()->last();
+        $correcao = $item->auditorias()->orderBy('id')->get()->last();
         $this->assertSame(AcaoAuditoriaConstant::ATUALIZACAO, $correcao->acao);
         $this->assertSame('NAO_DEVOLVIDO', $correcao->antes['situacao_devolucao']);
         $this->assertSame('DEVOLVIDO', $correcao->depois['situacao_devolucao']);

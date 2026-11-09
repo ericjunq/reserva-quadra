@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Mail\ConviteAdminMail;
-use App\Models\Auditoria;
 use App\Models\User;
 use App\Services\AdminService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -180,7 +179,7 @@ class AdminTest extends TestCase
 
         $admin->update(['password' => 'NovaSenha123']);
 
-        $historico = Auditoria::where('auditavel_type', User::class)->where('auditavel_id', $admin->id)->get();
+        $historico = $admin->auditorias()->orderBy('id')->get();
         $json = $historico->toJson();
 
         $this->assertStringNotContainsString($hashAntigo, $json);
