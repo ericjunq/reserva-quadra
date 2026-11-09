@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AlunoController;
+use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CancelamentoController;
 use App\Http\Controllers\ConfirmacaoController;
@@ -48,6 +49,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::apiResource($nome, $controller)->except('update');
             Route::patch("{$nome}/{".str($nome)->singular().'}', [$controller, 'update'])->name("{$nome}.update");
         }
+
+        Route::get('/auditorias', [AuditoriaController::class, 'index']);
 
         Route::get('/admins', [AdminController::class, 'index']);
         Route::post('/admins', [AdminController::class, 'store']);
