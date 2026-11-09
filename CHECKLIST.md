@@ -34,7 +34,7 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Horários livres:** modo FIXO/LIVRE por espaço; blocos de 30 min; equipamentos pelo **pico de uso** (calculado em PHP, para manter a compatibilidade entre bancos e o desempenho); calendário LIVRE sem equipamentos por bloco, para a resposta não ficar enorme.
 - **CI:** GitHub Actions com os 3 bancos. Primeira execução verde, sem ajustes. O usuário trabalha só na `main` (sem branch protection por enquanto).
 - **Prioridades reforçadas pelo usuário (09/11):** **desempenho sempre priorizado** e **LGPD no sistema inteiro**, não só em partes; a trilha de ideias é atualizada a cada ideia, implementação, alteração ou decisão.
-- **Agora:** passo 10 (preparação para produção) com proposta enviada, aguardando aprovação.
+- **Agora:** passo 10 (preparação para produção) com proposta **reenviada** (com seções de desempenho e LGPD), aguardando aprovação e as respostas das decisões 1 a 5.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -197,6 +197,8 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
   3. seeder de admin só em dev, principal por comando: sim;
   4. backup documentado com dump por cron agora, pacote só quando a hospedagem for escolhida: sim;
   5. onde vai hospedar? Se não souber, o guia é para VPS Linux com Nginx.
+- **Desempenho (reenviado em 09/11 com as prioridades permanentes):** `config/route/view/event:cache`, `--optimize-autoloader`, OPcache, fila com worker e logs em `warning`; o verificador confere os caches. Redis para cache e sessões fica documentado como evolução.
+- **LGPD:** HTTPS e HSTS, CORS restrito, `APP_DEBUG` desligado, **alertas sem dados pessoais** (só a tarefa, a data e o tipo do erro), logs por 14 dias e sem dados pessoais, backups criptografados com acesso restrito e prazo de guarda, sem dados de teste em produção.
 - **Antes:** CORS, fila, cron e supervisor já estavam previstos aqui; cron e supervisor já estão documentados no DOCUMENTACAO (passo 4).
 
 ### 11. ⬜ Front-end em Angular (projeto separado)
