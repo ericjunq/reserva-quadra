@@ -20,4 +20,8 @@ return [
 
     'jobs_falhos_retencao_horas' => (int) env('RESERVA_JOBS_FALHOS_RETENCAO_HORAS', 168),
 
+    'alertas_email' => env('ALERTAS_EMAIL'),
+
+    'alertas_intervalo_minutos' => (int) env('ALERTAS_INTERVALO_MINUTOS', 60),
+
 ];
