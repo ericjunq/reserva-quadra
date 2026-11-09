@@ -13,7 +13,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 ## 📍 Onde paramos
 
 - **Último passo concluído:** **passo 10, preparação para produção** (09/11/2026, 239 testes passando). Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS e proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` (recomendações de plataforma para o usuário negociar com a TI da faculdade).
-- **Em andamento:** nada.
+- **Em andamento:** análise do front de referência enviada (ver Trilha de ideias); aguardando o usuário decidir se segue essa base visual no Angular.
 - **Próximo passo:** passo 11, front-end em Angular (projeto separado). Enviar a proposta antes de começar.
 - **Pendente para o deploy (decisão do usuário):** escolher a plataforma (ver `HOSPEDAGEM.md`), definir o backup e o monitor externo.
 - **O usuário precisa:** dar push dos commits; o `.env` local dele ganhou `ADMIN_INICIAL_NOME/EMAIL/SENHA` (Eric / admin@email.com / Admin), `ALERTAS_EMAIL`, `APP_LOCALE=pt_BR`, `LOG_STACK=daily` e `APP_NAME`; **no outro PC**, copiar essas linhas do `.env.example` para o `.env` de lá, senão o `migrate:fresh --seed` não cria o admin (o seeder avisa e segue).
@@ -41,7 +41,8 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Decisão 1 do passo 10 (09/11):** traduções pt_BR aprovadas. Na decisão 3, o usuário avisou que o admin de teste vai virar o admin dele. Foi explicado que a senha `Admin` não pode ir para produção e recomendado criar o admin dele como principal pelo comando, com senha forte digitada no servidor.
 - **Decisão 3 do passo 10 (09/11):** o usuário preferiu o admin inicial **pelo `.env`** (`ADMIN_INICIAL_*`), mantido enquanto o projeto está em desenvolvimento; depois ele pode remover e criar o admin manualmente. Ficou assim: sem senha no `.env`, o seeder não cria admin; o verificador acusa ❌ se `ADMIN_INICIAL_SENHA` estiver preenchida em produção; o `DEPLOY.md` recomenda `admin:criar-principal`. Ele também pediu as recomendações de plataforma num arquivo para negociar com a TI: `HOSPEDAGEM.md`.
 - **Passo 10 implementado (09/11):** o laravel-lang exigia a extensão `bcmath` (ausente no PHP local), então foi instalado só para gerar `lang/pt_BR` e removido (sem dependência). CORS com uma origem só devolve sempre essa origem e o navegador bloqueia as outras. Alertas sem a mensagem do erro (pode ter dados pessoais), enviados sem fila, 1 por hora por problema, e abandonam o envio no primeiro erro de SMTP (desempenho).
-- **Agora:** passo 10 concluído; próximo é a proposta do passo 11 (Angular).
+- **Front de referência (09/11):** o usuário mostrou o front que um amigo começou em React + Tailwind (`github.com/ericjunq/unifg-reservas`, pasta `frontend`: Home, Reserva, Cadastro). Análise: a identidade visual é boa (azul e amarelo da UniFG, Montserrat, títulos em itálico, tela de reserva com calendário e resumo lateral), mas há problemas: imagens de 2,7 MB e 2,2 MB; hero com texto dentro da imagem e cara de gerado por IA; telas só da quadra; dados fixos que não batem com a API (horários, fins de semana, materiais, cursos); campo de telefone que a API não coleta; email que falta; acessibilidade e cores inconsistentes. Recomendação: manter a identidade e o layout, refazer em Angular (com Tailwind) ligado à API.
+- **Agora:** aguardando o usuário dizer se segue a base visual; depois, a proposta do passo 11 (Angular).
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
