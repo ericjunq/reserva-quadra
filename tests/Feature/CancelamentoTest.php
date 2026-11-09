@@ -35,7 +35,7 @@ class CancelamentoTest extends TestCase
         $this->bola = Equipamento::factory()->for($this->quadra)->create(['nome' => 'Bola', 'quantidade_total' => 2]);
     }
 
-    private function reservar(string $data = '2026-11-10', string $horario = 'PRIMEIRO_HORARIO', ?Aluno $aluno = null)
+    private function reservar(string $data = '2026-11-12', string $horario = 'PRIMEIRO_HORARIO', ?Aluno $aluno = null)
     {
         return $this->postJson('/api/reservas', [
             'registro_academico' => ($aluno ?? $this->aluno)->registro_academico,
@@ -79,7 +79,7 @@ class CancelamentoTest extends TestCase
         $registro = TokenReserva::where('reserva_id', $id)->sole();
         $this->assertSame(hash('sha256', $token), $registro->token_hash);
         $this->assertNotSame($token, $registro->token_hash);
-        $this->assertSame('2026-11-10 19:00:00', $registro->expira_em->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-11-12 19:00:00', $registro->expira_em->format('Y-m-d H:i:s'));
         $this->assertSame('CANCELAR', $registro->finalidade->value);
     }
 
@@ -164,7 +164,7 @@ class CancelamentoTest extends TestCase
 
         $this->postJson('/api/admin/reservas/eventos', [
             'espaco_id'    => $this->quadra->id,
-            'data_reserva' => '2026-11-10',
+            'data_reserva' => '2026-11-12',
             'horario'      => 'PRIMEIRO_HORARIO',
             'descricao'    => 'Palestra',
         ])->assertCreated();
