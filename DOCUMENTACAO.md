@@ -97,6 +97,8 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `RESERVA_FERIADOS_FACULTATIVOS` | false | Se a importação automática de feriados inclui Carnaval, Quarta de Cinzas e Corpus Christi |
 | `RESERVA_TOKENS_RETENCAO_DIAS` | 30 | Depois de quantos dias os links de email usados ou vencidos são apagados |
 | `RESERVA_JOBS_FALHOS_RETENCAO_HORAS` | 168 | Depois de quantas horas os jobs que falharam são apagados (7 dias) |
+| `APP_TIMEZONE` | America/Sao_Paulo | Fuso usado nas regras de "hoje" e no agendador |
+| `FRONTEND_URL` | http://localhost:4200 | Endereço do front Angular; base dos links enviados por email (ex.: cancelamento) |
 
 ### Fila e jobs (o que são)
 
@@ -146,8 +148,6 @@ stopwaitsecs=3600
 ```
 
 Depois de cada deploy, rodar `php artisan queue:restart` para o worker carregar o código novo. Falhas das tarefas ficam no log; o aviso por email aos admins fica para a preparação de produção.
-| `APP_TIMEZONE` | America/Sao_Paulo | Fuso usado nas regras de "hoje" e no agendador |
-| `FRONTEND_URL` | http://localhost:4200 | Endereço do front Angular; base dos links enviados por email (ex.: cancelamento) |
 
 ---
 
