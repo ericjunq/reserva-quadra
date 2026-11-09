@@ -34,6 +34,16 @@ class EspacoFactory extends Factory
         ]);
     }
 
+    public function livre(string $abreAs = '07:00', string $fechaAs = '22:00', int $duracaoMaxima = 120): static
+    {
+        return $this->state([
+            'modo_horario'           => 'LIVRE',
+            'abre_as'                => $abreAs,
+            'fecha_as'               => $fechaAs,
+            'duracao_maxima_minutos' => $duracaoMaxima,
+        ]);
+    }
+
     public function inativo(): static
     {
         return $this->state(['ativo' => false]);

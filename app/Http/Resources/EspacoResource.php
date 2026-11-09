@@ -18,6 +18,10 @@ class EspacoResource extends JsonResource
             'tipo'                     => $this->tipo->value,
             'ativo'                    => $this->ativo,
             'limite_semanal_por_curso' => $this->limite_semanal_por_curso,
+            'modo_horario'             => $this->modo_horario->value,
+            'abre_as'                  => $this->abre_as ? substr($this->abre_as, 0, 5) : null,
+            'fecha_as'                 => $this->fecha_as ? substr($this->fecha_as, 0, 5) : null,
+            'duracao_maxima_minutos'   => $this->duracao_maxima_minutos,
             $this->auditoria(),
         ];
     }

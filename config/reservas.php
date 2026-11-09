@@ -4,6 +4,8 @@ return [
 
     'antecedencia_maxima_dias_uteis' => (int) env('RESERVA_ANTECEDENCIA_MAXIMA_DIAS_UTEIS', 10),
 
+    'bloco_minutos' => (int) env('RESERVA_BLOCO_MINUTOS', 30),
+
     'minutos_antes_do_fim' => (int) env('RESERVA_MINUTOS_ANTES_DO_FIM', 20),
 
     'confirmacao_dias_uteis_antes' => (int) env('RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES', 2),

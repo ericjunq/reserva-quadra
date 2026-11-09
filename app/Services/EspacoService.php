@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Constants\ModoHorarioConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoEspacoConstant;
 use App\Exceptions\RegraNegocioException;
@@ -31,7 +32,7 @@ class EspacoService
 
     public function criar(array $data): Espaco
     {
-        return Espaco::create($data);
+        return Espaco::create($this->limparConfiguracaoFixa($data));
     }
 
     public function atualizar(Espaco $espaco, array $data): Espaco
@@ -40,9 +41,24 @@ class EspacoService
             $this->verificarReservasFuturas($espaco);
         }
 
-        $espaco->update($data);
+        $novoModo = isset($data['modo_horario']) ? ModoHorarioConstant::from($data['modo_horario']) : $espaco->modo_horario;
+
+        if ($novoModo !== $espaco->modo_horario) {
+            $this->verificarReservasFuturas($espaco, 'trocar o modo de horário');
+        }
+
+        $espaco->update($this->limparConfiguracaoFixa(['modo_horario' => $novoModo->value] + $data));
 
         return $espaco;
+    }
+
+    private function limparConfiguracaoFixa(array $data): array
+    {
+        if (($data['modo_horario'] ?? ModoHorarioConstant::FIXO->value) !== ModoHorarioConstant::FIXO->value) {
+            return $data;
+        }
+
+        return ['abre_as' => null, 'fecha_as' => null, 'duracao_maxima_minutos' => null] + $data;
     }
 
     public function desativar(Espaco $espaco): void
@@ -52,7 +68,7 @@ class EspacoService
         $espaco->update(['ativo' => false]);
     }
 
-    private function verificarReservasFuturas(Espaco $espaco): void
+    private function verificarReservasFuturas(Espaco $espaco, string $acao = 'desativá-lo'): void
     {
         $quantidade = $espaco->reservas()
             ->where('status', StatusConstant::RESERVADO)
@@ -61,7 +77,7 @@ class EspacoService
 
         if ($quantidade > 0) {
             throw new RegraNegocioException(
-                "O espaço possui {$quantidade} reserva(s) futura(s). Revogue-as antes de desativá-lo.",
+                "O espaço possui {$quantidade} reserva(s) futura(s). Revogue-as antes de {$acao}.",
                 409,
             );
         }
