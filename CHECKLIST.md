@@ -15,7 +15,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - **Último passo concluído:** passo 9, CI no GitHub Actions. **Primeira execução verde em 09/11/2026** (commit `43a0e74`): os 226 testes passaram em SQLite, **MySQL 8.0** e **Postgres 16**, além do Pint e do `composer audit`.
 - **Próximo passo:** passo 10, preparação para produção. **Proposta enviada em 09/11/2026, aguardando aprovação** (resumo no passo 10 do plano, abaixo).
 - **O usuário precisa:** dar push dos commits de documentação e rodar `migrate:fresh --seed` local, se ainda não rodou depois do passo 8.
-- **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions. Antes: fila e jobs; por que email não deve diferenciar maiúsculas; opção A do link do front (Angular, sem Blade); prazo da confirmação até a véspera (alternativa avaliada e descartada).
+- **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions. Antes: fila e jobs; por que email não deve diferenciar maiúsculas; opção A do link do front (Angular, sem Blade); prazo da confirmação até a véspera (alternativa avaliada e descartada). Em 09/11 (passo 10): **alertas** (o que falha em silêncio hoje; alerta sem dados pessoais, enviado sem passar pela fila, no máximo 1 por hora por problema; monitor externo do `/up` para quando o próprio email cair) e **backup** (regra 3-2-1; banco gerenciado > `spatie/laravel-backup` com armazenamento externo > script manual; `.env` separado num gerenciador de senhas; retenção 7 diários/4 semanais/6 mensais; teste mensal de restauração; LGPD: criptografia, acesso restrito e refazer as anonimizações depois de uma restauração).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
 ## 🧵 Trilha de ideias (histórico curto do raciocínio, mais recente no fim)
@@ -34,7 +34,8 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Horários livres:** modo FIXO/LIVRE por espaço; blocos de 30 min; equipamentos pelo **pico de uso** (calculado em PHP, para manter a compatibilidade entre bancos e o desempenho); calendário LIVRE sem equipamentos por bloco, para a resposta não ficar enorme.
 - **CI:** GitHub Actions com os 3 bancos. Primeira execução verde, sem ajustes. O usuário trabalha só na `main` (sem branch protection por enquanto).
 - **Prioridades reforçadas pelo usuário (09/11):** **desempenho sempre priorizado** e **LGPD no sistema inteiro**, não só em partes; a trilha de ideias é atualizada a cada ideia, implementação, alteração ou decisão.
-- **Agora:** passo 10 (preparação para produção) com proposta **reenviada** (com seções de desempenho e LGPD), aguardando aprovação e as respostas das decisões 1 a 5.
+- **Alertas e backup explicados (09/11):** alertas sem dados pessoais, fora da fila, com limite de repetição, mais monitor externo do `/up`. Backup 3-2-1, com retenção e teste de restauração; LGPD no backup (criptografia; refazer anonimizações após restaurar). Recomendação: banco gerenciado, senão `spatie/laravel-backup` com armazenamento externo. Pergunta em aberto: incluir o spatie já no passo 10 ou esperar a hospedagem.
+- **Agora:** passo 10 (preparação para produção) com proposta **reenviada** (com seções de desempenho e LGPD), aguardando aprovação, as respostas das decisões 1 a 5 e se o `spatie/laravel-backup` entra já.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
