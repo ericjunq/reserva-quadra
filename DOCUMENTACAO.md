@@ -63,6 +63,8 @@ O `--seed` cria:
 ```bash
 php artisan serve          # API em http://localhost:8000
 php artisan queue:work     # envia os emails (em dev eles aparecem em storage/logs/laravel.log)
+php artisan admin:criar-principal               # cria o admin principal (produção)
+php artisan admin:transferir-principal {email}  # passa o papel de principal para outro admin
 php artisan schedule:work  # roda o agendador em dev (pedido de confirmação às 08:00, revogação às 00:05)
 php artisan reservas:pedir-confirmacao          # dispara o pedido de confirmação na hora
 php artisan reservas:revogar-nao-confirmadas    # revoga as não confirmadas de hoje na hora
@@ -425,6 +427,7 @@ POST /api/admin/reservas/15/devolucao
 - **Desativar admin:** ele não faz mais login e perde todas as sessões na hora. Ninguém desativa a si mesmo, e sempre sobra pelo menos um admin ativo (verificado com trava). Reativar é `PATCH` com `ativo: true`.
 - **Login** de admin inativo ou com senha errada: a mesma resposta, "Credenciais inválidas".
 - **Auditoria:** convites, edições e desativações de admins ficam no histórico; senha e `remember_token` aparecem só como `[oculto]`.
+- **Admin principal** (um só; conta de testes e manutenção): **ninguém o desativa** (409) e **só ele mesmo edita os próprios dados** (403 para os outros). Fora isso, tem os mesmos poderes dos outros admins. A flag `principal` não muda pela API: o seeder cria o `admin@email.com` como principal em desenvolvimento; em produção, `php artisan admin:criar-principal` (pergunta nome, email e senha, que não aparece na tela) e `php artisan admin:transferir-principal {email}` (passa o papel para outro admin ativo que já definiu a senha).
 
 ### Alunos (admin)
 
@@ -511,6 +514,9 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 | Senha com 8+ caracteres, letras e números, sem checagem de vazamento | A checagem `uncompromised` consulta um serviço externo a cada cadastro |
 | Email "Sua senha foi alterada" | Se não foi o próprio admin, ele fica sabendo na hora |
 | Sem perfis de permissão (por enquanto) | Todo admin pode tudo; perfis ficam como opcional |
+| **Admin principal** que não pode ser desativado | Pedido do usuário: conta garantida para testes e manutenção. A única diferença de poder é não poder ser desativado |
+| Outros admins não editam o principal | Se pudessem trocar o email dele, bastaria usar "esqueci a senha" para tomar a conta |
+| Principal só criado/transferido por comando no servidor | Quem tem acesso ao servidor já responde pelo sistema; a API não promove ninguém |
 | Fila no banco (`QUEUE_CONNECTION=database`) para os emails | A requisição não espera o envio, e uma falha no servidor de email não derruba a reserva |
 | Jobs que falharam apagados após **7 dias** | Guardam dados pessoais (LGPD); 7 dias dão tempo de investigar |
 | Links de email usados/vencidos apagados após **30 dias** | Não guardar o que não serve mais; 30 dias ajudam a responder "cliquei e não funcionou" |
@@ -543,6 +549,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
+| `AdminPrincipalTest` | Principal não desativado nem editado por outros, edita a si mesmo, desativa os outros, flag não muda pela API, seeder, comandos de criação (senha fraca, duplicado) e de transferência |
 | `SenhaTest` | Esqueci a senha (link só com token, 60 min), resposta igual para inexistente/inativo, redefinição derrubando sessões com email de aviso, uso único e vencimento, token/email errados, regras da senha, aceite de convite em até 2 dias, link de redefinição não serve no convite, troca logado mantendo a sessão atual |
 | `AgendadorTest` | Horários e `withoutOverlapping` de todas as tarefas, feriados do ano seguinte sem facultativos, retenção de 7 dias dos jobs falhos, limpeza só dos tokens antigos |
 | `ConfirmacaoTest` | Reserva para hoje confirmada, dentro da janela pede confirmação na criação (prazo e links), fora da janela avisa a data do pedido, pedido 2 dias úteis antes e sem duplicar, o que o pedido ignora, confirmação pelo link, vencimento no fim do dia anterior, cancelar pelo email de confirmação, revogação só das não confirmadas do dia, fluxo completo pelos comandos, filtro do admin, agendamento |
@@ -584,6 +591,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Admin principal | Flag `principal`, proteções contra desativação e edição por outros, comandos `admin:criar-principal` e `admin:transferir-principal` |
 | Admins e senhas (itens 5 e 6) | `UserResource`, gestão de admins com convite, desativação, esqueci/redefinir/aceitar/trocar senha, email "senha alterada", email em minúsculas |
 | Agendador | Feriados do ano seguinte, limpeza de tokens e de jobs falhos, horários escalonados, documentação de cron e supervisor, explicação de fila e jobs |
 | Item 9 — Confirmação | Pedido 2 dias úteis antes (ou já na criação dentro da janela), prazo até o dia anterior, confirmação pela API, revogação automática, comandos agendados, filtro do admin |

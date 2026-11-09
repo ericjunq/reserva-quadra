@@ -48,6 +48,7 @@ erDiagram
         string email UK "sempre minúsculas"
         string password
         boolean ativo
+        boolean principal "só um; não pode ser desativado"
         timestamp convite_aceito_em
     }
 
@@ -255,6 +256,9 @@ Os dois usam o Password Broker do Laravel (token com hash, um por email). Com a 
 
 **29. Senha nunca entra no histórico.**
 `users` usa o trait de auditoria como as outras tabelas, mas `password` e `remember_token` aparecem só como `[oculto]` (o trait aceita uma lista de campos sensíveis por model).
+
+**30. Admin principal é uma flag em `users`.**
+Uma coluna booleana basta para marcar a conta de manutenção. A garantia de existir só um fica nos comandos (`admin:criar-principal` recusa se já houver um; `admin:transferir-principal` desmarca o atual e marca o novo na mesma transação), porque um índice único parcial (`WHERE principal = true`) não funciona igual nos três bancos.
 
 **26. No banco fica só o hash do token.**
 O token puro (64 caracteres aleatórios) só existe no email. O banco guarda o SHA-256, com índice único, então quem tiver acesso ao banco não consegue montar um link válido. SHA-256 sem salt é suficiente aqui porque o token já é aleatório e longo (diferente de uma senha).

@@ -6,15 +6,15 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 09/11/2026 · 193 testes passando
+Última atualização: 09/11/2026 · 203 testes passando
 
 ---
 
 ## 📍 Onde paramos
 
-- **Último passo concluído:** passos 5 e 6, gestão de admins e senhas (convite, desativação, esqueci/redefinir/aceitar/trocar senha), em 09/11/2026.
+- **Último passo concluído:** admin principal (pedido extra do usuário), depois dos passos 5 e 6 (admins e senhas), em 09/11/2026.
 - **Próximo passo:** passo 7, rota para o admin consultar o histórico de auditoria. **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação. Os dados já são gravados na tabela `auditorias` (inclusive admins, com a senha oculta).
-- **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` (colunas novas em `users` e tabela `convites_admin_tokens`). O admin do seeder continua `admin@email.com` / `Admin`.
+- **O usuário precisa:** dar push e rodar `php artisan migrate:fresh --seed` (colunas novas em `users`, inclusive `principal`, e tabela `convites_admin_tokens`). O admin do seeder continua `admin@email.com` / `Admin` e agora é o **admin principal**.
 - **Conceitos já explicados ao usuário:** fila e jobs; por que email não deve diferenciar maiúsculas (seção de decisões do DOCUMENTACAO).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
@@ -38,6 +38,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - **Devolução** de equipamentos é registrada por item. Ela **não** mexe no estoque e **não** bloqueia o aluno. Avaria ou falta dispara email.
 - **Confirmação:** pedido 2 dias úteis antes; prazo até as 23:59 do dia anterior (mantido depois de avaliar a alternativa "1 dia útil depois do email"); reserva para hoje nasce confirmada; reserva dentro da janela pede confirmação já na criação.
 - O calendário público mostra **quem reservou** (nome e curso, nunca RA ou email).
+- **Admins:** email sempre em minúsculas; um **admin principal** (não pode ser desativado nem editado por outros; criado/transferido só por comando); sem perfis de permissão.
 - O **front-end** será em **Angular**, num projeto separado. **Não usar Blade** para telas.
 - O banco de produção ainda não foi escolhido (MySQL ou Postgres). O código precisa funcionar nos dois.
 
@@ -76,6 +77,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Convidar outros admins por email (link para definir a senha, válido por 2 dias) e reenviar o convite
 - [x] Listar, editar, desativar e reativar admins (desativado perde as sessões; ninguém desativa a si mesmo)
 - [x] Trocar a própria senha logado e recuperar a senha por email ("esqueci minha senha")
+- [x] Admin principal (conta de manutenção): não pode ser desativado nem editado por outros; criado e transferido por comando no servidor
 - [x] Cadastrar, editar, listar e desativar espaços, equipamentos e cursos
 - [x] Marcar equipamento como compartilhável entre espaços
 - [x] Listar alunos com filtros (nome/RA/email, curso, ativo) e ver o detalhe
@@ -99,7 +101,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Código compatível com SQLite, MySQL e Postgres
 - [x] Código formatado com o Laravel Pint (`pint.json`)
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
-- [x] 193 testes automáticos passando
+- [x] 203 testes automáticos passando
 
 ---
 
@@ -137,6 +139,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 ### 5. ✅ Item 10 — Admins — *concluído em 09/11/2026 (junto com o passo 6)*
 - `UserResource` no login e no `/me`; `GET/POST/PATCH/DELETE /api/admin/admins` e reenvio de convite. Convite por email com link para definir a senha (**2 dias**). Desativado não faz login e perde as sessões; ninguém desativa a si mesmo; sempre sobra um ativo.
 - Email do admin **sempre em minúsculas** (decisão após explicação ao usuário). Sem perfis de permissão.
+- **Admin principal** (extra): um só, não pode ser desativado nem editado por outros admins; única diferença de poder. Comandos `admin:criar-principal` e `admin:transferir-principal`.
 
 ### 6. ✅ Recuperação e troca de senha — *concluído em 09/11/2026*
 - "Esqueci a senha" (resposta sempre igual, link de **60 min** só com o token), redefinição, aceite de convite e troca logado (`PATCH /api/me/senha`). Senha 8+ com letras e números. Email "Sua senha foi alterada". Tabelas de token separadas para convite e redefinição.

@@ -1169,3 +1169,40 @@ database/factories/UserFactory.php: ativo, convite_aceito_em; estados inativo() 
 convitePendente().
 
 tests/Feature/AdminTest.php (13) e SenhaTest.php (10) — 193 testes no total.
+
+========================================================================
+31. ADMIN PRINCIPAL
+========================================================================
+
+Pedido do usuário (09/11/2026): um admin primário (a conta dele), para testes e manutenção, que
+não pode ser desativado. Decisões: outros admins não editam o principal; criado/transferido só
+por comando no servidor; única diferença de poder é não poder ser desativado (desativar os
+outros todos os admins já podem).
+
+database/migrations/0001_..._create_users_table.php: coluna principal (default false).
+
+app/Models/User.php
+  - Cast e $attributes de principal; buscarPrincipal() (nome evita conflito com o atributo
+    "principal", que o Eloquent tentaria tratar como relação se o método se chamasse igual).
+  - principal NÃO está no Fillable: a API não consegue mudar (só forceFill nos comandos/seeder).
+
+app/Services/AdminService.php
+  - verificarDesativacao: principal -> 409 "O admin principal não pode ser desativado." (antes
+    da regra de "si mesmo").
+  - atualizar: depois da verificação de desativação, principal alterado por outro admin -> 403
+    "O admin principal só pode ser alterado por ele mesmo." (evita tomada de conta: trocar o
+    email e usar "esqueci a senha").
+
+app/Http/Resources/UserResource.php: campo principal.
+
+app/Console/Commands/CriarAdminPrincipal.php (novo)
+  - admin:criar-principal [--nome] [--email]; senha por secret() (não aparece na tela), validada
+    com as mesmas regras da API; recusa se já existir principal ou email repetido.
+app/Console/Commands/TransferirAdminPrincipal.php (novo)
+  - admin:transferir-principal {email}: alvo ativo e com senha definida; em transação, desmarca
+    o atual (lockForUpdate) e marca o novo. Fica no histórico de auditoria.
+
+database/seeders/AdminSeeder.php: admin@email.com vira principal se ainda não houver um.
+database/factories/UserFactory.php: estado principal().
+
+tests/Feature/AdminPrincipalTest.php (novo) — 10 testes (203 no total).
