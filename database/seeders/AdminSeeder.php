@@ -9,11 +9,19 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
+        $dados = config('reservas.admin_inicial');
+
+        if (blank($dados['email']) || blank($dados['senha'])) {
+            $this->command?->warn('ADMIN_INICIAL_EMAIL e ADMIN_INICIAL_SENHA vazios: nenhum admin criado. Use admin:criar-principal.');
+
+            return;
+        }
+
         $admin = User::firstOrCreate(
-            ['email' => 'admin@email.com'],
+            ['email' => User::normalizarEmail($dados['email'])],
             [
-                'name'              => 'Eric',
-                'password'          => 'Admin',
+                'name'              => $dados['nome'] ?: 'Admin',
+                'password'          => $dados['senha'],
                 'convite_aceito_em' => now(),
             ]
         );

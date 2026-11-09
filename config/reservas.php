@@ -24,4 +24,10 @@ return [
 
     'alertas_intervalo_minutos' => (int) env('ALERTAS_INTERVALO_MINUTOS', 60),
 
+    'admin_inicial' => [
+        'nome'  => env('ADMIN_INICIAL_NOME'),
+        'email' => env('ADMIN_INICIAL_EMAIL'),
+        'senha' => env('ADMIN_INICIAL_SENHA'),
+    ],
+
 ];
