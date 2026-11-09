@@ -90,11 +90,11 @@ class DisponibilidadeService
         $bloqueio = $bloqueios->first(fn (DataBloqueada $b) => $b->diaInteiro() || ($b->hora_inicio < $fim && $b->hora_fim > $inicio));
 
         [$situacao, $motivo] = match (true) {
-            $reserva !== null                                                              => [$reserva->tipo === TipoReservaConstant::EVENTO ? 'EVENTO' : 'RESERVADO', null],
-            $bloqueio !== null                                                             => ['BLOQUEADO', $bloqueio->motivo],
-            $motivoDoDia !== null                                                          => ['INDISPONIVEL', $motivoDoDia],
-            $dia->isToday() && now()->gt(HorarioAindaReservavel::limiteParaHoje($horario)) => ['ENCERRADO', 'Reservas para hoje são aceitas até '.HorarioAindaReservavel::limiteParaHoje($horario)->format('H:i').'.'],
-            default                                                                        => ['LIVRE', null],
+            $reserva !== null                                                          => [$reserva->tipo === TipoReservaConstant::EVENTO ? 'EVENTO' : 'RESERVADO', null],
+            $bloqueio !== null                                                         => ['BLOQUEADO', $bloqueio->motivo],
+            $motivoDoDia !== null                                                      => ['INDISPONIVEL', $motivoDoDia],
+            $dia->isToday() && now()->gt(HorarioAindaReservavel::limiteParaHoje($fim)) => ['ENCERRADO', 'Reservas para hoje são aceitas até '.HorarioAindaReservavel::limiteParaHoje($fim)->format('H:i').'.'],
+            default                                                                    => ['LIVRE', null],
         };
 
         $resultado = [

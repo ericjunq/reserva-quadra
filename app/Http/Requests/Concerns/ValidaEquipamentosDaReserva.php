@@ -24,28 +24,24 @@ trait ValidaEquipamentosDaReserva
         ];
     }
 
-    public function after(): array
+    protected function validarEstoqueDosEquipamentos(Validator $validator): void
     {
-        return [
-            function (Validator $validator) {
-                if ($validator->errors()->isNotEmpty()) {
-                    return;
-                }
+        if ($validator->errors()->isNotEmpty()) {
+            return;
+        }
 
-                $itens = collect($this->input('equipamentos', []));
-                $estoques = Equipamento::whereIn('id', $itens->pluck('id'))->pluck('quantidade_total', 'id');
+        $itens = collect($this->input('equipamentos', []));
+        $estoques = Equipamento::whereIn('id', $itens->pluck('id'))->pluck('quantidade_total', 'id');
 
-                foreach ($itens as $i => $item) {
-                    $total = $estoques[$item['id']];
+        foreach ($itens as $i => $item) {
+            $total = $estoques[$item['id']];
 
-                    if ($item['quantidade'] > $total) {
-                        $validator->errors()->add(
-                            "equipamentos.{$i}.quantidade",
-                            "A quantidade não pode ser maior que o estoque total ({$total}).",
-                        );
-                    }
-                }
-            },
-        ];
+            if ($item['quantidade'] > $total) {
+                $validator->errors()->add(
+                    "equipamentos.{$i}.quantidade",
+                    "A quantidade não pode ser maior que o estoque total ({$total}).",
+                );
+            }
+        }
     }
 }

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Constants\FinalidadeTokenConstant;
-use App\Constants\HorarioReservaConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Exceptions\RegraNegocioException;
@@ -16,6 +15,7 @@ use App\Models\Reserva;
 use App\Models\User;
 use App\Repositories\DisponibilidadeEquipamentoRepository;
 use App\Repositories\ReservaRepository;
+use App\Support\IntervaloReserva;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -192,12 +192,13 @@ class ReservaService
 
     private function resolverIntervalo(array $data): array
     {
-        $horario = HorarioReservaConstant::from($data['horario']);
+        [$inicio, $fim] = IntervaloReserva::doPedido($data);
 
-        return $data + [
-            'hora_inicio' => $horario->horaInicio(),
-            'hora_fim'    => $horario->horaFim(),
-        ];
+        return [
+            'horario'     => $data['horario'] ?? null,
+            'hora_inicio' => $inicio,
+            'hora_fim'    => $fim,
+        ] + $data;
     }
 
     private function travarEspaco(int $espacoId): Espaco

@@ -2,8 +2,8 @@
 
 namespace App\Rules;
 
-use App\Constants\HorarioReservaConstant;
 use App\Models\DataBloqueada;
+use App\Support\IntervaloReserva;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Contracts\Validation\DataAwareRule;
@@ -22,14 +22,14 @@ class DataNaoBloqueada implements DataAwareRule, ValidationRule
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $horario = HorarioReservaConstant::tryFrom((string) ($this->data['horario'] ?? ''));
+        $intervalo = IntervaloReserva::doPedido($this->data);
         $espacoId = $this->data['espaco_id'] ?? null;
 
-        if (! $horario || ! is_numeric($espacoId) || ! Carbon::canBeCreatedFromFormat($value, 'Y-m-d')) {
+        if (! $intervalo || ! is_numeric($espacoId) || ! Carbon::canBeCreatedFromFormat($value, 'Y-m-d')) {
             return;
         }
 
-        $bloqueio = DataBloqueada::afetando($value, (int) $espacoId, $horario->horaInicio(), $horario->horaFim())->first();
+        $bloqueio = DataBloqueada::afetando($value, (int) $espacoId, $intervalo[0], $intervalo[1])->first();
 
         if (! $bloqueio) {
             return;

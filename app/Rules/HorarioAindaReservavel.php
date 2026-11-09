@@ -2,7 +2,7 @@
 
 namespace App\Rules;
 
-use App\Constants\HorarioReservaConstant;
+use App\Support\IntervaloReserva;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Contracts\Validation\DataAwareRule;
@@ -19,23 +19,23 @@ class HorarioAindaReservavel implements DataAwareRule, ValidationRule
         return $this;
     }
 
-    public static function limiteParaHoje(HorarioReservaConstant $horario): Carbon
+    public static function limiteParaHoje(string $horaFim): Carbon
     {
-        return Carbon::parse(today()->toDateString()." {$horario->fim()}")
+        return Carbon::parse(today()->toDateString().' '.$horaFim)
             ->subMinutes(config('reservas.minutos_antes_do_fim'));
     }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $horario = HorarioReservaConstant::tryFrom((string) $value);
         $dataReserva = $this->data['data_reserva'] ?? null;
+        $intervalo = IntervaloReserva::doPedido($this->data);
 
-        if (! $horario || ! is_string($dataReserva) || $dataReserva !== today()->toDateString()) {
+        if (! $intervalo || ! is_string($dataReserva) || $dataReserva !== today()->toDateString()) {
             return;
         }
 
         $minutos = config('reservas.minutos_antes_do_fim');
-        $limite = self::limiteParaHoje($horario);
+        $limite = self::limiteParaHoje($intervalo[1]);
 
         if (now()->gt($limite)) {
             $fail("Esse horário não pode mais ser reservado hoje. Reservas para hoje são aceitas até {$minutos} minutos antes do término ({$limite->format('H:i')}).");
