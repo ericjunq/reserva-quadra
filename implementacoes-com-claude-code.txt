@@ -1027,3 +1027,18 @@ ListarReservasRequest / ReservaRepository: filtro confirmacao (só reservas de a
 
 tests/Feature/ConfirmacaoTest.php (novo) — 12 testes; CancelamentoTest passou a reservar fora da
 janela (2026-11-12). 167 no total.
+
+========================================================================
+27. DECISÃO: PRAZO DA CONFIRMAÇÃO MANTIDO (sem alteração de código)
+========================================================================
+
+Alternativa avaliada (proposta pelo usuário): prazo de ~1 dia depois do email de confirmação,
+em vez de "até 23:59 do dia anterior".
+  - Precisaria de: prazo em dia útil (pedido de sexta venceria no sábado), limite no dia
+    anterior (reserva feita perto da data teria prazo de poucas horas), coluna
+    prazo_confirmacao e revogação de hora em hora.
+  - Ganho: liberar o horário um dia antes.
+Decisão (09/11/2026): manter a regra atual. O horário já é liberado às 00:05 do próprio dia e
+pode ser reservado até 20 min antes do fim (horários noturnos), então o ganho é pequeno diante
+dos casos estranhos e da complexidade. Rever só se, em uso, horários liberados no dia ficarem
+vazios com a quadra lotada. A regra está isolada em ConfirmacaoService::prazo().

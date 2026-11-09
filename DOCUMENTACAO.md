@@ -426,6 +426,7 @@ O desenvolvimento usa SQLite, mas o código foi ajustado para rodar igual em **M
 | Reservas não confirmadas são revogadas automaticamente | Libera horários de quem não vai usar |
 | Pedido de confirmação **2 dias úteis** antes | Em dias corridos, reserva de segunda pediria confirmação no sábado, quando muita gente não abre o email da faculdade |
 | Prazo até as **23:59 do dia anterior** (dia corrido) | Dá o maior prazo possível (ex.: o fim de semana inteiro para reservas de segunda); a revogação às 00:05 ainda libera o horário no próprio dia |
+| Prazo **não** é "24h / 1 dia útil depois do email" (alternativa avaliada em 09/11/2026) | Liberaria o horário um dia antes, mas o ganho é pequeno: o horário já é liberado às 00:05 do próprio dia e pode ser reservado até 20 min antes do fim (horários à noite). A alternativa criaria prazos de poucas horas para reservas feitas perto da data, exigiria tratar fim de semana e revogação de hora em hora. Rever só se, em uso, horários liberados no próprio dia ficarem vazios com a quadra lotada |
 | Reserva dentro da janela pede a confirmação **já na criação** | Um email só; também confirma que quem reservou é o dono do email (reserva com RA de outra pessoa cai sozinha) |
 | Reserva **para hoje** nasce confirmada | O prazo (dia anterior) já teria passado; um prazo de poucas horas exigiria revogação de hora em hora para um caso raro |
 | Email de confirmação também tem **Cancelar** | Quem não vai mais libera o horário na hora, sem esperar a revogação |

@@ -34,6 +34,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - **Cursos** ficam em tabela, para reaproveitar o sistema em outras instituições.
 - Nada é apagado: as entidades são **desativadas**. Aluno desativado tem as reservas futuras revogadas, com email. Aluno pode ser **anonimizado** (LGPD).
 - **Devolução** de equipamentos é registrada por item. Ela **não** mexe no estoque e **não** bloqueia o aluno. Avaria ou falta dispara email.
+- **Confirmação:** pedido 2 dias úteis antes; prazo até as 23:59 do dia anterior (mantido depois de avaliar a alternativa "1 dia útil depois do email"); reserva para hoje nasce confirmada; reserva dentro da janela pede confirmação já na criação.
 - O calendário público mostra **quem reservou** (nome e curso, nunca RA ou email).
 - O **front-end** será em **Angular**, num projeto separado. **Não usar Blade** para telas.
 - O banco de produção ainda não foi escolhido (MySQL ou Postgres). O código precisa funcionar nos dois.
