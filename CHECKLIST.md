@@ -13,7 +13,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 ## 📍 Onde paramos
 
 - **Último passo concluído:** passo 9, CI no GitHub Actions. **Primeira execução verde em 09/11/2026** (commit `43a0e74`): os 226 testes passaram em SQLite, **MySQL 8.0** e **Postgres 16**, além do Pint e do `composer audit`.
-- **Próximo passo:** passo 10, preparação para produção. **Proposta enviada em 09/11/2026, aguardando aprovação** (resumo no passo 10 do plano, abaixo).
+- **Próximo passo:** passo 10, preparação para produção. **Proposta enviada em 09/11/2026**: decisões 1, 2, 4, 5 e 6 definidas; falta o ok da **decisão 3** (como o admin de teste vira o admin do usuário em produção). Resumo no passo 10 do plano, abaixo.
 - **O usuário precisa:** dar push dos commits de documentação e rodar `migrate:fresh --seed` local, se ainda não rodou depois do passo 8.
 - **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions. Antes: fila e jobs; por que email não deve diferenciar maiúsculas; opção A do link do front (Angular, sem Blade); prazo da confirmação até a véspera (alternativa avaliada e descartada). Em 09/11 (passo 10): **alertas** (o que falha em silêncio hoje; alerta sem dados pessoais, enviado sem passar pela fila, no máximo 1 por hora por problema; monitor externo do `/up` para quando o próprio email cair) e **backup** (regra 3-2-1; banco gerenciado > `spatie/laravel-backup` com armazenamento externo > script manual; `.env` separado num gerenciador de senhas; retenção 7 diários/4 semanais/6 mensais; teste mensal de restauração; LGPD: criptografia, acesso restrito e refazer as anonimizações depois de uma restauração).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
@@ -36,7 +36,8 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Prioridades reforçadas pelo usuário (09/11):** **desempenho sempre priorizado** e **LGPD no sistema inteiro**, não só em partes; a trilha de ideias é atualizada a cada ideia, implementação, alteração ou decisão.
 - **Alertas e backup explicados (09/11):** alertas sem dados pessoais, fora da fila, com limite de repetição, mais monitor externo do `/up`. Backup 3-2-1, com retenção e teste de restauração; LGPD no backup (criptografia; refazer anonimizações após restaurar). Recomendação: banco gerenciado, senão `spatie/laravel-backup` com armazenamento externo. Pergunta em aberto: incluir o spatie já no passo 10 ou esperar a hospedagem.
 - **Respostas do usuário (09/11):** alertas para os admins ativos e para ele (`ALERTAS_EMAIL`); monitor externo depois (documentado); backup na hora do deploy; plataforma ainda não escolhida. **Recomendação de plataforma dada:** primeiro perguntar à TI da faculdade se há exigência de servidor próprio ou de dados no Brasil. Se não houver e o orçamento em dólar for ok: **Laravel Cloud** (menos manutenção: fila, agendador e banco gerenciado com backup). Se precisar de dados no Brasil ou de custo menor: **VPS na região de São Paulo** (com o guia do DEPLOY.md, ou com o Laravel Forge para automatizar). Front Angular em hospedagem estática (Cloudflare Pages, Netlify ou Vercel).
-- **Agora:** passo 10 aguardando a confirmação para implementar (decisões 1 e 3 como recomendado, 2 ajustada, backup e monitor fora).
+- **Decisão 1 do passo 10 (09/11):** traduções pt_BR aprovadas. Na decisão 3, o usuário avisou que o admin de teste vai virar o admin dele. Foi explicado que a senha `Admin` não pode ir para produção e recomendado criar o admin dele como principal pelo comando, com senha forte digitada no servidor.
+- **Agora:** passo 10 aguardando o ok da decisão 3 (admin dele criado pelo comando em produção) para implementar.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -194,9 +195,9 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
   - `APP_NAME` "Sistema de Reservas".
 - **`DEPLOY.md`:** requisitos, `.env.production.example`, passos de implantação, primeira vez (principal, feriados, verificação), Nginx com HTTPS, cron, supervisor, backup do banco por cron com cópia externa e checklist de LGPD.
 - **Decisões em aberto, com recomendação:**
-  1. traduções pt_BR geradas com o laravel-lang (só dev), com os arquivos no projeto e sem comentários: sim;
+  1. traduções pt_BR geradas com o laravel-lang (só dev), com os arquivos no projeto e sem comentários: **aprovado pelo usuário (09/11)**;
   2. alertas: **decisão do usuário (09/11): para todos os admins ativos** (são eles que cuidam da gerência) **e também para `ALERTAS_EMAIL`** (o email dele ou da TI), sem dados pessoais;
-  3. seeder de admin só em dev, principal por comando: sim;
+  3. seeder de admin só em dev, principal por comando: **em discussão**. O usuário disse (09/11) que o admin de teste vai virar o admin dele. Recomendação enviada: em produção, o admin dele é criado como **principal** pelo `admin:criar-principal` (mesmo nome e email, senha forte digitada na hora, nunca no código); o `AdminSeeder` com a senha `Admin` continua só em dev. Alternativa: o seeder ler nome, email e senha do `.env` em produção (descartada por deixar a senha num arquivo);
   4. backup: **decisão do usuário (09/11): fica para a hora do deploy**, quando a plataforma for escolhida (as opções explicadas estão em "Conceitos já explicados"). O `DEPLOY.md` traz a seção de backup como pendente, com as opções;
   5. onde vai hospedar? **O usuário ainda vai decidir** e pediu recomendação (dada em 09/11, ver Trilha de ideias). Até lá, o guia é genérico, com o caminho de VPS Linux com Nginx;
   6. **monitor externo do `/up`** (UptimeRobot ou Healthchecks.io): **fica para depois**, por decisão do usuário. A ideia está documentada nos opcionais e no DOCUMENTACAO.
