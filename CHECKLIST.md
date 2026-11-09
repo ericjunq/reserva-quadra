@@ -13,8 +13,8 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 ## 📍 Onde paramos
 
 - **Último passo concluído:** **passo 10, preparação para produção** (09/11/2026, 239 testes passando). Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS e proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` (recomendações de plataforma para o usuário negociar com a TI da faculdade).
-- **Em andamento:** análise do front de referência enviada (ver Trilha de ideias); aguardando o usuário decidir se segue essa base visual no Angular.
-- **Próximo passo:** passo 11, front-end em Angular (projeto separado). Enviar a proposta antes de começar.
+- **Em andamento:** **proposta do passo 11 enviada em 09/11/2026, aguardando aprovação** (8 decisões, no passo 11 do plano). A base visual já foi aprovada.
+- **Próximo passo:** com a aprovação, implementar o subpasso 11.1 (base do projeto Angular).
 - **Pendente para o deploy (decisão do usuário):** escolher a plataforma (ver `HOSPEDAGEM.md`), definir o backup e o monitor externo.
 - **O usuário precisa:** dar push dos commits; o `.env` local dele ganhou `ADMIN_INICIAL_NOME/EMAIL/SENHA` (Eric / admin@email.com / Admin), `ALERTAS_EMAIL`, `APP_LOCALE=pt_BR`, `LOG_STACK=daily` e `APP_NAME`; **no outro PC**, copiar essas linhas do `.env.example` para o `.env` de lá, senão o `migrate:fresh --seed` não cria o admin (o seeder avisa e segue).
 - **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions. Antes: fila e jobs; por que email não deve diferenciar maiúsculas; opção A do link do front (Angular, sem Blade); prazo da confirmação até a véspera (alternativa avaliada e descartada). Em 09/11 (passo 10): **alertas** (o que falha em silêncio hoje; alerta sem dados pessoais, enviado sem passar pela fila, no máximo 1 por hora por problema; monitor externo do `/up` para quando o próprio email cair) e **backup** (regra 3-2-1; banco gerenciado > `spatie/laravel-backup` com armazenamento externo > script manual; `.env` separado num gerenciador de senhas; retenção 7 diários/4 semanais/6 mensais; teste mensal de restauração; LGPD: criptografia, acesso restrito e refazer as anonimizações depois de uma restauração).
@@ -43,7 +43,9 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Passo 10 implementado (09/11):** o laravel-lang exigia a extensão `bcmath` (ausente no PHP local), então foi instalado só para gerar `lang/pt_BR` e removido (sem dependência). CORS com uma origem só devolve sempre essa origem e o navegador bloqueia as outras. Alertas sem a mensagem do erro (pode ter dados pessoais), enviados sem fila, 1 por hora por problema, e abandonam o envio no primeiro erro de SMTP (desempenho).
 - **Front de referência (09/11):** o usuário mostrou o front que um amigo começou em React + Tailwind (`github.com/ericjunq/unifg-reservas`, pasta `frontend`: Home, Reserva, Cadastro). Análise: a identidade visual é boa (azul e amarelo da UniFG, Montserrat, títulos em itálico, tela de reserva com calendário e resumo lateral), mas há problemas: imagens de 2,7 MB e 2,2 MB; hero com texto dentro da imagem e cara de gerado por IA; telas só da quadra; dados fixos que não batem com a API (horários, fins de semana, materiais, cursos); campo de telefone que a API não coleta; email que falta; acessibilidade e cores inconsistentes. Recomendação: manter a identidade e o layout, refazer em Angular (com Tailwind) ligado à API.
 - **Esclarecimento do usuário (09/11):** do front de referência, interessa **só a identidade visual** (cores, fonte, estilo), não o código nem as telas. Feedback dado só sobre o visual.
-- **Agora:** aguardando o usuário dizer se segue essa identidade visual; depois, a proposta do passo 11 (Angular).
+- **Base visual aprovada (09/11):** o usuário aprovou seguir a identidade de referência com os ajustes (paleta única, foto real, ícones de traço, admin neutro). Documentada no DOCUMENTACAO.
+- **Proposta do passo 11 (09/11):** Angular + Tailwind + CDK, em subpassos 11.1 a 11.8. Recomendações: pasta `frontend/` neste repositório; token em `sessionStorage`; sem biblioteca de componentes pesada; signals; fonte hospedada no site (LGPD); página de privacidade; sem rastreamento.
+- **Agora:** proposta do passo 11 enviada, aguardando aprovação das decisões 1 a 8.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -216,10 +218,31 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - **LGPD:** HTTPS e HSTS, CORS restrito, `APP_DEBUG` desligado, **alertas sem dados pessoais** (só a tarefa, a data e o tipo do erro), logs por 14 dias e sem dados pessoais, backups criptografados com acesso restrito e prazo de guarda, sem dados de teste em produção.
 - **Antes:** CORS, fila, cron e supervisor já estavam previstos aqui; cron e supervisor já estão documentados no DOCUMENTACAO (passo 4).
 
-### 11. ⬜ Front-end em Angular (projeto separado)
-- Público: cadastro de aluno, calendário de disponibilidade, reserva com equipamentos, minhas reservas (RA + email) e as páginas de cancelar e confirmar (links dos emails).
-- Admin: login e redefinição de senha, painel de reservas (filtros, totais, exportação), devoluções pendentes, espaços, equipamentos, cursos, alunos, datas bloqueadas, eventos, admins e histórico.
-- Consome esta API. Os links dos emails usam `FRONTEND_URL`.
+### 11. ⬜ Front-end em Angular — *proposta enviada em 09/11/2026, aguardando aprovação*
+- **Base visual (decisão do usuário, 09/11):** a identidade do front de referência (`github.com/ericjunq/unifg-reservas`, pasta `frontend`), **com os ajustes**: paleta única, foto real no topo com o título em texto, ícones de traço em vez de emojis, tom esportivo só na área pública e admin neutro. Do front de referência vale **só o visual**, não o código. Detalhes em DOCUMENTACAO, "Front-end: identidade visual".
+- **Stack proposta:** Angular (versão estável mais recente, componentes standalone, signals, sem zone.js), Tailwind CSS v4, Angular CDK (diálogos, foco e teclado acessíveis), ícones Lucide, Montserrat hospedada no próprio site, testes unitários com o runner padrão do Angular e Playwright nos fluxos principais.
+- **Telas que o front precisa ter** (links dos emails já usados pela API): `/reservas/cancelar/:token`, `/reservas/confirmar/:token`, `/aceitar-convite/:token`, `/redefinir-senha/:token`.
+- **Subpassos (cada um com proposta curta, testes e commit):**
+  - 11.1 Base: projeto, Tailwind com a paleta, fontes, ícones, layouts público e admin, cliente HTTP (URL da API, token, erros 401/409/422/429), rotas com carregamento sob demanda, datas em pt-BR, testes e CI do front.
+  - 11.2 Público, reserva: início com os espaços, calendário de disponibilidade (FIXO e LIVRE), reserva com equipamentos, cadastro do aluno.
+  - 11.3 Público, pós-reserva: minhas reservas (RA + email), cancelar e confirmar pelo link, página de privacidade.
+  - 11.4 Admin, acesso: login, esqueci e redefinir senha, aceitar convite, trocar senha, sair.
+  - 11.5 Admin, reservas: lista com filtros e totais, detalhe, revogar, eventos, devolução, exportação.
+  - 11.6 Admin, cadastros: espaços, equipamentos, cursos, alunos (com anonimização), datas bloqueadas, admins.
+  - 11.7 Admin, histórico de auditoria.
+  - 11.8 Acabamento: acessibilidade, orçamento de desempenho, guia de deploy do front.
+- **Decisões em aberto, com recomendação:**
+  1. onde fica o código: **pasta `frontend/` neste mesmo repositório** (um lugar só para os guias, para o CI e para mudanças de API e front no mesmo commit; o deploy continua separado) em vez de um repositório novo;
+  2. onde guardar o token do admin: **`sessionStorage`** (some ao fechar a aba), com saída automática no 401 e cabeçalhos de segurança no front. Alternativas: `localStorage` (fica mais tempo exposto) ou login por cookie do Sanctum (mais seguro, mas exige API e front no mesmo domínio e mudanças na API; fica como evolução);
+  3. componentes: **Tailwind + componentes próprios + Angular CDK**, em vez de Angular Material ou PrimeNG (pesam mais e impõem outro visual);
+  4. estado: **signals e services**, sem NgRx (o sistema não precisa);
+  5. fonte **hospedada no próprio site** (sem Google Fonts, que recebe o IP de cada visitante) e só 3 pesos;
+  6. foto do topo: **o usuário consegue uma foto real da quadra** (com a faculdade); até lá, um fundo com as cores e os detalhes gráficos;
+  7. **página de privacidade** (transparência da LGPD): o que é coletado, para quê, por quanto tempo e como pedir a anonimização. O texto deve ser validado com a faculdade;
+  8. **sem ferramentas de rastreamento** (Google Analytics e afins) no front.
+- **Desempenho:** área pública e admin em pacotes separados, carregados sob demanda (o aluno não baixa o admin); orçamento de tamanho no build; imagens WebP/AVIF com versões por tamanho de tela; filtros com espera ao digitar; paginação e exportação feitas pela API.
+- **LGPD:** RA e email só no corpo das requisições e só na memória da tela (nada em URL, `localStorage` ou log); tokens dos links trocados logo na abertura da página e o front com `Referrer-Policy: no-referrer`; mensagens genéricas iguais às da API; sem rastreamento; página de privacidade.
+- **Regras do projeto valem no front:** nenhum comentário no código, nomes em português, um commit por alteração, testes antes de cada commit, proposta antes de cada subpasso.
 
 ### 12. ⬜ Final — API para terceiros autorizados
 - Tabela de **clientes de API** gerenciada pelos admins, com tokens Sanctum por cliente e permissões por *ability* (ex.: `reservas:ler`, `reservas:criar`), que podem ser revogadas.

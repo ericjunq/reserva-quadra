@@ -713,6 +713,31 @@ Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e re
 2. **API para terceiros autorizados.**
 3. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
 
+### Front-end: identidade visual
+
+Aprovada pelo usuário em 09/11/2026. Parte da identidade do front que um colega começou (`github.com/ericjunq/unifg-reservas`, pasta `frontend`; só o visual, não o código), com ajustes.
+
+| Elemento | Definição |
+|---|---|
+| Azul principal | `#0D2C6B` (botões, títulos, cabeçalho) |
+| Azul escuro | `#06163A` (rodapé, textos fortes) |
+| Azul médio | `#144096` (hover, links) |
+| Amarelo | `#F5B400` (destaques, item selecionado, detalhes). **Nunca como cor de texto sobre branco** (contraste baixo); texto sobre ele em azul principal |
+| Neutros | escala `slate` do Tailwind; textos secundários no mínimo em `slate-600`, para manter o contraste |
+| Estados | verde para sucesso, vermelho para erro, amarelo para aviso |
+| Fonte | Montserrat, hospedada no próprio site, pesos 400, 600 e 800; títulos em 800 itálico |
+| Detalhes gráficos | grade de pontinhos, tracinhos inclinados, faixa diagonal, rodapé azul com curva |
+| Componentes | cartões brancos arredondados com sombra suave sobre fundo claro; botões em pílula |
+| Ícones | Lucide (traço), em vez de emojis |
+
+**Ajustes em relação à referência:**
+- **paleta única:** a referência tinha dois amarelos e vários azuis;
+- **foto real da quadra** no topo, com o título em texto HTML por cima. A imagem da referência parecia gerada por IA e tinha o texto embutido;
+- **tom esportivo só na área pública** ligada à quadra. O admin usa a mesma paleta, de forma neutra e sem as decorações;
+- **imagens otimizadas** (WebP/AVIF, uma versão por tamanho de tela) e acessibilidade (contraste, foco visível, textos alternativos).
+
+O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
+
 ### Ideias registradas para depois
 
 - **Monitor externo da API:** um serviço gratuito (UptimeRobot ou Healthchecks.io) consulta `GET /up` a cada poucos minutos e avisa por outro canal (app, SMS, Telegram) quando a API não responde. Cobre o caso em que o próprio serviço de email cai e os alertas por email não saem. É configurado fora do código, na hora do deploy.
