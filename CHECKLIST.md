@@ -6,15 +6,17 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 09/11/2026 · 226 testes passando
+Última atualização: 09/11/2026 · 239 testes passando
 
 ---
 
 ## 📍 Onde paramos
 
-- **Último passo concluído:** passo 9, CI no GitHub Actions. **Primeira execução verde em 09/11/2026** (commit `43a0e74`): os 226 testes passaram em SQLite, **MySQL 8.0** e **Postgres 16**, além do Pint e do `composer audit`.
-- **Próximo passo:** passo 10, preparação para produção. **Proposta enviada em 09/11/2026**: decisões 1, 2, 4, 5 e 6 definidas; falta o ok da **decisão 3** (como o admin de teste vira o admin do usuário em produção). Resumo no passo 10 do plano, abaixo.
-- **O usuário precisa:** dar push dos commits de documentação e rodar `migrate:fresh --seed` local, se ainda não rodou depois do passo 8.
+- **Último passo concluído:** **passo 10, preparação para produção** (09/11/2026, 239 testes passando). Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS e proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` (recomendações de plataforma para o usuário negociar com a TI da faculdade).
+- **Em andamento:** nada.
+- **Próximo passo:** passo 11, front-end em Angular (projeto separado). Enviar a proposta antes de começar.
+- **Pendente para o deploy (decisão do usuário):** escolher a plataforma (ver `HOSPEDAGEM.md`), definir o backup e o monitor externo.
+- **O usuário precisa:** dar push dos commits; o `.env` local dele ganhou `ADMIN_INICIAL_NOME/EMAIL/SENHA` (Eric / admin@email.com / Admin), `ALERTAS_EMAIL`, `APP_LOCALE=pt_BR`, `LOG_STACK=daily` e `APP_NAME`; **no outro PC**, copiar essas linhas do `.env.example` para o `.env` de lá, senão o `migrate:fresh --seed` não cria o admin (o seeder avisa e segue).
 - **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions. Antes: fila e jobs; por que email não deve diferenciar maiúsculas; opção A do link do front (Angular, sem Blade); prazo da confirmação até a véspera (alternativa avaliada e descartada). Em 09/11 (passo 10): **alertas** (o que falha em silêncio hoje; alerta sem dados pessoais, enviado sem passar pela fila, no máximo 1 por hora por problema; monitor externo do `/up` para quando o próprio email cair) e **backup** (regra 3-2-1; banco gerenciado > `spatie/laravel-backup` com armazenamento externo > script manual; `.env` separado num gerenciador de senhas; retenção 7 diários/4 semanais/6 mensais; teste mensal de restauração; LGPD: criptografia, acesso restrito e refazer as anonimizações depois de uma restauração).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
@@ -37,7 +39,9 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Alertas e backup explicados (09/11):** alertas sem dados pessoais, fora da fila, com limite de repetição, mais monitor externo do `/up`. Backup 3-2-1, com retenção e teste de restauração; LGPD no backup (criptografia; refazer anonimizações após restaurar). Recomendação: banco gerenciado, senão `spatie/laravel-backup` com armazenamento externo. Pergunta em aberto: incluir o spatie já no passo 10 ou esperar a hospedagem.
 - **Respostas do usuário (09/11):** alertas para os admins ativos e para ele (`ALERTAS_EMAIL`); monitor externo depois (documentado); backup na hora do deploy; plataforma ainda não escolhida. **Recomendação de plataforma dada:** primeiro perguntar à TI da faculdade se há exigência de servidor próprio ou de dados no Brasil. Se não houver e o orçamento em dólar for ok: **Laravel Cloud** (menos manutenção: fila, agendador e banco gerenciado com backup). Se precisar de dados no Brasil ou de custo menor: **VPS na região de São Paulo** (com o guia do DEPLOY.md, ou com o Laravel Forge para automatizar). Front Angular em hospedagem estática (Cloudflare Pages, Netlify ou Vercel).
 - **Decisão 1 do passo 10 (09/11):** traduções pt_BR aprovadas. Na decisão 3, o usuário avisou que o admin de teste vai virar o admin dele. Foi explicado que a senha `Admin` não pode ir para produção e recomendado criar o admin dele como principal pelo comando, com senha forte digitada no servidor.
-- **Agora:** passo 10 aguardando o ok da decisão 3 (admin dele criado pelo comando em produção) para implementar.
+- **Decisão 3 do passo 10 (09/11):** o usuário preferiu o admin inicial **pelo `.env`** (`ADMIN_INICIAL_*`), mantido enquanto o projeto está em desenvolvimento; depois ele pode remover e criar o admin manualmente. Ficou assim: sem senha no `.env`, o seeder não cria admin; o verificador acusa ❌ se `ADMIN_INICIAL_SENHA` estiver preenchida em produção; o `DEPLOY.md` recomenda `admin:criar-principal`. Ele também pediu as recomendações de plataforma num arquivo para negociar com a TI: `HOSPEDAGEM.md`.
+- **Passo 10 implementado (09/11):** o laravel-lang exigia a extensão `bcmath` (ausente no PHP local), então foi instalado só para gerar `lang/pt_BR` e removido (sem dependência). CORS com uma origem só devolve sempre essa origem e o navegador bloqueia as outras. Alertas sem a mensagem do erro (pode ter dados pessoais), enviados sem fila, 1 por hora por problema, e abandonam o envio no primeiro erro de SMTP (desempenho).
+- **Agora:** passo 10 concluído; próximo é a proposta do passo 11 (Angular).
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -127,7 +131,12 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] CI no GitHub Actions: testes em SQLite, MySQL e Postgres, Pint e `composer audit` a cada push
 - [x] Dependências sem vulnerabilidades conhecidas (`composer audit`)
 - [x] Equipamentos calculados pelo pico de uso no intervalo
-- [x] 226 testes automáticos passando
+- [x] Mensagens de validação em português (pt_BR)
+- [x] CORS só para o front, cabeçalhos de segurança, HTTPS em produção e proxies confiáveis
+- [x] Alertas por email aos admins e ao `ALERTAS_EMAIL` quando uma tarefa agendada ou um job falha
+- [x] Logs diários guardados por 14 dias
+- [x] `php artisan sistema:verificar-producao` e guia de implantação (`DEPLOY.md`)
+- [x] 239 testes automáticos passando
 
 ---
 
@@ -183,7 +192,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - `.github/workflows/ci.yml`: push e PR na `main`; job de Pint (`--test`) + `composer audit`; testes em matriz SQLite, MySQL 8.0 e Postgres 16 (serviços do Actions), PHP 8.3, cache do Composer.
 - Sem branch protection por enquanto (trabalho direto na `main`); explicado no DOCUMENTACAO como ativar.
 
-### 10. ⬜ Preparação para produção — *proposta enviada em 09/11/2026, aguardando aprovação*
+### 10. ✅ Preparação para produção — *concluído em 09/11/2026 (239 testes)*
 - **Código:**
   - CORS só para o front (`CORS_ALLOWED_ORIGINS`) e cabeçalhos de segurança (nosniff, frame, referrer, HSTS com HTTPS);
   - HTTPS forçado em produção e `TRUSTED_PROXIES`;
@@ -197,7 +206,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - **Decisões em aberto, com recomendação:**
   1. traduções pt_BR geradas com o laravel-lang (só dev), com os arquivos no projeto e sem comentários: **aprovado pelo usuário (09/11)**;
   2. alertas: **decisão do usuário (09/11): para todos os admins ativos** (são eles que cuidam da gerência) **e também para `ALERTAS_EMAIL`** (o email dele ou da TI), sem dados pessoais;
-  3. seeder de admin só em dev, principal por comando: **em discussão**. O usuário disse (09/11) que o admin de teste vai virar o admin dele. Recomendação enviada: em produção, o admin dele é criado como **principal** pelo `admin:criar-principal` (mesmo nome e email, senha forte digitada na hora, nunca no código); o `AdminSeeder` com a senha `Admin` continua só em dev. Alternativa: o seeder ler nome, email e senha do `.env` em produção (descartada por deixar a senha num arquivo);
+  3. seeder de admin: **decisão do usuário (09/11): dados do admin inicial no `.env`** (`ADMIN_INICIAL_*`), enquanto estiver em desenvolvimento. Histórico da discussão: O usuário disse (09/11) que o admin de teste vai virar o admin dele. Recomendação enviada: em produção, o admin dele é criado como **principal** pelo `admin:criar-principal` (mesmo nome e email, senha forte digitada na hora, nunca no código); o `AdminSeeder` com a senha `Admin` continua só em dev. Alternativa: o seeder ler nome, email e senha do `.env` em produção (descartada por deixar a senha num arquivo);
   4. backup: **decisão do usuário (09/11): fica para a hora do deploy**, quando a plataforma for escolhida (as opções explicadas estão em "Conceitos já explicados"). O `DEPLOY.md` traz a seção de backup como pendente, com as opções;
   5. onde vai hospedar? **O usuário ainda vai decidir** e pediu recomendação (dada em 09/11, ver Trilha de ideias). Até lá, o guia é genérico, com o caminho de VPS Linux com Nginx;
   6. **monitor externo do `/up`** (UptimeRobot ou Healthchecks.io): **fica para depois**, por decisão do usuário. A ideia está documentada nos opcionais e no DOCUMENTACAO.
@@ -237,3 +246,4 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - [x] Convite para acessar o sistema (admin novo)
 - [x] Redefinição de senha do admin
 - [x] Sua senha foi alterada
+- [x] Alerta do sistema (tarefa agendada ou job que falhou), para admins ativos e `ALERTAS_EMAIL`

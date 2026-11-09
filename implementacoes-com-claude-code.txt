@@ -1377,3 +1377,103 @@ CLAUDE.md
 CHECKLIST.md
   - Nova seção "🧵 Trilha de ideias", com o histórico resumido do raciocínio desde o início e a
     linha "Agora:".
+
+========================================================================
+37. PASSO 10: PREPARAÇÃO PARA PRODUÇÃO
+========================================================================
+
+Aprovado pelo usuário (09/11/2026): traduções pt_BR (decisão 1); alertas para os admins ativos e
+para ALERTAS_EMAIL (decisão 2); admin inicial lido do .env, mantido em desenvolvimento
+(decisão 3, ajustada por ele); backup e monitor externo para a hora do deploy; plataforma ainda
+não escolhida (recomendações em HOSPEDAGEM.md). 239 testes passando.
+
+lang/pt_BR/*.php e lang/pt_BR.json (novos)
+  - Gerados por "php artisan lang:add pt_BR" do laravel-lang/common. O pacote exige a extensão
+    bcmath, que não existe no PHP local; foi instalado com --ignore-platform-req=ext-bcmath só
+    para gerar os arquivos e removido em seguida (composer.json e composer.lock sem mudança).
+  - Removidos actions.php e http-statuses.php (não usados). Em validation.php, as duas mensagens
+    que vieram em inglês (array_keys, base64) foram traduzidas, e a lista "attributes" genérica
+    foi trocada pelos campos reais dos FormRequests (ex.: data_reserva → "data da reserva",
+    registro_academico → "RA", password → "senha"). O pt_BR.json traduz os textos dos emails
+    Markdown do Laravel (rodapé, botão).
+config/app.php
+  - locale padrão pt_BR; name padrão "Sistema de Reservas"; trusted_proxies lido de
+    TRUSTED_PROXIES (aqui e não com env() no bootstrap, porque com config:cache o env() do
+    bootstrap volta null).
+
+config/cors.php (novo; publicado com config:publish cors, sem comentários)
+  - paths só api/*; métodos explícitos; allowed_origins de CORS_ALLOWED_ORIGINS (lista por
+    vírgula), com FRONTEND_URL como padrão; headers permitidos explícitos; expõe
+    Content-Disposition (nome do arquivo da exportação); max_age 86400 (desempenho: o navegador
+    não repete o OPTIONS a cada chamada); supports_credentials false (token Bearer, sem cookie).
+  - Observação: com uma origem só, a biblioteca devolve sempre essa origem, e o navegador
+    bloqueia as outras. O teste confere que a origem estranha nunca é devolvida.
+app/Http/Middleware/CabecalhosDeSeguranca.php (novo)
+  - nosniff, X-Frame-Options DENY, Referrer-Policy no-referrer em toda resposta (inclusive o
+    stream da exportação); HSTS de 1 ano só quando a requisição é HTTPS.
+bootstrap/app.php
+  - $middleware->append(CabecalhosDeSeguranca::class).
+app/Providers/AppServiceProvider.php
+  - TrustProxies::at(...) com '*' ou a lista de TRUSTED_PROXIES, para o Laravel enxergar HTTPS
+    e o IP real atrás de proxy/balanceador.
+  - URL::forceHttps() em produção.
+  - Queue::failing: a cada JobFailed chama AlertaService::jobFalhou com o nome curto do job e a
+    classe da exceção (nunca a mensagem).
+
+config/reservas.php
+  - alertas_email (ALERTAS_EMAIL), alertas_intervalo_minutos (60), admin_inicial (nome, email,
+    senha de ADMIN_INICIAL_*; sem valores padrão, para produção nunca ganhar uma senha fixa).
+app/Services/AlertaService.php (novo)
+  - tarefaFalhou(tarefa) e jobFalhou(job, tipoDoErro) montam assunto e descrição sem dados
+    pessoais.
+  - Cache::add('alerta:<chave>', ..., intervalo): atômico; se a chave já existe, outro alerta do
+    mesmo problema saiu há menos de 1 hora e este é ignorado.
+  - Destinatários: admins ativos com convite aceito + lista do ALERTAS_EMAIL, normalizados em
+    minúsculas e sem repetição. Um email por destinatário (um não vê o endereço do outro).
+  - Envio com send() (sem fila): se o problema for a própria fila, o alerta ainda sai. No
+    primeiro erro de envio, registra no log (só a chave e a classe do erro) e para, para não
+    esperar o timeout do SMTP uma vez por destinatário.
+app/Mail/AlertaSistemaMail.php (novo) + resources/views/emails/alerta-sistema.blade.php (novo)
+  - Mailable sem ShouldQueue. Assunto "[Alerta] ...". Corpo: descrição, data/hora, onde ver os
+    detalhes (storage/logs) e o intervalo até um novo aviso.
+routes/console.php
+  - Closure $alertarSeFalhar(nome) devolve o callback de onFailure; cada tarefa agendada ganhou
+    ->onFailure com um nome legível. onFailure roda quando o comando termina com código ≠ 0
+    (inclui exceção).
+
+config/logging.php
+  - LOG_STACK padrão "daily" (o canal daily já usava LOG_DAILY_DAYS = 14). .env.example com
+    LOG_STACK=daily; em produção LOG_LEVEL=warning.
+
+database/seeders/AdminSeeder.php
+  - Lê config('reservas.admin_inicial'). Sem email ou senha, avisa no terminal e não cria nada
+    (o DatabaseSeeder continua com os cursos). Email normalizado; firstOrCreate não duplica;
+    marca como principal se ainda não houver um.
+.env.example
+  - APP_NAME, APP_LOCALE=pt_BR, CORS_ALLOWED_ORIGINS, TRUSTED_PROXIES, LOG_STACK=daily,
+    ALERTAS_EMAIL e ADMIN_INICIAL_* (Eric / admin@email.com / Admin, só para dev).
+    O .env local do usuário recebeu as mesmas linhas (o .env não vai para o git).
+
+app/Console/Commands/VerificarProducao.php (novo): sistema:verificar-producao
+  - Lista de [descrição, ok, dica]; imprime ✅ ou ❌ com a dica e devolve FAILURE se algo
+    falhar. Confere: APP_ENV, APP_DEBUG, APP_KEY, APP_URL e FRONTEND_URL em HTTPS, CORS só
+    HTTPS, banco responde e é MySQL/Postgres, fila fora do sync, mailer e remetente, cache fora
+    do array, logs diários com nível ≥ warning, ALERTAS_EMAIL, ADMIN_INICIAL_SENHA vazio, admin
+    principal ativo, feriados do ano importados, caches de config/rotas/eventos.
+  - Consultas: 2 pequenas (principal e existência de feriado), só se o banco responder.
+
+.env.production.example (novo), DEPLOY.md (novo), HOSPEDAGEM.md (novo)
+  - DEPLOY: requisitos, tabela do .env, comandos de cada deploy (down, pull, composer --no-dev
+    --optimize-autoloader, migrate --force, optimize, queue:restart, up), primeira vez (key,
+    CursoSeeder, admin:criar-principal ou a alternativa pelo .env apagando a senha depois,
+    feriados do ano e do próximo, verificador), Nginx com HTTPS e gzip, cron, supervisor,
+    permissões, desempenho, backup pendente e checklist de LGPD (inclui logrotate do Nginx em
+    14 dias, porque o access_log guarda IPs).
+  - HOSPEDAGEM: o que o sistema precisa, perguntas para a TI, tabela de opções, recomendação e
+    LGPD na escolha. Pedido do usuário para negociar com a faculdade.
+
+Testes (novos): TraducaoTest, SegurancaHttpTest, AlertaTest, AdminSeederTest,
+VerificarProducaoTest.
+  - AlertaTest força a falha de um job com dispatch de closure (fila sync) e, para o agendador,
+    carrega as tarefas com schedule:list, põe exitCode = 1 e chama callAfterCallbacks: as 6
+    tarefas geram alerta; com exitCode 0, nenhuma.

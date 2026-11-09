@@ -61,7 +61,8 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - **Sem código morto** nem métodos vazios gerados pelo artisan.
 - **Formatação:** rodar `./vendor/bin/pint` antes de commitar (`pint.json` mantém o alinhamento de `=>`).
 - **Migrations** existentes são editadas no lugar, porque o banco de desenvolvimento é recriado com frequência. Quem roda `php artisan migrate:fresh --seed` é **o usuário**.
-- A senha `Admin` do `AdminSeeder` é **intencional**, para desenvolvimento. Não apontar como problema, a menos que o assunto seja produção.
+- O `AdminSeeder` lê nome, email e senha do `.env` (`ADMIN_INICIAL_*`); a senha `Admin` do `.env.example` é **intencional**, para desenvolvimento (decisão do usuário: o admin de teste vira o admin dele). Não apontar como problema, a menos que o assunto seja produção (lá, `admin:criar-principal` e `ADMIN_INICIAL_SENHA` vazia).
+- Configuração nova que depende do ambiente vai para `config/*.php` lendo o `.env`, e entra no `.env.example`, no `.env.production.example` e na tabela de variáveis do DOCUMENTACAO. Nunca usar `env()` fora de `config/`, porque o `config:cache` de produção o ignora.
 - O campo de data da reserva se chama `data_reserva`, nunca `data`, porque um campo `data` faria o resource perder o wrapper `{"data": ...}`.
 - O **front-end será em Angular**, num projeto separado. **Não criar telas em Blade.** Links de email apontam para `FRONTEND_URL`.
 
