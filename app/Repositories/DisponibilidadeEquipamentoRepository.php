@@ -16,15 +16,9 @@ class DisponibilidadeEquipamentoRepository
             return collect();
         }
 
-        return $this->reservasAtivas()
-            ->whereIn('item_reservas.equipamento_id', $ids)
-            ->where('reservas.data_reserva', $data)
-            ->where('reservas.hora_inicio', '<', $fim)
-            ->where('reservas.hora_fim', '>', $inicio)
-            ->groupBy('item_reservas.equipamento_id')
-            ->selectRaw('item_reservas.equipamento_id, SUM(item_reservas.quantidade) as total')
-            ->pluck('total', 'equipamento_id')
-            ->map(fn ($total) => (int) $total);
+        return $this->intervalosEmUso($ids, $data, $data, $inicio, $fim)
+            ->groupBy('equipamento_id')
+            ->map(fn (Collection $linhas) => self::pico($linhas, $inicio, $fim));
     }
 
     public function disponiveis(iterable $equipamentos, string $data, string $inicio, string $fim): Collection
@@ -43,9 +37,53 @@ class DisponibilidadeEquipamentoRepository
             return collect();
         }
 
+        return $this->intervalosEmUso($ids, $de, $ate);
+    }
+
+    public function maiorUsoFuturo(Equipamento $equipamento): int
+    {
+        return (int) $this->intervalosEmUso([$equipamento->id], today()->toDateString())
+            ->groupBy('data')
+            ->map(fn (Collection $linhas) => self::pico($linhas, '00:00:00', '24:00:00'))
+            ->max();
+    }
+
+    public static function pico(Collection $linhas, string $inicio, string $fim): int
+    {
+        $eventos = [];
+
+        foreach ($linhas as $linha) {
+            $de = max($linha->hora_inicio, $inicio);
+            $ate = min($linha->hora_fim, $fim);
+
+            if ($de < $ate) {
+                $eventos[] = [$de, $linha->total];
+                $eventos[] = [$ate, -$linha->total];
+            }
+        }
+
+        usort($eventos, fn (array $a, array $b) => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
+
+        $atual = 0;
+        $pico = 0;
+
+        foreach ($eventos as [, $variacao]) {
+            $atual += $variacao;
+            $pico = max($pico, $atual);
+        }
+
+        return $pico;
+    }
+
+    private function intervalosEmUso(array $ids, string $de, ?string $ate = null, ?string $inicio = null, ?string $fim = null): Collection
+    {
         return $this->reservasAtivas()
             ->whereIn('item_reservas.equipamento_id', $ids)
-            ->whereBetween('reservas.data_reserva', [$de, $ate])
+            ->where('reservas.data_reserva', '>=', $de)
+            ->when($ate, fn ($q) => $q->where('reservas.data_reserva', '<=', $ate))
+            ->when($inicio && $fim, fn ($q) => $q
+                ->where('reservas.hora_inicio', '<', $fim)
+                ->where('reservas.hora_fim', '>', $inicio))
             ->groupBy('reservas.data_reserva', 'reservas.hora_inicio', 'reservas.hora_fim', 'item_reservas.equipamento_id')
             ->selectRaw('reservas.data_reserva, reservas.hora_inicio, reservas.hora_fim, item_reservas.equipamento_id, SUM(item_reservas.quantidade) as total')
             ->get()
@@ -56,17 +94,6 @@ class DisponibilidadeEquipamentoRepository
                 'equipamento_id' => (int) $linha->equipamento_id,
                 'total'          => (int) $linha->total,
             ]);
-    }
-
-    public function maiorUsoFuturo(Equipamento $equipamento): int
-    {
-        return (int) ($this->reservasAtivas()
-            ->where('item_reservas.equipamento_id', $equipamento->id)
-            ->where('reservas.data_reserva', '>=', today()->toDateString())
-            ->groupBy('reservas.data_reserva', 'reservas.hora_inicio')
-            ->selectRaw('SUM(item_reservas.quantidade) as total')
-            ->orderByDesc('total')
-            ->value('total') ?? 0);
     }
 
     private function reservasAtivas(): Builder

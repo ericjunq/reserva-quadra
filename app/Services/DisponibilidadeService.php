@@ -111,10 +111,7 @@ class DisponibilidadeService
         }
 
         $resultado['equipamentos'] = $equipamentos->map(function ($equipamento) use ($uso, $inicio, $fim) {
-            $emUso = $uso
-                ->where('equipamento_id', $equipamento->id)
-                ->filter(fn ($linha) => $linha->hora_inicio < $fim && $linha->hora_fim > $inicio)
-                ->sum('total');
+            $emUso = DisponibilidadeEquipamentoRepository::pico($uso->where('equipamento_id', $equipamento->id), $inicio, $fim);
 
             return [
                 'id'         => $equipamento->id,
