@@ -20,7 +20,7 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - Decisões tomadas não são reabertas. Ficam registradas no `CHECKLIST.md` e no `DOCUMENTACAO.md`.
 
 ### Código
-- **Sem comentários no código.** Explicações e comentários vão para `implementacoes-com-claude-code.txt`, indicando o arquivo. Os docblocks padrão do Laravel que já existem podem ficar.
+- **Nenhum comentário no código**, nem os padrões do Laravel (removidos em 09/11/2026 a pedido do usuário). Isso vale para PHP, Blade, JS e CSS. Explicações e comentários vão para `implementacoes-com-claude-code.txt`, indicando o arquivo. Arquivos gerados pelo artisan ou por pacotes (configs publicadas, stubs) devem ter os comentários removidos ao entrar no projeto.
 - **Arquitetura:** o request (FormRequest) valida, o controller é fino, o service guarda a regra de negócio e o resource formata a saída.
 - **Repositórios** (`app/Repositories`) **só** para consultas complexas ou reaproveitadas em mais de um lugar. CRUD simples usa Eloquent direto no service.
 - **Nomes** de métodos e variáveis em português, no padrão do projeto: `criar`, `listarPaginado`, `detalhar`, `atualizar`, `desativar`.

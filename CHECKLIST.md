@@ -16,6 +16,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - **Próximo passo:** passo 5, item 10 (admins: `UserResource` no `/me` e no login, cadastro de admins por convite, desativação). **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação. O convite reaproveita a redefinição de senha do passo 6; avaliar na proposta se os dois passos devem ser feitos juntos.
 - **O usuário precisa:** dar push. Não há migration nova.
 - **Conceitos já explicados ao usuário:** fila e jobs (seção "Fila e jobs" do DOCUMENTACAO).
+- **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 

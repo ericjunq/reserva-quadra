@@ -1076,3 +1076,26 @@ DOCUMENTACAO.md
 
 tests/Feature/AgendadorTest.php (novo) — 4 testes (171 no total). Lê os eventos do Schedule
 para conferir expressão cron, withoutOverlapping e argumentos.
+
+========================================================================
+29. REMOÇÃO DE TODOS OS COMENTÁRIOS DO CÓDIGO
+========================================================================
+
+Pedido do usuário (09/11/2026): apagar todos os comentários do código. O código escrito no
+projeto já não tinha nenhum; os 78 restantes eram os padrões do Laravel.
+
+Arquivos limpos
+  - config/app.php, auth.php, cache.php, database.php, filesystems.php, logging.php, mail.php,
+    queue.php, sanctum.php, services.php, session.php (blocos explicativos de cada opção).
+  - public/index.php, artisan, tests/Feature/ExampleTest.php, tests/Unit/ExampleTest.php.
+  - resources/views/welcome.blade.php ({{-- --}} e <!-- -->) e resources/js/app.js (só "//").
+
+Como foi feito
+  - Script com token_get_all() do PHP removendo só tokens T_COMMENT e T_DOC_COMMENT (não mexe
+    em URLs dentro de strings, no shebang do artisan nem em atributos #[...]), seguido do Pint.
+  - 171 testes passando e route:list ok depois da limpeza.
+
+Onde consultar o que os comentários dos configs explicavam: documentação oficial do Laravel
+(https://laravel.com/docs), seção de cada arquivo de configuração.
+
+Regra atualizada no CLAUDE.md: nenhum comentário, nem os padrões do Laravel.
