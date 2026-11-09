@@ -2,7 +2,7 @@
 
 return [
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'Sistema de Reservas'),
 
     'env' => env('APP_ENV', 'production'),
 
@@ -14,7 +14,7 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'America/Sao_Paulo'),
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'pt_BR'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
