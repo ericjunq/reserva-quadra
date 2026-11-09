@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Reserva extends Model
 {
@@ -32,6 +33,7 @@ class Reserva extends Model
         'justificativa_revogacao',
         'revogada_em',
         'revogada_por',
+        'cancelada_em',
     ];
 
     protected $attributes = [
@@ -47,6 +49,7 @@ class Reserva extends Model
             'status'       => StatusConstant::class,
             'tipo'         => TipoReservaConstant::class,
             'revogada_em'  => 'datetime',
+            'cancelada_em' => 'datetime',
         ];
     }
 
@@ -81,8 +84,17 @@ class Reserva extends Model
 
     public function iniciada(): bool
     {
-        return $this->data_reserva->toDateString() < today()->toDateString()
-            || ($this->data_reserva->isToday() && $this->hora_inicio <= now()->format('H:i:s'));
+        return $this->inicio()->lte(now());
+    }
+
+    public function tokens(): HasMany
+    {
+        return $this->hasMany(TokenReserva::class);
+    }
+
+    public function inicio(): Carbon
+    {
+        return Carbon::parse($this->data_reserva->toDateString().' '.$this->hora_inicio);
     }
 
     public function aluno(): BelongsTo

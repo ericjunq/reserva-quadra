@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('descricao', 255)->nullable();
             $table->text('justificativa_revogacao')->nullable();
             $table->timestamp('revogada_em')->nullable();
+            $table->timestamp('cancelada_em')->nullable();
             $table->foreignId('revogada_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
