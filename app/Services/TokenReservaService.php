@@ -6,6 +6,7 @@ use App\Constants\FinalidadeTokenConstant;
 use App\Exceptions\RegraNegocioException;
 use App\Models\Reserva;
 use App\Models\TokenReserva;
+use App\Support\FrontEnd;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 
@@ -33,7 +34,7 @@ class TokenReservaService
             FinalidadeTokenConstant::CONFIRMAR => 'reservas/confirmar',
         };
 
-        return rtrim(config('app.frontend_url'), '/')."/{$caminho}/{$token}";
+        return FrontEnd::url("{$caminho}/{$token}");
     }
 
     public function buscarValido(string $token, FinalidadeTokenConstant $finalidade, bool $travar = false): TokenReserva

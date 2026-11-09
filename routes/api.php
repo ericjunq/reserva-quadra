@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AlunoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CancelamentoController;
@@ -42,6 +43,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::apiResource($nome, $controller)->except('update');
             Route::patch("{$nome}/{".str($nome)->singular().'}', [$controller, 'update'])->name("{$nome}.update");
         }
+
+        Route::get('/admins', [AdminController::class, 'index']);
+        Route::post('/admins', [AdminController::class, 'store']);
+        Route::get('/admins/{admin}', [AdminController::class, 'show']);
+        Route::patch('/admins/{admin}', [AdminController::class, 'update']);
+        Route::delete('/admins/{admin}', [AdminController::class, 'destroy']);
+        Route::post('/admins/{admin}/reenviar-convite', [AdminController::class, 'reenviarConvite']);
 
         Route::get('/alunos', [AlunoController::class, 'index']);
         Route::get('/alunos/{aluno}', [AlunoController::class, 'show']);
