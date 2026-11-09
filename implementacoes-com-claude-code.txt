@@ -1477,3 +1477,25 @@ VerificarProducaoTest.
   - AlertaTest força a falha de um job com dispatch de closure (fila sync) e, para o agendador,
     carrega as tarefas com schedule:list, põe exitCode = 1 e chama callAfterCallbacks: as 6
     tarefas geram alerta; com exitCode 0, nenhuma.
+
+========================================================================
+38. FRONT-END: IDENTIDADE VISUAL E PROPOSTA DO PASSO 11 (documentação)
+========================================================================
+
+09/11/2026. Nenhum código; só os guias, para o passo 11 ser retomado em outro PC.
+
+- O usuário mostrou o front que um colega começou (github.com/ericjunq/unifg-reservas, pasta
+  frontend, React + Tailwind) e esclareceu que interessa só a identidade visual. Feedback: cores
+  e fonte da UniFG, detalhes gráficos e cartões funcionam; ajustes: paleta única, foto real em
+  vez da imagem com cara de IA e texto embutido, ícones de traço, admin neutro. Aprovado.
+DOCUMENTACAO.md
+  - Seção "Front-end: identidade visual": tabela da paleta (azul #0D2C6B, azul escuro #06163A,
+    azul médio #144096, amarelo #F5B400, neutros slate), fonte, detalhes, componentes, ícones e
+    os ajustes em relação à referência.
+CHECKLIST.md
+  - Passo 11 com a proposta completa: stack, telas dos links de email, subpassos 11.1 a 11.8,
+    8 decisões com recomendação, desempenho, LGPD e regras do projeto no front.
+  - "Onde paramos" com o roteiro "Para retomar o passo 11 em outro PC" e os conceitos
+    explicados (hospedagem, token, Google Fonts). Trilha de ideias atualizada.
+CLAUDE.md
+  - As regras do projeto valem também no front; local proposto: pasta frontend/.
