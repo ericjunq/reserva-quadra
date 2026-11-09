@@ -13,7 +13,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 ## 📍 Onde paramos
 
 - **Último passo concluído:** passo 9, CI no GitHub Actions. **Primeira execução verde em 09/11/2026** (commit `43a0e74`): os 226 testes passaram em SQLite, **MySQL 8.0** e **Postgres 16**, além do Pint e do `composer audit`.
-- **Próximo passo:** passo 10, preparação para produção. **Ainda não há proposta enviada**: enviar a proposta e esperar a aprovação.
+- **Próximo passo:** passo 10, preparação para produção. **Proposta enviada em 09/11/2026, aguardando aprovação** (resumo no passo 10 do plano, abaixo).
 - **O usuário precisa:** nada pendente além do `migrate:fresh --seed` local, se ainda não rodou depois do passo 8.
 - **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions.
 - **Conceitos já explicados ao usuário:** fila e jobs; por que email não deve diferenciar maiúsculas (seção de decisões do DOCUMENTACAO).
@@ -163,10 +163,24 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - `.github/workflows/ci.yml`: push e PR na `main`; job de Pint (`--test`) + `composer audit`; testes em matriz SQLite, MySQL 8.0 e Postgres 16 (serviços do Actions), PHP 8.3, cache do Composer.
 - Sem branch protection por enquanto (trabalho direto na `main`); explicado no DOCUMENTACAO como ativar.
 
-### 10. ⬜ Preparação para produção — *próximo; proposta ainda não enviada*
-- `.env` de produção: `APP_DEBUG=false`, `APP_ENV=production`, `APP_URL`, `FRONTEND_URL`, banco, SMTP (SES, Mailgun, Resend...), fila e cache.
-- **CORS** liberado só para o domínio do front Angular (`config/cors.php`).
-- HTTPS, worker de fila com supervisor, cron do scheduler, backup do banco, logs sem dados pessoais (nada de `MAIL_MAILER=log`) e senha forte no admin inicial (o seeder de demonstração não roda fora de `local`).
+### 10. ⬜ Preparação para produção — *proposta enviada em 09/11/2026, aguardando aprovação*
+- **Código:**
+  - CORS só para o front (`CORS_ALLOWED_ORIGINS`) e cabeçalhos de segurança (nosniff, frame, referrer, HSTS com HTTPS);
+  - HTTPS forçado em produção e `TRUSTED_PROXIES`;
+  - mensagens de validação em **pt_BR**;
+  - alerta por email de tarefa agendada que falhou e de job que falhou (`ALERTAS_EMAIL`);
+  - logs diários com 14 dias, nível `warning`;
+  - em produção, o seeder só cria cursos (admin de teste e demonstração só em dev);
+  - comando `sistema:verificar-producao`, com ✅/❌ da configuração;
+  - `APP_NAME` "Sistema de Reservas".
+- **`DEPLOY.md`:** requisitos, `.env.production.example`, passos de implantação, primeira vez (principal, feriados, verificação), Nginx com HTTPS, cron, supervisor, backup do banco por cron com cópia externa e checklist de LGPD.
+- **Decisões em aberto, com recomendação:**
+  1. traduções pt_BR geradas com o laravel-lang (só dev), com os arquivos no projeto e sem comentários: sim;
+  2. alertas para um email configurável, e não para todos os admins: sim;
+  3. seeder de admin só em dev, principal por comando: sim;
+  4. backup documentado com dump por cron agora, pacote só quando a hospedagem for escolhida: sim;
+  5. onde vai hospedar? Se não souber, o guia é para VPS Linux com Nginx.
+- **Antes:** CORS, fila, cron e supervisor já estavam previstos aqui; cron e supervisor já estão documentados no DOCUMENTACAO (passo 4).
 
 ### 11. ⬜ Front-end em Angular (projeto separado)
 - Público: cadastro de aluno, calendário de disponibilidade, reserva com equipamentos, minhas reservas (RA + email) e as páginas de cancelar e confirmar (links dos emails).
