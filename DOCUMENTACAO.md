@@ -106,6 +106,13 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `FRONTEND_URL` | http://localhost:4200 | Endereço do front Angular; base dos links enviados por email (ex.: cancelamento) |
 | `AUTH_REDEFINICAO_EXPIRA_MINUTOS` | 60 | Validade do link de redefinição de senha |
 | `AUTH_CONVITE_EXPIRA_MINUTOS` | 2880 | Validade do link de convite de admin (2 dias) |
+| `CORS_ALLOWED_ORIGINS` | `FRONTEND_URL` | Endereços (separados por vírgula) que podem chamar a API pelo navegador |
+| `CORS_MAX_AGE` | 86400 | Por quantos segundos o navegador guarda a liberação do CORS (menos requisições `OPTIONS`) |
+| `TRUSTED_PROXIES` | vazio | IPs do proxy/balanceador na frente do servidor (ou `*`), para o Laravel enxergar o HTTPS e o IP real |
+| `ALERTAS_EMAIL` | vazio | Email (ou lista separada por vírgula) que recebe os alertas, além dos admins ativos |
+| `ALERTAS_INTERVALO_MINUTOS` | 60 | Intervalo mínimo entre dois alertas do mesmo problema |
+| `LOG_DAILY_DAYS` | 14 | Por quantos dias os arquivos de log são guardados (um por dia) |
+| `ADMIN_INICIAL_NOME` / `_EMAIL` / `_SENHA` | vazio | Admin principal criado pelo `AdminSeeder`. Uso em desenvolvimento; em produção, preferir `admin:criar-principal` e deixar a senha vazia |
 
 ### Fila e jobs (o que são)
 
@@ -154,7 +161,25 @@ stdout_logfile=/caminho/do/projeto/storage/logs/worker.log
 stopwaitsecs=3600
 ```
 
-Depois de cada deploy, rodar `php artisan queue:restart` para o worker carregar o código novo. Falhas das tarefas ficam no log; o aviso por email aos admins fica para a preparação de produção.
+Depois de cada deploy, rodar `php artisan queue:restart` para o worker carregar o código novo. O passo a passo completo da implantação está no [`DEPLOY.md`](DEPLOY.md), e as opções de hospedagem no [`HOSPEDAGEM.md`](HOSPEDAGEM.md).
+
+### Alertas por email
+
+Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de todas as tentativas, o sistema envia um email aos **admins ativos** (com convite aceito) e ao `ALERTAS_EMAIL`.
+
+- **Sem dados pessoais:** o email diz só qual tarefa ou job falhou, o tipo do erro e quando. A mensagem do erro (que pode conter um email ou um nome) fica só no log do servidor.
+- **No máximo 1 por hora** para o mesmo problema (`ALERTAS_INTERVALO_MINUTOS`), para não lotar a caixa de entrada.
+- **Enviado na hora, sem passar pela fila:** se o problema for a própria fila, o alerta ainda sai. Se o envio do alerta falhar (ex.: SMTP fora do ar), o erro vai para o log e as outras tentativas daquele alerta são abandonadas, para não travar o sistema esperando o servidor de email.
+- Se o próprio email cair, nenhum alerta sai. Por isso o **monitor externo** do `/up` ficou registrado em "Ideias registradas para depois".
+
+### Segurança HTTP e produção
+
+- **CORS:** só os endereços de `CORS_ALLOWED_ORIGINS` (o front) podem chamar a API pelo navegador. A exportação expõe o cabeçalho `Content-Disposition`, para o front saber o nome do arquivo.
+- **Cabeçalhos em toda resposta** (`CabecalhosDeSeguranca`): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` e, por HTTPS, `Strict-Transport-Security` (1 ano).
+- **HTTPS:** em produção, todo endereço gerado pelo Laravel usa `https://`. O redirecionamento de HTTP para HTTPS é feito pelo Nginx.
+- **Logs:** um arquivo por dia, guardados por 14 dias; em produção, só a partir de `warning`.
+- **Mensagens em português (pt_BR):** os arquivos de tradução ficam em `lang/pt_BR`, com os nomes dos campos do sistema (ex.: `data_reserva` aparece como "data da reserva"). Foram gerados pelo laravel-lang, que depois foi removido para não deixar dependência.
+- **`php artisan sistema:verificar-producao`:** confere a configuração (ambiente, debug, HTTPS, CORS, banco, fila, email, logs, alertas, admin principal, feriados, caches) e mostra ✅ ou ❌ com o que fazer.
 
 ---
 
@@ -575,6 +600,11 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Sexta-feira Santa importada por padrão | É feriado nacional por lei, embora a Yasumi a classifique como "observância" |
 | Campo `data_reserva` (e não `data`) | Com um campo `data`, o Laravel não envolvia a resposta em `{"data": ...}` |
 | Update só por PATCH; exclusão = desativação | Atualização parcial e preservação do histórico |
+| Alertas aos admins ativos e ao `ALERTAS_EMAIL` | Decisão do usuário: os admins cuidam da gerência; ele também quer saber |
+| Alertas sem a mensagem do erro, sem fila e no máximo 1 por hora | LGPD (a mensagem pode ter dados pessoais), o alerta não pode depender da fila, e não lotar a caixa de entrada |
+| Traduções geradas pelo laravel-lang e o pacote removido | Mensagens em português sem dependência extra (o pacote exige a extensão `bcmath`) |
+| Admin inicial do seeder lido do `.env` | Decisão do usuário: o admin de teste vira o admin dele; a senha sai do código público. Em produção, preferir `admin:criar-principal` |
+| Backup e monitor externo na hora do deploy | Dependem da plataforma, ainda não escolhida |
 
 ---
 
@@ -629,6 +659,11 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `ExportacaoReservasTest` | Login, colunas obrigatórias, opcionais e todas, responsável em eventos, período e atalhos, filtros, mais de um lote, proteção contra fórmulas, validações |
 | `ListagemReservasTest` | Login obrigatório, padrão de hoje em diante, ordem, cada filtro e combinações, dados do aluno/espaço/equipamentos/revogação, totais por status, paginação, consultas sem N+1, validações |
 | `DisponibilidadeTest` | Situações dos horários, quem reservou sem RA/email, bloqueios, motivos do calendário, equipamentos por horário, dados do curso por RA/curso, validações |
+| `TraducaoTest` | Mensagens de validação em português com o nome do campo |
+| `SegurancaHttpTest` | CORS só para o front, cabeçalhos de segurança, HSTS só por HTTPS |
+| `AlertaTest` | Destinatários (admins ativos e `ALERTAS_EMAIL`), sem dados pessoais, limite de 1 por hora, toda tarefa agendada com alerta |
+| `AdminSeederTest` | Admin principal pelo `.env`, sem duplicar; sem senha não cria |
+| `VerificarProducaoTest` | Itens com ❌ e ✅ e o código de saída |
 | `DisponibilidadeEquipamentoRepositoryTest` | Disponível por data/horário, soma entre espaços, revogadas, sobreposição, maior uso futuro |
 
 ---
@@ -649,6 +684,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
 | Horários livres (passo 8) | Modo FIXO/LIVRE por espaço, reserva e evento com início/fim em blocos de 30 min, equipamentos pelo pico de uso, calendário em blocos, consulta de equipamentos por intervalo |
 | Consulta do histórico (passo 7) | `GET /api/admin/auditorias` com filtros, morph map com nomes curtos |
@@ -673,8 +709,9 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Preparação para produção:** SMTP, CORS, fila, cron, HTTPS, backups.
-2. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **Front-end em Angular** (projeto separado; não será com Blade).
+2. **API para terceiros autorizados.**
+3. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
 
 ### Ideias registradas para depois
 
@@ -694,8 +731,9 @@ Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e re
 | Convite para acessar o sistema | Admin novo | Admin cadastra ou reenvia o convite | ✅ Pronto |
 | Redefinição de senha | Admin | Pedido de "esqueci a senha" | ✅ Pronto |
 | Sua senha foi alterada | Admin | Depois de redefinir, aceitar convite ou trocar a senha | ✅ Pronto |
+| Alerta do sistema | Admins ativos e `ALERTAS_EMAIL` | Tarefa agendada ou job que falhou (máx. 1 por hora por problema) | ✅ Pronto (enviado na hora, sem fila) |
 
-Todos vão pela fila (`php artisan queue:work`). Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
+Todos, menos o alerta, vão pela fila (`php artisan queue:work`). Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
 
 ### Melhorias anotadas para quando o volume justificar
 
