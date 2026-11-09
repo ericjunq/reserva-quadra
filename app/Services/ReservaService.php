@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Constants\FinalidadeTokenConstant;
 use App\Constants\HorarioReservaConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Exceptions\RegraNegocioException;
+use App\Mail\ReservaCriadaMail;
 use App\Mail\ReservaRevogadaMail;
 use App\Models\Aluno;
 use App\Models\Equipamento;
@@ -24,6 +26,7 @@ class ReservaService
     public function __construct(
         private DisponibilidadeEquipamentoRepository $disponibilidade,
         private ReservaRepository $reservas,
+        private TokenReservaService $tokens,
     ) {}
 
     public const RELACOES_ADMIN = ['aluno.curso', 'espaco', 'equipamentos', 'criador', 'atualizador', 'revogador'];
@@ -63,6 +66,7 @@ class ReservaService
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
+            $this->enviarConfirmacaoDeCriacao($reserva, $aluno);
 
             return $reserva->load('equipamentos');
         });
@@ -134,6 +138,16 @@ class ReservaService
 
             return $reserva;
         });
+    }
+
+    private function enviarConfirmacaoDeCriacao(Reserva $reserva, Aluno $aluno): void
+    {
+        $token = $this->tokens->gerar($reserva, FinalidadeTokenConstant::CANCELAR, $reserva->inicio());
+        $link = rtrim(config('app.frontend_url'), '/').'/reservas/cancelar/'.$token;
+
+        Mail::to($aluno->email)->queue(
+            (new ReservaCriadaMail($reserva->load('espaco', 'equipamentos'), $aluno->nome_completo, $link))->afterCommit()
+        );
     }
 
     private function resolverIntervalo(array $data): array
