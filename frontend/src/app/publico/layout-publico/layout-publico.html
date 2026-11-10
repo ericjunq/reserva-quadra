@@ -1,0 +1,35 @@
+<a
+  href="#conteudo"
+  class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-full focus:bg-amarelo focus:px-4 focus:py-2 focus:font-semibold focus:text-azul"
+>
+  Pular para o conteúdo
+</a>
+
+<div class="flex min-h-dvh flex-col">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+      <a routerLink="/" class="flex items-center gap-2 text-azul">
+        <span class="h-6 w-1.5 -skew-x-12 rounded-sm bg-amarelo" aria-hidden="true"></span>
+        <span class="text-lg font-extrabold italic tracking-tight">Reservas</span>
+      </a>
+    </div>
+  </header>
+
+  <main id="conteudo" class="flex-1">
+    <router-outlet />
+  </main>
+
+  <footer class="relative mt-16 bg-azul-escuro text-white">
+    <svg
+      class="absolute -top-8 left-0 h-8 w-full text-azul-escuro"
+      viewBox="0 0 1440 64"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <path fill="currentColor" d="M0 64C360 0 1080 0 1440 64Z" />
+    </svg>
+    <div class="mx-auto max-w-6xl px-4 py-8 text-sm text-slate-300">
+      <p>Sistema de Reservas · {{ ano }}</p>
+    </div>
+  </footer>
+</div>
