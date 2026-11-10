@@ -50,3 +50,9 @@ export function formatarDia(iso: string): string {
 export function formatarDiaCurto(iso: string): string {
   return FORMATO_DIA_CURTO.format(deIso(iso));
 }
+
+const FORMATO_DIA_DA_SEMANA = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' });
+
+export function formatarDiaDaSemanaCurto(iso: string): string {
+  return FORMATO_DIA_DA_SEMANA.format(deIso(iso)).replace('.', '');
+}

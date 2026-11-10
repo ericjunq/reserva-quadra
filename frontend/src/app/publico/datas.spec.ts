@@ -5,6 +5,7 @@ import {
   ehHora,
   formatarDia,
   formatarDiaCurto,
+  formatarDiaDaSemanaCurto,
   paraIso,
   segundaDaSemana,
   somarDias,
@@ -45,5 +46,6 @@ describe('datas', () => {
   it('formata o dia em português', () => {
     expect(formatarDia('2026-11-10')).toBe('Terça-feira, 10/11');
     expect(formatarDiaCurto('2026-11-10')).toBe('10/11');
+    expect(formatarDiaDaSemanaCurto('2026-11-10')).toBe('ter');
   });
 });

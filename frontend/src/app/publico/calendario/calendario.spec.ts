@@ -1,10 +1,15 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { ambiente } from '../../../ambientes/ambiente';
 import { interceptorApi } from '../../nucleo/api.interceptor';
-import { Calendario as DadosCalendario, DiaNoCalendario, Espaco } from '../modelos';
+import {
+  Calendario as DadosCalendario,
+  DiaNoCalendario,
+  Espaco,
+  HorarioNoCalendario,
+} from '../modelos';
 import { RaEmMemoriaService } from '../ra-em-memoria.service';
 import { Calendario } from './calendario';
 
@@ -28,6 +33,26 @@ const sala: Espaco = {
   tipo: 'SALA',
   limite_semanal_por_curso: null,
 };
+
+const laboratorio: Espaco = {
+  ...quadra,
+  id: 4,
+  nome: 'Laboratório de Informática',
+  tipo: 'LABORATORIO',
+  limite_semanal_por_curso: null,
+  modo_horario: 'LIVRE',
+  abre_as: '14:00',
+  fecha_as: '16:30',
+  duracao_maxima_minutos: 180,
+};
+
+function bloco(
+  inicio: string,
+  fim: string,
+  dados: Partial<HorarioNoCalendario> = {},
+): HorarioNoCalendario {
+  return { horario: null, inicio, fim, situacao: 'LIVRE', motivo: null, reserva: null, ...dados };
+}
 
 function dia(data: string, dados: Partial<DiaNoCalendario> = {}): DiaNoCalendario {
   return {
@@ -106,7 +131,7 @@ describe('Calendario', () => {
   async function abrir(espaco: Espaco, dados: DadosCalendario = calendario()) {
     fixture = TestBed.createComponent(Calendario);
     fixture.componentRef.setInput('id', String(espaco.id));
-    await responder(`${url}/espacos`, { data: [quadra, sala] });
+    await responder(`${url}/espacos`, { data: [quadra, sala, laboratorio] });
     await responder(`${url}/espacos/${espaco.id}/disponibilidade?de=2026-11-09&ate=2026-11-13`, {
       data: dados,
     });
@@ -248,5 +273,73 @@ describe('Calendario', () => {
     ];
     expect(anterior.disabled).toBe(true);
     expect(proxima.disabled).toBe(false);
+  });
+
+  describe('horário livre', () => {
+    const reservaDaAna = {
+      id: 7,
+      tipo: 'ALUNO' as const,
+      descricao: null,
+      reservado_por: { tipo: 'ALUNO' as const, nome: 'Ana Souza', curso: 'Direito' },
+    };
+
+    function calendarioLivre(): DadosCalendario {
+      const blocos = () => [
+        bloco('14:00', '14:30', { situacao: 'ENCERRADO', motivo: 'Reservas para hoje…' }),
+        bloco('14:30', '15:00'),
+        bloco('15:00', '15:30', { situacao: 'RESERVADO', reserva: reservaDaAna }),
+        bloco('15:30', '16:00', { situacao: 'RESERVADO', reserva: reservaDaAna }),
+        bloco('16:00', '16:30'),
+      ];
+      return calendario({
+        espaco: { ...laboratorio, bloco_minutos: 30 },
+        dias: [
+          dia('2026-11-09', { reservavel: false, motivo: 'Data passada.', horarios: blocos() }),
+          dia('2026-11-10', { horarios: blocos() }),
+          dia('2026-11-11', { horarios: blocos() }),
+          dia('2026-11-12', { horarios: blocos() }),
+          dia('2026-11-13', { horarios: blocos() }),
+        ],
+      });
+    }
+
+    it('mostra os dias para escolher e só os blocos do dia escolhido', async () => {
+      const pagina = await abrir(laboratorio, calendarioLivre());
+
+      const dias = pagina.querySelectorAll<HTMLButtonElement>(
+        '[aria-label="Escolha o dia"] button',
+      );
+      expect(dias.length).toBe(5);
+      expect(dias[0].textContent).toContain('Fechado');
+      expect(dias[1].textContent).toContain('2 livres');
+      expect(dias[1].getAttribute('aria-pressed')).toBe('true');
+
+      expect(pagina.querySelector('#dia-escolhido')?.textContent).toContain('Terça-feira, 10/11');
+      const links = [...pagina.querySelectorAll<HTMLAnchorElement>('article a')];
+      expect(links.map((link) => link.getAttribute('href'))).toEqual([
+        '/espacos/4/reservar?data=2026-11-10&inicio=14:30&fim=15:00',
+        '/espacos/4/reservar?data=2026-11-10&inicio=16:00&fim=16:30',
+      ]);
+      expect(pagina.querySelector('article')?.textContent).toContain(
+        '15:00–16:00 · Ana Souza (Direito)',
+      );
+      expect(pagina.querySelectorAll('article').length).toBe(1);
+    });
+
+    it('troca de dia pela URL', async () => {
+      const pagina = await abrir(laboratorio, calendarioLivre());
+      const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+      pagina.querySelectorAll<HTMLButtonElement>('[aria-label="Escolha o dia"] button')[2].click();
+      expect(navegar).toHaveBeenCalledWith(
+        [],
+        expect.objectContaining({ queryParams: { dia: '2026-11-11' }, replaceUrl: true }),
+      );
+
+      fixture.componentRef.setInput('dia', '2026-11-11');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(pagina.querySelector('#dia-escolhido')?.textContent).toContain('Quarta-feira, 11/11');
+    });
   });
 });

@@ -44,30 +44,30 @@
             Usar outro RA
           </button>
         } @else {
-          <form class="mt-3 flex flex-wrap items-end gap-3" (ngSubmit)="consultarRa()">
-            <div>
-              <label for="ra-calendario" class="block text-sm font-semibold text-slate-700">
-                Informe seu RA para ver quantas reservas o seu curso ainda tem
-              </label>
+          <form class="mt-3" (ngSubmit)="consultarRa()">
+            <label for="ra-calendario" class="block text-sm font-semibold text-slate-700">
+              Informe seu RA para ver quantas reservas o seu curso ainda tem
+            </label>
+            <div class="mt-1 flex flex-wrap gap-2">
               <input
                 id="ra-calendario"
                 name="ra"
                 inputmode="numeric"
                 autocomplete="off"
                 maxlength="10"
-                class="mt-1 w-48 rounded-lg border border-slate-300 px-3 py-2"
+                class="w-48 rounded-lg border border-slate-300 px-3 py-2"
                 [attr.aria-invalid]="!!erroRa()"
                 [attr.aria-describedby]="erroRa() ? 'erro-ra-calendario' : null"
                 [ngModel]="raDigitado()"
                 (ngModelChange)="raDigitado.set($event)"
               />
+              <button
+                type="submit"
+                class="rounded-full bg-azul px-5 py-2 font-semibold text-white hover:bg-azul-medio"
+              >
+                Consultar
+              </button>
             </div>
-            <button
-              type="submit"
-              class="rounded-full bg-azul px-5 py-2 font-semibold text-white hover:bg-azul-medio"
-            >
-              Consultar
-            </button>
           </form>
           @if (erroRa()) {
             <p id="erro-ra-calendario" class="mt-2 text-sm text-red-700">
@@ -115,13 +115,36 @@
           </div>
         }
         @case ('pronto') {
-          <div class="mt-6 grid gap-4 md:grid-cols-5">
-            @for (dia of diasUteis(); track dia.data) {
+          @if (ehLivre()) {
+            <div class="mt-6 grid grid-cols-5 gap-2" role="group" aria-label="Escolha o dia">
+              @for (dia of diasUteis(); track dia.data) {
+                <button
+                  type="button"
+                  class="rounded-xl px-1 py-3 text-center ring-1 transition"
+                  [class]="
+                    dia.data === diaEscolhido()?.data
+                      ? 'bg-azul text-white ring-azul'
+                      : 'bg-white text-slate-900 ring-slate-200 hover:ring-azul'
+                  "
+                  [attr.aria-pressed]="dia.data === diaEscolhido()?.data"
+                  [attr.aria-label]="formatarDia(dia.data) + ', ' + resumoDoDia(dia)"
+                  (click)="escolherDia(dia.data)"
+                >
+                  <span class="block text-xs font-semibold uppercase">{{
+                    formatarDiaDaSemanaCurto(dia.data)
+                  }}</span>
+                  <span class="block text-lg font-extrabold">{{ formatarDiaCurto(dia.data) }}</span>
+                  <span class="block text-xs">{{ resumoDoDia(dia) }}</span>
+                </button>
+              }
+            </div>
+
+            @if (diaEscolhido(); as dia) {
               <article
-                class="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200"
-                [attr.aria-labelledby]="'dia-' + dia.data"
+                class="mt-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+                aria-labelledby="dia-escolhido"
               >
-                <h3 [id]="'dia-' + dia.data" class="px-1 font-semibold text-slate-900">
+                <h3 id="dia-escolhido" class="font-semibold text-slate-900">
                   {{ formatarDia(dia.data) }}
                 </h3>
 
@@ -130,75 +153,160 @@
                     {{ dia.motivo }}
                   </p>
                 } @else {
-                  <ul class="mt-2 space-y-2">
+                  <p class="mt-1 text-sm text-slate-600">
+                    Escolha o horário de início. Na próxima tela você define até que horas.
+                  </p>
+                  <ul class="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8">
                     @for (horario of dia.horarios; track horario.inicio) {
                       <li>
                         @if (podeReservar(dia, horario)) {
                           <a
-                            class="block rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm hover:border-amarelo hover:bg-amarelo/20"
+                            class="block rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-center text-sm font-semibold text-slate-900 hover:border-amarelo hover:bg-amarelo/20"
                             [routerLink]="['/espacos', espaco.id, 'reservar']"
                             [queryParams]="parametrosDaReserva(dia, horario)"
                             [attr.aria-label]="
                               'Reservar ' +
                               formatarDia(dia.data) +
-                              ', das ' +
-                              horario.inicio +
-                              ' às ' +
-                              horario.fim
+                              ', a partir das ' +
+                              horario.inicio
                             "
                           >
-                            <span class="font-semibold text-slate-900">
-                              {{ horario.inicio }}–{{ horario.fim }}
-                            </span>
-                            <span class="block text-emerald-800">Livre · reservar</span>
+                            {{ horario.inicio }}
                           </a>
                         } @else {
-                          <div
-                            class="rounded-lg border px-3 py-2 text-sm"
-                            [class]="
-                              horario.reserva?.do_curso
-                                ? 'border-amarelo bg-amarelo/10'
-                                : 'border-slate-200 bg-slate-50'
-                            "
+                          <span
+                            class="block rounded-lg border border-slate-200 bg-slate-200 px-2 py-2 text-center text-sm text-slate-600"
                           >
-                            <span class="font-semibold text-slate-700">
-                              {{ horario.inicio }}–{{ horario.fim }}
-                            </span>
-                            @if (horario.situacao === 'LIVRE') {
-                              <span class="block text-slate-600">Limite do seu curso atingido</span>
-                            } @else {
-                              <span class="block text-slate-700">{{
-                                nomeDaSituacao(horario)
-                              }}</span>
-                            }
-                            @if (horario.reserva; as reserva) {
-                              <span class="block text-slate-600">
-                                @if (reserva.tipo === 'EVENTO') {
-                                  {{ reserva.descricao || 'Evento da faculdade' }}
-                                } @else {
-                                  {{ reserva.reservado_por.nome }}
-                                  @if (reserva.reservado_por.curso) {
-                                    · {{ reserva.reservado_por.curso }}
-                                  }
-                                }
-                              </span>
-                              @if (reserva.do_curso) {
-                                <span class="block text-xs font-semibold text-azul"
-                                  >Do seu curso</span
-                                >
-                              }
-                            } @else if (horario.motivo && horario.situacao !== 'ENCERRADO') {
-                              <span class="block text-xs text-slate-600">{{ horario.motivo }}</span>
-                            }
-                          </div>
+                            {{ horario.inicio }}
+                            <span class="sr-only">, {{ nomeDaSituacao(horario) }}</span>
+                          </span>
                         }
                       </li>
                     }
                   </ul>
+                  <p class="mt-3 flex flex-wrap gap-4 text-xs text-slate-600">
+                    <span class="flex items-center gap-1">
+                      <span
+                        class="size-3 rounded border border-emerald-200 bg-emerald-50"
+                        aria-hidden="true"
+                      ></span>
+                      Livre
+                    </span>
+                    <span class="flex items-center gap-1">
+                      <span class="size-3 rounded bg-slate-200" aria-hidden="true"></span>
+                      Ocupado ou encerrado
+                    </span>
+                  </p>
+
+                  @if (reservasDoDia(dia); as reservas) {
+                    @if (reservas.length) {
+                      <h4 class="mt-5 font-semibold text-slate-900">Reservas do dia</h4>
+                      <ul class="mt-2 space-y-1 text-sm text-slate-700">
+                        @for (item of reservas; track item.id) {
+                          <li>
+                            <span class="font-semibold">{{ item.inicio }}–{{ item.fim }}</span>
+                            · {{ item.texto }}
+                            @if (item.doCurso) {
+                              <span class="text-xs font-semibold text-azul">(do seu curso)</span>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    }
+                  }
                 }
               </article>
             }
-          </div>
+          } @else {
+            <div class="mt-6 grid gap-4 md:grid-cols-5">
+              @for (dia of diasUteis(); track dia.data) {
+                <article
+                  class="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200"
+                  [attr.aria-labelledby]="'dia-' + dia.data"
+                >
+                  <h3 [id]="'dia-' + dia.data" class="px-1 font-semibold text-slate-900">
+                    {{ formatarDia(dia.data) }}
+                  </h3>
+
+                  @if (!dia.reservavel) {
+                    <p class="mt-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
+                      {{ dia.motivo }}
+                    </p>
+                  } @else {
+                    <ul class="mt-2 space-y-2">
+                      @for (horario of dia.horarios; track horario.inicio) {
+                        <li>
+                          @if (podeReservar(dia, horario)) {
+                            <a
+                              class="block rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm hover:border-amarelo hover:bg-amarelo/20"
+                              [routerLink]="['/espacos', espaco.id, 'reservar']"
+                              [queryParams]="parametrosDaReserva(dia, horario)"
+                              [attr.aria-label]="
+                                'Reservar ' +
+                                formatarDia(dia.data) +
+                                ', das ' +
+                                horario.inicio +
+                                ' às ' +
+                                horario.fim
+                              "
+                            >
+                              <span class="font-semibold text-slate-900">
+                                {{ horario.inicio }}–{{ horario.fim }}
+                              </span>
+                              <span class="block text-emerald-800">Livre · reservar</span>
+                            </a>
+                          } @else {
+                            <div
+                              class="rounded-lg border px-3 py-2 text-sm"
+                              [class]="
+                                horario.reserva?.do_curso
+                                  ? 'border-amarelo bg-amarelo/10'
+                                  : 'border-slate-200 bg-slate-50'
+                              "
+                            >
+                              <span class="font-semibold text-slate-700">
+                                {{ horario.inicio }}–{{ horario.fim }}
+                              </span>
+                              @if (horario.situacao === 'LIVRE') {
+                                <span class="block text-slate-600"
+                                  >Limite do seu curso atingido</span
+                                >
+                              } @else {
+                                <span class="block text-slate-700">{{
+                                  nomeDaSituacao(horario)
+                                }}</span>
+                              }
+                              @if (horario.reserva; as reserva) {
+                                <span class="block text-slate-600">
+                                  @if (reserva.tipo === 'EVENTO') {
+                                    {{ reserva.descricao || 'Evento da faculdade' }}
+                                  } @else {
+                                    {{ reserva.reservado_por.nome }}
+                                    @if (reserva.reservado_por.curso) {
+                                      · {{ reserva.reservado_por.curso }}
+                                    }
+                                  }
+                                </span>
+                                @if (reserva.do_curso) {
+                                  <span class="block text-xs font-semibold text-azul"
+                                    >Do seu curso</span
+                                  >
+                                }
+                              } @else if (horario.motivo && horario.situacao !== 'ENCERRADO') {
+                                <span class="block text-xs text-slate-600">{{
+                                  horario.motivo
+                                }}</span>
+                              }
+                            </div>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                </article>
+              }
+            </div>
+          }
         }
         @default {
           <div class="mt-6 grid gap-4 md:grid-cols-5" aria-hidden="true">

@@ -18,6 +18,7 @@ import {
   ehDiaUtil,
   formatarDia,
   formatarDiaCurto,
+  formatarDiaDaSemanaCurto,
   paraIso,
   segundaDaSemana,
   somarDias,
@@ -35,6 +36,14 @@ type Estado =
   | { tipo: 'carregando' }
   | { tipo: 'pronto'; calendario: DadosCalendario }
   | { tipo: 'erro'; mensagem: string };
+
+interface ReservaAgrupada {
+  id: number;
+  inicio: string;
+  fim: string;
+  texto: string;
+  doCurso: boolean;
+}
 
 const NOMES_DAS_SITUACOES: Record<string, string> = {
   LIVRE: 'Livre',
@@ -64,11 +73,13 @@ export class Calendario {
 
   readonly id = input.required<string>();
   readonly semana = input<string>();
+  readonly dia = input<string>();
 
   protected readonly nomesDosTipos = NOMES_DOS_TIPOS;
   protected readonly descreverHorario = descreverHorario;
   protected readonly formatarDia = formatarDia;
   protected readonly formatarDiaCurto = formatarDiaCurto;
+  protected readonly formatarDiaDaSemanaCurto = formatarDiaDaSemanaCurto;
 
   protected readonly raDigitado = signal('');
   protected readonly raConsultado = signal<string | null>(null);
@@ -142,6 +153,19 @@ export class Calendario {
       this.calendario()?.curso?.semanas.find((semana) => semana.inicio === this.segunda()) ?? null,
   );
 
+  protected readonly ehLivre = computed(() => this.calendario()?.espaco.modo_horario === 'LIVRE');
+
+  protected readonly diaEscolhido = computed<DiaNoCalendario | null>(() => {
+    const dias = this.diasUteis();
+    return (
+      dias.find((dia) => dia.data === this.dia()) ??
+      dias.find((dia) => this.horariosLivres(dia) > 0) ??
+      dias.find((dia) => dia.reservavel) ??
+      dias[0] ??
+      null
+    );
+  });
+
   protected readonly podeVoltar = computed(() => this.segunda() > this.segundaAtual);
 
   protected readonly podeAvancar = computed(() => {
@@ -167,7 +191,60 @@ export class Calendario {
 
   protected irParaSemana(deslocamento: number): void {
     const segunda = paraIso(somarDias(deIso(this.segunda()), deslocamento * 7));
-    this.router.navigate([], { queryParams: { semana: segunda }, queryParamsHandling: 'merge' });
+    this.router.navigate([], {
+      queryParams: { semana: segunda, dia: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  protected escolherDia(data: string): void {
+    this.router.navigate([], {
+      queryParams: { dia: data },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  protected horariosLivres(dia: DiaNoCalendario): number {
+    return dia.horarios.filter((horario) => this.podeReservar(dia, horario)).length;
+  }
+
+  protected resumoDoDia(dia: DiaNoCalendario): string {
+    if (!dia.reservavel) {
+      return 'Fechado';
+    }
+    const livres = this.horariosLivres(dia);
+    if (livres === 0) {
+      return 'Lotado';
+    }
+    return livres === 1 ? '1 livre' : `${livres} livres`;
+  }
+
+  protected reservasDoDia(dia: DiaNoCalendario): ReservaAgrupada[] {
+    const agrupadas: ReservaAgrupada[] = [];
+    for (const horario of dia.horarios) {
+      const reserva = horario.reserva;
+      if (!reserva) {
+        continue;
+      }
+      const anterior = agrupadas[agrupadas.length - 1];
+      if (anterior?.id === reserva.id && anterior.fim === horario.inicio) {
+        anterior.fim = horario.fim;
+        continue;
+      }
+      const quem = reserva.reservado_por;
+      agrupadas.push({
+        id: reserva.id,
+        inicio: horario.inicio,
+        fim: horario.fim,
+        texto:
+          reserva.tipo === 'EVENTO'
+            ? reserva.descricao || 'Evento da faculdade'
+            : `${quem.nome ?? ''}${quem.curso ? ` (${quem.curso})` : ''}`,
+        doCurso: !!reserva.do_curso,
+      });
+    }
+    return agrupadas;
   }
 
   protected consultarRa(): void {
