@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ericjunq/reserva-quadra/actions/workflows/ci.yml/badge.svg)](https://github.com/ericjunq/reserva-quadra/actions/workflows/ci.yml)
 
-API (backend) em Laravel para reservar os espaços da faculdade (quadra, laboratórios e salas) e os equipamentos desses espaços.
+API (backend) em Laravel para reservar os espaços da faculdade (quadra, laboratórios e salas) e os equipamentos desses espaços, e o front-end em Angular (pasta [`frontend/`](frontend/)), que só consome a API e tem deploy próprio.
 
 > Este documento descreve **o que o sistema faz, como rodar, as decisões tomadas e o que vem pela frente**.
 > O registro detalhado de cada alteração, arquivo por arquivo, fica em [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt).
@@ -39,7 +39,7 @@ Há dois tipos de usuário:
 - A quadra usa **horários fixos** de 1h30: `19:00–20:30` e `20:30–22:00`.
 - O sistema começou pela quadra (atléticas), mas já está pronto para laboratórios e salas, cada um com nome próprio.
 
-**Stack:** PHP 8.3+, Laravel 13, Laravel Sanctum, SQLite em desenvolvimento.
+**Stack:** PHP 8.3+, Laravel 13, Laravel Sanctum, SQLite em desenvolvimento. Front: Angular 22 (sem zone.js, signals), Tailwind CSS v4, Vitest, Node 22.22+/24.15+/26.
 
 ---
 
@@ -77,6 +77,21 @@ php artisan feriados:importar 2027 --facultativos  # inclui Carnaval, Quarta de 
 ```
 
 Depois de alterar migrations, rode `php artisan migrate:fresh --seed` (**apaga os dados locais**).
+
+### Front-end (Angular)
+
+```bash
+cd frontend
+npm install                     # primeira vez
+npm start                       # http://localhost:4200 (com a API rodando em http://localhost:8000)
+npx ng test --watch=false       # testes unitários (Vitest)
+npx ng build                    # build de produção em frontend/dist (falha se passar do orçamento de tamanho)
+npx prettier --write src        # formata no padrão do projeto (.prettierrc)
+```
+
+- O endereço da API vem de `frontend/src/ambientes/`: `ambiente.development.ts` (`http://localhost:8000/api`, usado pelo `npm start` e pelos testes) e `ambiente.ts` (produção; `/api` até o deploy do front ser definido no subpasso 11.8).
+- O `FRONTEND_URL` do `.env` da API já é `http://localhost:4200`, então o CORS libera o front local.
+- **Rede que bloqueia o `registry.npmjs.org`** (aconteceu no PC Ubuntu): `npm config set registry https://registry.yarnpkg.com/` (espelho com os mesmos pacotes). Fica no `~/.npmrc` do PC, fora do repositório; o `package-lock.json` continua apontando para o registro padrão.
 
 ### Fazer login como admin
 
@@ -200,6 +215,27 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/Console/Commands` | Comandos de terminal (importação de feriados) |
 | `database/factories` + `database/seeders` | Dados de teste e de demonstração |
 | `tests/Feature` | Testes da API, separados por assunto |
+
+**Front-end (`frontend/src`):**
+
+| Pasta | Papel |
+|---|---|
+| `ambientes/` | Endereço da API por ambiente (desenvolvimento e produção) |
+| `app/nucleo/` | Peças usadas pelo app inteiro: `SessaoService` (token do admin no `sessionStorage`), `interceptorApi` (cabeçalhos e erros) e `erro-api.ts` (formato único de erro) |
+| `app/publico/` | Área do aluno: `LayoutPublico` (identidade esportiva), páginas e `publico.routes.ts` |
+| `app/admin/` | Área do admin: `LayoutAdmin` (neutro), páginas e `admin.routes.ts` |
+| `app/compartilhado/` | Componentes usados nas duas áreas (ex.: página 404) |
+| `styles.css` | Tailwind com a paleta da identidade visual (`azul`, `azul-escuro`, `azul-medio`, `amarelo`) e a Montserrat |
+
+- **Rotas sob demanda:** `app.routes.ts` carrega a área pública e a do admin em pacotes separados (`loadChildren`), e cada página no seu pacote (`loadComponent`). O aluno nunca baixa o código do admin.
+- **Cliente da API:** o `interceptorApi` só age nas chamadas para a URL da API: põe `Accept: application/json` e, com sessão, `Authorization: Bearer`. O token **nunca** vai para outro endereço. Toda falha chega às telas como `ErroApi` (`status`, `mensagem`, `campos` do 422, `dados` da regra de negócio):
+  - sem conexão (0), limite de requisições (429) e erro do servidor (5xx) têm mensagens próprias; o 5xx nunca mostra o texto do servidor;
+  - 401 com sessão ativa encerra a sessão ("Sua sessão terminou"); 401 sem sessão (login recusado) mostra a mensagem da API;
+  - 403, 404, 409 e 422 mostram a mensagem da API, que já vem em português.
+- **Sessão do admin:** token e validade (`expires_at` do login) no `sessionStorage`, que some ao fechar a aba. Sessão vencida ou conteúdo inválido é descartado ao abrir e a cada uso.
+- **Datas e números em pt-BR** (`LOCALE_ID`), `<html lang="pt-BR">` e `Referrer-Policy: no-referrer` no `index.html`, para os tokens dos links de email não vazarem para outros sites.
+- **Acessibilidade:** link "Pular para o conteúdo" nos dois layouts e foco visível em todos os elementos (contorno azul).
+- **Formatação** pelo Prettier (`.prettierrc`: aspas simples, 100 colunas). **Sem comentários** no código, como na API.
 
 **Convenções:**
 
@@ -605,6 +641,14 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Traduções geradas pelo laravel-lang e o pacote removido | Mensagens em português sem dependência extra (o pacote exige a extensão `bcmath`) |
 | Admin inicial do seeder lido do `.env` | Decisão do usuário: o admin de teste vira o admin dele; a senha sai do código público. Em produção, preferir `admin:criar-principal` |
 | Backup e monitor externo na hora do deploy | Dependem da plataforma, ainda não escolhida |
+| Front na pasta `frontend/` deste repositório | O usuário preferia um repositório separado; ficou aqui para guias, CI e mudanças de API e front no mesmo commit. A separação que importa é a de execução: o front só consome a API e tem deploy próprio. Dá para mover depois com `git subtree split`, sem perder o histórico |
+| Token do admin no `sessionStorage` com `Bearer` | API e front ficarão em domínios separados; o cookie do Sanctum (mais seguro contra XSS) exige o mesmo domínio e fica como evolução. O `localStorage` deixaria o token exposto por mais tempo |
+| Tailwind + componentes próprios (+ Angular CDK quando houver diálogo) | Angular Material e PrimeNG pesam mais e impõem outro visual |
+| Signals e services, sem NgRx | O sistema não precisa de um gerenciador de estado |
+| Montserrat servida pelo próprio site (`@fontsource`, só o alfabeto latino, pesos 400/600/800 e 800 itálico) | O Google Fonts recebe o IP de cada visitante (dado pessoal) e deixa o site mais lento |
+| Sem ferramentas de rastreamento e com página de privacidade | Transparência da LGPD: a página lista todos os dados coletados, para quê e por quanto tempo |
+| Ícones (Lucide) e Angular CDK instalados só quando uma tela usar | Nenhuma dependência sem uso no pacote |
+| Orçamento do pacote inicial: aviso em 300 kB, erro em 450 kB | O padrão do Angular (500 kB/1 MB) deixaria o site crescer sem ninguém notar |
 
 ---
 
@@ -621,13 +665,14 @@ Arquivo: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Roda a cada **p
 | Job | O que faz |
 |---|---|
 | `Pint e composer audit` | `vendor/bin/pint --test` (acusa código fora do padrão, sem alterar) e `composer audit` (dependência com vulnerabilidade conhecida) |
+| `Front-end` | Node 24, `npm ci`, Prettier (`--check`), testes (Vitest), build de produção (com o orçamento de tamanho) e `npm audit --audit-level=high` |
 | `Testes (sqlite)` · `Testes (mysql)` · `Testes (pgsql)` | `php artisan test` em cada banco, em paralelo. MySQL 8.0 e Postgres 16 sobem como serviços temporários do GitHub |
 
 - Primeira execução (09/11/2026): os 226 testes passaram nos três bancos, sem nenhum ajuste de compatibilidade.
 - PHP 8.3, com cache do Composer. O `phpunit.xml` continua com SQLite por padrão; no CI, as variáveis de ambiente de cada banco têm prioridade.
 - **Como ler um erro:** na aba *Actions* do repositório, abrir a execução com ❌, entrar no job que falhou e expandir o passo vermelho. Um job falhar não cancela os outros (`fail-fast: false`), então dá para ver se o problema é de um banco só.
 - Um push novo na mesma branch cancela a execução anterior que ainda estiver rodando.
-- **Hoje se trabalha direto na `main`:** o CI avisa (❌), mas não impede o push. Para **bloquear** código que quebra os testes, usar uma branch por funcionalidade + pull request e ativar no GitHub *Settings → Branches → Branch protection rules* → "Require status checks to pass" (marcar os 4 jobs). Recomendado quando mais pessoas mexerem no projeto.
+- **Hoje se trabalha direto na `main`:** o CI avisa (❌), mas não impede o push. Para **bloquear** código que quebra os testes, usar uma branch por funcionalidade + pull request e ativar no GitHub *Settings → Branches → Branch protection rules* → "Require status checks to pass" (marcar os 5 jobs). Recomendado quando mais pessoas mexerem no projeto.
 
 Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories de `database/factories`. A data dos testes é fixada em **segunda-feira, 09/11/2026, 10:00** (`tests/TestCase.php`), para não dependerem do dia em que rodam. O limite de requisições por minuto fica desligado nos testes.
 
@@ -666,6 +711,15 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `VerificarProducaoTest` | Itens com ❌ e ✅ e o código de saída |
 | `DisponibilidadeEquipamentoRepositoryTest` | Disponível por data/horário, soma entre espaços, revogadas, sobreposição, maior uso futuro |
 
+**Testes do front** (`frontend/src`, ao lado de cada arquivo, `*.spec.ts`):
+
+| Arquivo | O que cobre |
+|---|---|
+| `app.spec.ts` | Componente raiz com a área das rotas |
+| `app.routes.spec.ts` | Início no layout público, painel no layout do admin (sem o público), página 404, título da página, link "Pular para o conteúdo" |
+| `nucleo/sessao.service.spec.ts` | Token só no `sessionStorage` (nunca no `localStorage`), recuperação ao recarregar, sessão vencida ou inválida descartada, vencimento durante o uso, encerrar |
+| `nucleo/api.interceptor.spec.ts` | `Accept` e `Bearer` só para a API (nunca para outros endereços), 401 com e sem sessão, 422 com os campos, 409 com os dados, 429, 5xx sem detalhes do servidor, falta de conexão |
+
 ---
 
 ## 9. Histórico do desenvolvimento
@@ -684,6 +738,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
 | Horários livres (passo 8) | Modo FIXO/LIVRE por espaço, reserva e evento com início/fim em blocos de 30 min, equipamentos pelo pico de uso, calendário em blocos, consulta de equipamentos por intervalo |
@@ -709,7 +764,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Front-end em Angular** (projeto separado; não será com Blade).
+1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base pronta (11.1); próximo, a área pública de reserva (11.2).
 2. **API para terceiros autorizados.**
 3. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
 

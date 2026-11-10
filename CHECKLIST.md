@@ -6,17 +6,18 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 09/11/2026 · 239 testes passando
+Última atualização: 09/11/2026 · 239 testes da API + 22 do front passando
 
 ---
 
 ## 📍 Onde paramos
 
 - **Último passo concluído:** **passo 10, preparação para produção** (09/11/2026, 239 testes passando). Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS e proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` (recomendações de plataforma para o usuário negociar com a TI da faculdade).
-- **Em andamento:** **passo 11 aprovado em 09/11/2026** (decisões registradas no passo 11 do plano) e o usuário liberou a implementação. **Subpasso 11.1 (base do projeto Angular) em implementação** no PC Ubuntu.
-- **Próximo passo:** concluir o 11.1 e enviar a proposta curta do 11.2 (área pública: reserva).
+- **Último subpasso concluído:** **11.1, base do front Angular** (09/11/2026, 22 testes do front + 239 da API). Projeto em `frontend/` (Angular 22 sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API (sessão no `sessionStorage`, erros padronizados), pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI.
+- **Em andamento:** nada. O passo 11 foi aprovado em 09/11/2026 (decisões no plano, abaixo).
+- **Próximo passo:** enviar a **proposta curta do 11.2** (área pública: início com os espaços, calendário FIXO/LIVRE, reserva com equipamentos, cadastro do aluno) e só implementar depois do ok. Os ícones Lucide (`@lucide/angular`) e o Angular CDK entram quando uma tela usar.
 - **Pendente para o deploy (decisão do usuário):** escolher a plataforma (ver `HOSPEDAGEM.md`), definir o backup e o monitor externo.
-- **O usuário precisa:** dar push dos commits; o `.env` local dele ganhou `ADMIN_INICIAL_NOME/EMAIL/SENHA` (Eric / admin@email.com / Admin), `ALERTAS_EMAIL`, `APP_LOCALE=pt_BR`, `LOG_STACK=daily` e `APP_NAME`; **no outro PC**, copiar essas linhas do `.env.example` para o `.env` de lá, senão o `migrate:fresh --seed` não cria o admin (o seeder avisa e segue).
+- **O usuário precisa:** dar push dos commits (o CI agora tem o job `Front-end`; conferir se fica verde); para ver o front: `php artisan serve` na raiz e `cd frontend && npm start` (http://localhost:4200); o `.env` local dele ganhou `ADMIN_INICIAL_NOME/EMAIL/SENHA` (Eric / admin@email.com / Admin), `ALERTAS_EMAIL`, `APP_LOCALE=pt_BR`, `LOG_STACK=daily` e `APP_NAME`; **no outro PC**, copiar essas linhas do `.env.example` para o `.env` de lá, senão o `migrate:fresh --seed` não cria o admin (o seeder avisa e segue).
 - **Para retomar o passo 11 em outro PC (instruções para o Claude):**
   1. Ler este arquivo inteiro e o `CLAUDE.md`; a proposta completa, com o porquê de cada decisão, está no passo 11 do plano (abaixo) e a identidade visual no README, seção "Front-end: identidade visual".
   2. Conferir com `git log` se o último commit local é o mesmo do GitHub (o usuário precisa ter dado push neste PC e pull no outro).
@@ -56,7 +57,8 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Documentação renomeada (09/11):** a pedido do usuário, o `DOCUMENTACAO.md` virou o `README.md` (é o que o GitHub mostra na página do repositório) e o README padrão do Laravel foi apagado.
 - **Ambiente no PC Ubuntu (09/11):** PHP, Composer e Node instalados sem `sudo`, na pasta do usuário; testes verdes. Falta confirmar o acesso ao registro do npm.
 - **Decisões do passo 11 (09/11):** o usuário preferia o front **fora** do repositório (back e front separados, conversando só pela API), mas ficou com a pasta `frontend/` na raiz por não saber até onde o Claude alcança. Foi explicado que a separação que importa é a de execução e deploy (o front só consome a API), não a pasta; dá para mover para um repositório próprio depois sem perder o histórico (`git subtree split`). Token: o usuário pediu recomendação; como back e front ficarão em domínios separados, **`sessionStorage` + `Bearer`** (o cookie do Sanctum exige o mesmo domínio). Tailwind, signals, sem rastreamento e página de privacidade com **todos os dados coletados**: aprovados. Foto: depois. Fonte: explicado que é o arquivo da tipografia (Montserrat), servido junto com o site em vez de vir dos servidores do Google.
-- **Agora:** implementando o 11.1. Próxima ação: concluir, documentar e mandar a proposta curta do 11.2.
+- **11.1 implementado (09/11):** projeto gerado com `ng new` (Angular 22.2: sem zone.js, Vitest e Tailwind já vêm prontos) e limpo de comentários. Ícones e CDK ficaram para quando uma tela usar (sem dependência sem uso). Um teste mostrou que o login recusado também responde 401 ("Credenciais inválidas"): o front só troca a mensagem do 401 quando havia sessão, e mostra a da API nos outros casos. O 5xx nunca mostra o texto do servidor (pode ter detalhes internos). O token nunca vai para URLs fora da API. Orçamento do pacote inicial: 300 kB aviso / 450 kB erro (hoje 247 kB, 67 kB comprimido).
+- **Agora:** 11.1 concluído e documentado. Próxima ação: proposta curta do 11.2.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -152,6 +154,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Logs diários guardados por 14 dias
 - [x] `php artisan sistema:verificar-producao` e guia de implantação (`DEPLOY.md`)
 - [x] 239 testes automáticos passando
+- [x] Front Angular: base pronta (paleta, fonte, cliente da API, layouts, rotas sob demanda) com 22 testes e job no CI
 
 ---
 
@@ -234,7 +237,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - **Stack proposta:** Angular (versão estável mais recente, componentes standalone, signals, sem zone.js), Tailwind CSS v4, Angular CDK (diálogos, foco e teclado acessíveis), ícones Lucide, Montserrat hospedada no próprio site, testes unitários com o runner padrão do Angular e Playwright nos fluxos principais.
 - **Telas que o front precisa ter** (links dos emails já usados pela API): `/reservas/cancelar/:token`, `/reservas/confirmar/:token`, `/aceitar-convite/:token`, `/redefinir-senha/:token`.
 - **Subpassos (cada um com proposta curta, testes e commit):**
-  - 11.1 Base: projeto, Tailwind com a paleta, fontes, ícones, layouts público e admin, cliente HTTP (URL da API, token, erros 401/409/422/429), rotas com carregamento sob demanda, datas em pt-BR, testes e CI do front.
+  - ✅ 11.1 Base (*concluído em 09/11/2026, 22 testes do front*): projeto, Tailwind com a paleta, fontes, layouts público e admin, cliente HTTP (URL da API, token, erros 401/409/422/429), rotas com carregamento sob demanda, datas em pt-BR, testes e CI do front. Ícones e CDK adiados para quando uma tela usar.
   - 11.2 Público, reserva: início com os espaços, calendário de disponibilidade (FIXO e LIVRE), reserva com equipamentos, cadastro do aluno.
   - 11.3 Público, pós-reserva: minhas reservas (RA + email), cancelar e confirmar pelo link, página de privacidade.
   - 11.4 Admin, acesso: login, esqueci e redefinir senha, aceitar convite, trocar senha, sair.

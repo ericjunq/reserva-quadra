@@ -64,8 +64,10 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - O `AdminSeeder` lê nome, email e senha do `.env` (`ADMIN_INICIAL_*`); a senha `Admin` do `.env.example` é **intencional**, para desenvolvimento (decisão do usuário: o admin de teste vira o admin dele). Não apontar como problema, a menos que o assunto seja produção (lá, `admin:criar-principal` e `ADMIN_INICIAL_SENHA` vazia).
 - Configuração nova que depende do ambiente vai para `config/*.php` lendo o `.env`, e entra no `.env.example`, no `.env.production.example` e na tabela de variáveis do README. Nunca usar `env()` fora de `config/`, porque o `config:cache` de produção o ignora.
 - O campo de data da reserva se chama `data_reserva`, nunca `data`, porque um campo `data` faria o resource perder o wrapper `{"data": ...}`.
-- O **front-end será em Angular**, num projeto separado (proposta: pasta `frontend/` neste repositório, a confirmar no passo 11). **Não criar telas em Blade.** Links de email apontam para `FRONTEND_URL`.
+- O **front-end é em Angular**, na pasta `frontend/` deste repositório (decisão de 09/11/2026), e só consome a API, com deploy próprio. **Não criar telas em Blade.** Links de email apontam para `FRONTEND_URL`.
 - **No front valem as mesmas regras:** nenhum comentário (TS, HTML, CSS), nomes em português, um commit por alteração, testes antes de cada commit, proposta antes de cada subpasso, desempenho e LGPD em toda decisão. A identidade visual aprovada está no README ("Front-end: identidade visual").
+- **Comandos do front** (dentro de `frontend/`): `npx prettier --write src` antes de commitar (equivale ao Pint), `npx ng test --watch=false` e `npx ng build` (o build confere o orçamento de tamanho). Arquivos gerados pelo Angular CLI também perdem os comentários.
+- **Padrões do front:** chamadas à API sempre com `ambiente.urlApi` (o `interceptorApi` só põe o token nessas URLs); erros chegam às telas como `ErroApi`; token só pelo `SessaoService` (`sessionStorage`); RA e email só no corpo das requisições e na memória da tela; dependência nova só quando uma tela a usar.
 
 ### Compatibilidade entre bancos (SQLite, MySQL e Postgres)
 - Busca por texto: `whereLike(..., caseSensitive: false)`, nunca `where(..., 'like', ...)`. No Postgres, o `like` diferencia maiúsculas.

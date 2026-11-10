@@ -1512,3 +1512,123 @@ mostra na página do repositório.
   como exclusão + alteração: o histórico antigo do texto está em "git log -- DOCUMENTACAO.md".
 - Referências trocadas em CLAUDE.md, CHECKLIST.md, DATABASE.md e DEPLOY.md. As seções
   anteriores deste txt mantêm o nome antigo (DOCUMENTACAO.md), como registro histórico.
+
+========================================================================
+40. PASSO 11.1 — BASE DO FRONT-END EM ANGULAR
+========================================================================
+
+09/11/2026, no PC Ubuntu. 22 testes do front + 239 da API passando.
+
+Decisões do passo 11 (aprovadas pelo usuário): pasta frontend/ neste repositório (ele preferia
+um repositório separado; pode ser separado depois com git subtree split); token em
+sessionStorage + Bearer (front e API em domínios separados); Tailwind + componentes próprios;
+signals sem NgRx; Montserrat servida pelo próprio site; foto da quadra depois; página de
+privacidade com todos os dados coletados; sem rastreamento.
+
+Ambiente: a rede do PC bloqueia o registry.npmjs.org; o ~/.npmrc do PC aponta para o espelho
+registry.yarnpkg.com (mesmos pacotes). O package-lock.json continua com o registro padrão, então
+o CI e o outro PC não dependem do espelho.
+
+Gerado com: npx @angular/cli@22.2.6 new reservas-front --directory frontend --style tailwind
+--ssr false --zoneless --routing --skip-git --test-runner vitest --ai-config none.
+Removidos do gerado: comentários dos tsconfig, .gitignore, .editorconfig e styles.css; a pasta
+.vscode (o workspace é a raiz do repositório); app.html (página de boas-vindas) e app.css (vazio).
+
+frontend/package.json, package-lock.json
+  - Angular 22.2, TypeScript 6, Vitest 5, Tailwind 4, Prettier. Única dependência acrescentada:
+    @fontsource/montserrat (arquivos da fonte, servidos pelo próprio site).
+
+frontend/angular.json
+  - styles: os 4 arquivos da Montserrat (latin-400, latin-600, latin-800, latin-800-italic) antes
+    do styles.css. Só o alfabeto latino: menos bytes. O navegador baixa cada peso só quando usado.
+  - Orçamento do pacote inicial: aviso 300 kB, erro 450 kB (padrão era 500 kB/1 MB).
+  - development.fileReplacements: troca src/ambientes/ambiente.ts pelo ambiente.development.ts
+    (vale para o ng serve e para os testes).
+
+frontend/src/index.html
+  - lang="pt-BR", título "Sistema de Reservas", theme-color azul, e
+    <meta name="referrer" content="no-referrer">: os links de email levam um token na URL, e sem
+    isso o endereço completo poderia ir para outro site no cabeçalho Referer (LGPD/segurança).
+
+frontend/src/styles.css
+  - @theme do Tailwind com a paleta aprovada: azul #0D2C6B, azul-escuro #06163A, azul-medio
+    #144096, amarelo #F5B400; fonte sans = Montserrat com fallback do sistema.
+  - Base: fundo slate-50, texto slate-900 e contorno de foco visível (azul-medio) em tudo.
+
+frontend/src/ambientes/ambiente.ts e ambiente.development.ts
+  - urlApi: '/api' (produção, provisório até o 11.8) e 'http://localhost:8000/api' (dev).
+
+frontend/src/app/app.config.ts
+  - Router com withComponentInputBinding (parâmetros da rota, como o token dos links, chegam
+    direto como input do componente), HttpClient com fetch e o interceptorApi, locale pt-BR
+    registrado (datas e números formatados em português).
+
+frontend/src/app/app.ts
+  - Componente raiz só com o <router-outlet />.
+
+frontend/src/app/app.routes.ts
+  - /admin → loadChildren(admin.routes); '' → loadChildren(publico.routes); ** → página 404.
+    Cada área vira um pacote separado: o aluno não baixa o código do admin (desempenho).
+
+frontend/src/app/nucleo/sessao.service.ts
+  - SessaoService guarda { token, expiraEm } em sessionStorage (chave reservas.sessao), num
+    signal. iniciar(), encerrar() e tokenValido() (encerra sozinho se o token venceu).
+  - Ao abrir, descarta o que estiver vencido ou inválido. Acesso ao storage dentro de try/catch
+    (modo privado ou storage bloqueado não quebram o app).
+  - Por que sessionStorage: some ao fechar a aba, então um token esquecido num computador do
+    laboratório não fica valendo; localStorage ficaria exposto por mais tempo.
+
+frontend/src/app/nucleo/erro-api.ts
+  - ErroApi { status, mensagem, campos, dados } e converterErroApi(): formato único para todas
+    as telas. campos = errors do 422 (validação do Laravel); dados = dados da
+    RegraNegocioException (ex.: reserva_conflitante_id, itens que faltaram).
+  - Mensagens: 0 (sem conexão), 429 (aguarde um minuto) e 5xx (erro do servidor) têm texto
+    próprio; o 5xx nunca mostra o texto do servidor, que pode ter detalhes internos. 401 com
+    sessão → "Sua sessão terminou". Os demais usam a mensagem da API (já em português).
+
+frontend/src/app/nucleo/api.interceptor.ts
+  - Só age em URLs que começam com ambiente.urlApi: põe Accept: application/json e, com sessão,
+    Authorization: Bearer. O token nunca vai para outro endereço.
+  - 401 com token → encerra a sessão. Converte HttpErrorResponse em ErroApi. Não registra nada
+    em log (LGPD).
+  - Ajuste feito por causa de um teste: o login recusado responde 401 "Credenciais inválidas" sem
+    token; nesse caso a mensagem da API é mantida.
+
+frontend/src/app/publico/publico.routes.ts, layout-publico/, inicio/
+  - LayoutPublico: link "Pular para o conteúdo", cabeçalho branco com a marca (tracinho amarelo
+    inclinado + "Reservas" em 800 itálico), <main id="conteudo">, rodapé azul-escuro com curva
+    em SVG e o ano.
+  - Inicio: faixa azul com grade de pontinhos e faixa amarela inclinada (detalhes da identidade,
+    no lugar da foto, que vem depois) e o título em texto. O conteúdo de verdade (espaços e
+    calendário) entra no 11.2.
+
+frontend/src/app/admin/admin.routes.ts, layout-admin/, painel/
+  - LayoutAdmin neutro (cabeçalho azul, fundo slate-100, sem decorações), com o link de pular.
+  - Painel provisório; o login e a proteção da área entram no 11.4.
+
+frontend/src/app/compartilhado/pagina-nao-encontrada/pagina-nao-encontrada.ts
+  - 404 com botão em pílula para voltar ao início.
+
+frontend/README.md
+  - Comandos do front e link para o README da raiz.
+
+Testes (Vitest, *.spec.ts ao lado de cada arquivo):
+  - app.spec.ts: componente raiz.
+  - app.routes.spec.ts (RouterTestingHarness): layouts certos em cada área, 404, título, link de
+    pular para o conteúdo.
+  - sessao.service.spec.ts: só sessionStorage (localStorage vazio), recarregar, vencido,
+    inválido, vencimento durante o uso (vi.useFakeTimers), encerrar.
+  - api.interceptor.spec.ts (HttpTestingController): cabeçalhos só para a API, 401 com e sem
+    sessão, 422, 409, 429, 500, falta de conexão.
+
+.github/workflows/ci.yml
+  - Job novo "Front-end": Node 24 com cache do npm, npm ci, prettier --check, ng test, ng build
+    (confere o orçamento) e npm audit --audit-level=high.
+
+CLAUDE.md
+  - Front confirmado em frontend/; comandos do front (Prettier, testes, build) e padrões
+    (ambiente.urlApi, ErroApi, SessaoService, dependência só quando usada).
+
+README.md
+  - "Como rodar" do front, estrutura do front, decisões do passo 11, job do CI, testes do front,
+    histórico e próximos passos.
