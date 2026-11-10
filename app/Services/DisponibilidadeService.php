@@ -26,7 +26,7 @@ class DisponibilidadeService
         private EquipamentoService $equipamentoService,
     ) {}
 
-    public function consultar(Espaco $espaco, string $de, string $ate, ?Curso $curso = null): array
+    public function consultar(Espaco $espaco, string $de, string $ate, ?Curso $curso = null, bool $identificarCurso = true): array
     {
         $equipamentos = $espaco->livre() ? collect() : $this->equipamentoService->listarAtivos($espaco);
         $uso = $this->disponibilidade->usoNoPeriodo($equipamentos->pluck('id')->all(), $de, $ate)->groupBy('data');
@@ -74,8 +74,7 @@ class DisponibilidadeService
             'ate'          => $ate,
             'reservas_ate' => AntecedenciaMaxima::dataLimite()->toDateString(),
             'curso'        => $curso ? [
-                'id'             => $curso->id,
-                'nome'           => $curso->nome,
+                ...($identificarCurso ? ['id' => $curso->id, 'nome' => $curso->nome] : []),
                 'limite_semanal' => $espaco->limite_semanal_por_curso,
                 'semanas'        => $semanas ? array_values($semanas) : [],
             ] : null,

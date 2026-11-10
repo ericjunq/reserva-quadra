@@ -21,6 +21,7 @@ Route::get('/espacos', [EspacoController::class, 'ativos']);
 Route::get('/espacos/{espaco}/equipamentos', [EquipamentoController::class, 'ativos']);
 Route::get('/espacos/{espaco}/equipamentos/disponibilidade', [EquipamentoController::class, 'disponibilidade'])->middleware('throttle:60,1');
 Route::get('/espacos/{espaco}/disponibilidade', [EspacoController::class, 'disponibilidade'])->middleware('throttle:60,1');
+Route::post('/espacos/{espaco}/disponibilidade/curso', [EspacoController::class, 'disponibilidadeDoCurso'])->middleware('throttle:20,1');
 
 Route::post('/alunos', [AlunoController::class, 'store'])->middleware('throttle:10,1');
 Route::post('/reservas', [ReservaController::class, 'store'])->middleware('throttle:10,1');

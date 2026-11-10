@@ -140,7 +140,7 @@ class AlunoAdminTest extends TestCase
     public function test_aluno_inativo_nao_reserva_nem_consulta_com_ra(): void
     {
         $aluno = Aluno::factory()->inativo()->create();
-        $espaco = Espaco::factory()->create();
+        $espaco = Espaco::factory()->create(['limite_semanal_por_curso' => 3]);
 
         $this->postJson('/api/reservas', [
             'registro_academico' => $aluno->registro_academico,
@@ -149,7 +149,7 @@ class AlunoAdminTest extends TestCase
             'horario'            => 'PRIMEIRO_HORARIO',
         ])->assertStatus(422)->assertJsonValidationErrors('registro_academico');
 
-        $this->getJson("/api/espacos/{$espaco->id}/disponibilidade?de=2026-11-10&registro_academico={$aluno->registro_academico}")
+        $this->postJson("/api/espacos/{$espaco->id}/disponibilidade/curso", ['de' => '2026-11-10', 'registro_academico' => $aluno->registro_academico])
             ->assertStatus(422)->assertJsonValidationErrors('registro_academico');
     }
 

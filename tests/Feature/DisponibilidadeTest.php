@@ -32,6 +32,11 @@ class DisponibilidadeTest extends TestCase
         return $this->getJson('/api/espacos/'.($espaco ?? $this->quadra)->id.'/disponibilidade?'.http_build_query($params));
     }
 
+    private function consultarComRa(array $dados, ?Espaco $espaco = null)
+    {
+        return $this->postJson('/api/espacos/'.($espaco ?? $this->quadra)->id.'/disponibilidade/curso', $dados);
+    }
+
     private function reservar(string $data, ?Aluno $aluno = null, HorarioReservaConstant $horario = HorarioReservaConstant::PRIMEIRO_HORARIO): Reserva
     {
         return Reserva::factory()->noHorario($horario)->create([
@@ -149,7 +154,7 @@ class DisponibilidadeTest extends TestCase
         $this->assertSame(5, $segundo['Microscópio']['disponivel']);
     }
 
-    public function test_com_ra_mostra_todas_as_reservas_e_o_limite_do_curso(): void
+    public function test_com_ra_por_post_mostra_todas_as_reservas_e_o_limite_do_curso(): void
     {
         $curso = Curso::factory()->create();
         $aluno = Aluno::factory()->create(['curso_id' => $curso->id]);
@@ -159,9 +164,10 @@ class DisponibilidadeTest extends TestCase
         $this->reservar('2026-11-11', Aluno::factory()->create(['curso_id' => $curso->id]));
         $this->reservar('2026-11-12', $outroCurso);
 
-        $resposta = $this->consultar(['de' => '2026-11-12', 'ate' => '2026-11-16', 'registro_academico' => $aluno->registro_academico])
+        $resposta = $this->consultarComRa(['de' => '2026-11-12', 'ate' => '2026-11-16', 'registro_academico' => $aluno->registro_academico])
             ->assertOk()
-            ->assertJsonPath('data.curso.id', $curso->id)
+            ->assertJsonMissingPath('data.curso.id')
+            ->assertJsonMissingPath('data.curso.nome')
             ->assertJsonPath('data.curso.limite_semanal', 2)
             ->assertJsonPath('data.curso.semanas.0.inicio', '2026-11-09')
             ->assertJsonPath('data.curso.semanas.0.reservas', 2)
@@ -200,9 +206,51 @@ class DisponibilidadeTest extends TestCase
         $this->consultar([])->assertStatus(422)->assertJsonValidationErrors('de');
         $this->consultar(['de' => '2026-11-10', 'ate' => '2026-11-09'])->assertStatus(422)->assertJsonValidationErrors('ate');
         $this->consultar(['de' => '2026-11-01', 'ate' => '2026-12-02'])->assertStatus(422)->assertJsonValidationErrors('ate');
-        $this->consultar(['de' => '2026-11-10', 'registro_academico' => 'NAO-EXISTE'])->assertStatus(422)->assertJsonValidationErrors('registro_academico');
-        $this->consultar(['de' => '2026-11-10', 'registro_academico' => Aluno::factory()->create()->registro_academico, 'curso_id' => Curso::factory()->create()->id])
-            ->assertStatus(422)->assertJsonValidationErrors('registro_academico');
+    }
+
+    public function test_consulta_publica_por_get_ignora_o_ra(): void
+    {
+        $aluno = Aluno::factory()->create();
+
+        $this->consultar(['de' => '2026-11-10', 'registro_academico' => $aluno->registro_academico])->assertOk()
+            ->assertJsonPath('data.curso', null);
+    }
+
+    public function test_consulta_com_ra_so_aceita_post(): void
+    {
+        $this->getJson("/api/espacos/{$this->quadra->id}/disponibilidade/curso?de=2026-11-10")->assertStatus(405);
+    }
+
+    public function test_consulta_com_ra_so_em_espaco_com_limite_por_curso(): void
+    {
+        $sala = Espaco::factory()->create(['limite_semanal_por_curso' => null]);
+
+        $this->consultarComRa(['de' => '2026-11-10', 'registro_academico' => Aluno::factory()->create()->registro_academico], $sala)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['registro_academico' => 'Este espaço não tem limite semanal por curso.']);
+    }
+
+    public function test_validacoes_da_consulta_com_ra(): void
+    {
+        $mensagem = 'Não encontramos um aluno ativo com este RA.';
+
+        $this->consultarComRa(['de' => '2026-11-10'])->assertStatus(422)->assertJsonValidationErrors('registro_academico');
+        $this->consultarComRa(['registro_academico' => '2024000001'])->assertStatus(422)->assertJsonValidationErrors('de');
+        $this->consultarComRa(['de' => '2026-11-10', 'registro_academico' => '123'])->assertStatus(422)->assertJsonValidationErrors('registro_academico');
+        $this->consultarComRa(['de' => '2026-11-10', 'registro_academico' => '2099999999'])
+            ->assertStatus(422)->assertJsonValidationErrors(['registro_academico' => $mensagem]);
+        $this->consultarComRa(['de' => '2026-11-10', 'registro_academico' => Aluno::factory()->inativo()->create()->registro_academico])
+            ->assertStatus(422)->assertJsonValidationErrors(['registro_academico' => $mensagem]);
+        $this->consultarComRa(['de' => '2026-11-01', 'ate' => '2026-12-02', 'registro_academico' => Aluno::factory()->create()->registro_academico])
+            ->assertStatus(422)->assertJsonValidationErrors('ate');
+    }
+
+    public function test_consulta_com_ra_em_espaco_inativo_retorna_404(): void
+    {
+        $espaco = Espaco::factory()->inativo()->create(['limite_semanal_por_curso' => 3]);
+
+        $this->consultarComRa(['de' => '2026-11-10', 'registro_academico' => Aluno::factory()->create()->registro_academico], $espaco)
+            ->assertNotFound();
     }
 
     public function test_espaco_inativo_retorna_404(): void
