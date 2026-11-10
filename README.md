@@ -92,6 +92,18 @@ npx prettier --write src        # formata no padrão do projeto (.prettierrc)
 - O endereço da API vem de `frontend/src/ambientes/`: `ambiente.development.ts` (`http://localhost:8000/api`, usado pelo `npm start` e pelos testes) e `ambiente.ts` (produção; `/api` até o deploy do front ser definido no subpasso 11.8).
 - O `FRONTEND_URL` do `.env` da API já é `http://localhost:4200`, então o CORS libera o front local.
 - **Rede que bloqueia o `registry.npmjs.org`** (aconteceu no PC Ubuntu): `npm config set registry https://registry.yarnpkg.com/` (espelho com os mesmos pacotes). Fica no `~/.npmrc` do PC, fora do repositório; o `package-lock.json` continua apontando para o registro padrão.
+- A coleta de dados de uso do Angular CLI fica **desligada** no projeto (`"analytics": false` no `angular.json`), em linha com a decisão de não usar rastreamento.
+- **Para ver o front:** um terminal com `php artisan serve` (raiz) e outro com `cd frontend && npm start`; abrir http://localhost:4200. Até o 11.2, só a base visual aparece (nenhuma tela chama a API ainda).
+
+### Preparar um PC novo
+
+O que foi preciso no PC Ubuntu (09/11/2026), sem `sudo` e sem `curl`:
+
+1. **PHP 8.4 + Composer:** binários do php.new (herd-lite) em `~/.config/herd-lite/bin`, baixados com `wget`, e o caminho no `~/.bashrc` (`PATH` e `PHP_INI_SCAN_DIR`).
+2. **Node LTS:** tarball oficial do nodejs.org (com o checksum conferido) extraído em `~/.local/node`, e `~/.local/node/bin` no `PATH`. O Angular 22 aceita Node 22.22+, 24.15+ ou 26.
+3. Abrir um terminal novo (ou `source ~/.bashrc`) e rodar o "Primeira vez" acima; no front, `cd frontend && npm install`.
+4. **Git:** `git config user.name` e `user.email` iguais aos dos commits anteriores.
+5. **Push por HTTPS:** o GitHub não aceita a senha da conta no terminal. Usar um **token de acesso pessoal** (*Settings → Developer settings → Personal access tokens → Fine-grained*), só para este repositório, com **Contents** e **Workflows** em *Read and write* (Workflows porque os commits podem mexer no `.github/workflows`). Para não colar o token a cada push: `git config --global credential.helper store` (guarda em `~/.git-credentials`; aceitável num PC pessoal).
 
 ### Fazer login como admin
 
@@ -764,7 +776,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base pronta (11.1); próximo, a área pública de reserva (11.2).
+1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base pronta (11.1). **Proposta do 11.2 enviada** (área pública de reserva: espaços, calendário semanal, reserva com equipamentos e cadastro), aguardando aprovação; inclui uma mudança pequena na API: tirar o `registro_academico` do `GET /api/espacos/{id}/disponibilidade` (LGPD: RA na URL e revelação de cadastro).
 2. **API para terceiros autorizados.**
 3. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
 

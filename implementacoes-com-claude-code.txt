@@ -1632,3 +1632,45 @@ CLAUDE.md
 README.md
   - "Como rodar" do front, estrutura do front, decisões do passo 11, job do CI, testes do front,
     histórico e próximos passos.
+
+========================================================================
+41. AMBIENTE DO PC UBUNTU E PROPOSTA DO PASSO 11.2 (documentação)
+========================================================================
+
+09/11/2026. Quase nada de código; registro do que foi feito na sessão do PC Ubuntu além do 11.1.
+
+Ambiente (fora do repositório, na pasta do usuário; sem sudo e sem curl):
+  - PHP 8.4 + Composer: binários do php.new (herd-lite) baixados com wget em
+    ~/.config/herd-lite/bin, com php.ini apontando o cacert.pem; PATH e PHP_INI_SCAN_DIR no
+    ~/.bashrc. Extensões presentes: pdo_sqlite, pdo_mysql, pdo_pgsql, bcmath, intl, mbstring.
+  - Node 26.13 LTS + npm 11.20: tarball oficial do nodejs.org, SHA-256 conferido com o
+    SHASUMS256.txt, extraído em ~/.local/node. O instalador do nvm foi descartado (executaria um
+    script baixado da internet).
+  - npm: a rede bloqueia o registry.npmjs.org (o mesmo endereço respondeu por IPv4 só com
+    timeout; o registry.yarnpkg.com respondeu). ~/.npmrc com registry=https://registry.yarnpkg.com/.
+  - Laravel: composer install, .env do .env.example, key:generate e migrate --seed (o banco
+    SQLite ainda não existia, então não foi um migrate:fresh e nada foi apagado). Admin principal
+    criado pelo .env (ADMIN_INICIAL_*). 239 testes e Pint ok.
+  - Git local do repositório: user.name ericjunq e o mesmo email dos commits anteriores.
+  - Push por HTTPS: explicado ao usuário que precisa de um token de acesso pessoal (Contents e
+    Workflows em Read and write) e o credential.helper store.
+
+frontend/angular.json
+  - "cli.analytics": false. Gravado pelo próprio Angular CLI quando o usuário rodou npm start e
+    recusou a coleta de dados de uso. Commitado: coerente com a decisão de não ter rastreamento.
+
+README.md
+  - "Front-end (Angular)": coleta de uso desligada e como ver o front (dois terminais).
+  - Seção nova "Preparar um PC novo": PHP e Node sem sudo, git, push com token de acesso pessoal.
+  - Próximos passos: proposta do 11.2 e a mudança na API sugerida na decisão 3.
+
+CHECKLIST.md
+  - Passo 11.2 com a proposta: telas (/, /espacos/:id, /espacos/:id/reservar, /cadastro,
+    sucesso), arquivos, 7 decisões com recomendação, desempenho e LGPD.
+  - Decisão 3 da proposta: tirar o registro_academico do GET /api/espacos/{id}/disponibilidade.
+    Motivo: o RA vai na query string (fica em logs e no histórico do navegador) e a regra
+    exists da validação responde diferente para RA cadastrado e não cadastrado. O front usaria
+    só o curso_id para mostrar quantas reservas o curso ainda tem na semana.
+  - "Onde paramos": proposta do 11.2 aguardando aprovação; push com token; conceitos explicados
+    (fonte = arquivo da tipografia, pasta fora do projeto, push com token, como subir o front).
+  - Trilha de ideias: proposta do 11.2 e a coleta de uso do Angular CLI recusada.
