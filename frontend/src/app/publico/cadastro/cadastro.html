@@ -1,0 +1,132 @@
+<div class="mx-auto max-w-xl px-4 py-8">
+  @if (cadastrado()) {
+    <section
+      class="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200"
+      role="status"
+    >
+      <svg lucideCircleCheck [size]="48" class="mx-auto text-emerald-600" aria-hidden="true"></svg>
+      <h1 class="mt-3 text-2xl font-extrabold italic text-azul">Cadastro feito!</h1>
+      <p class="mt-2 text-slate-700">Agora é só escolher um espaço e reservar com o seu RA.</p>
+      <a
+        routerLink="/"
+        class="mt-6 inline-block rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio"
+      >
+        Ver os espaços
+      </a>
+    </section>
+  } @else {
+    <h1 class="text-3xl font-extrabold italic text-azul">Cadastro do aluno</h1>
+    <p class="mt-2 text-slate-600">Faça uma vez e use o RA em todas as reservas.</p>
+
+    <div
+      class="mt-6 flex items-start gap-3 rounded-xl border border-azul/20 bg-azul/5 p-4 text-sm text-slate-700"
+    >
+      <svg lucideInfo [size]="18" class="mt-0.5 shrink-0 text-azul" aria-hidden="true"></svg>
+      <p>
+        Usamos seu nome, RA, email e curso só para registrar suas reservas, enviar os avisos por
+        email e aplicar o limite de reservas por curso. No calendário público aparecem apenas o seu
+        nome e o seu curso. Você pode pedir a anonimização dos seus dados à faculdade.
+      </p>
+    </div>
+
+    <form
+      class="mt-6 space-y-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+      (ngSubmit)="cadastrar()"
+      novalidate
+    >
+      @if (erro(); as erro) {
+        <app-aviso-erro [mensagem]="erro.mensagem" />
+      }
+
+      <div>
+        <label for="nome" class="block font-semibold text-slate-900">Nome completo</label>
+        <input
+          id="nome"
+          name="nome"
+          autocomplete="off"
+          maxlength="150"
+          required
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [attr.aria-invalid]="!!erroDoCampo('nome_completo')"
+          [ngModel]="nome()"
+          (ngModelChange)="nome.set($event)"
+        />
+        @if (erroDoCampo('nome_completo'); as mensagem) {
+          <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
+        }
+      </div>
+
+      <div>
+        <label for="ra" class="block font-semibold text-slate-900">RA</label>
+        <p class="text-sm text-slate-600">O registro acadêmico, com 10 números</p>
+        <input
+          id="ra"
+          name="ra"
+          inputmode="numeric"
+          autocomplete="off"
+          maxlength="10"
+          required
+          class="mt-1 w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2"
+          [attr.aria-invalid]="!!erroDoCampo('registro_academico')"
+          [ngModel]="ra()"
+          (ngModelChange)="ra.set($event)"
+        />
+        @if (erroDoCampo('registro_academico'); as mensagem) {
+          <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
+        }
+      </div>
+
+      <div>
+        <label for="email" class="block font-semibold text-slate-900">Email</label>
+        <p class="text-sm text-slate-600">Para onde vão os avisos e os links de confirmação</p>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="off"
+          maxlength="100"
+          required
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [attr.aria-invalid]="!!erroDoCampo('email')"
+          [ngModel]="email()"
+          (ngModelChange)="email.set($event)"
+        />
+        @if (erroDoCampo('email'); as mensagem) {
+          <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
+        }
+      </div>
+
+      <div>
+        <label for="curso" class="block font-semibold text-slate-900">Curso</label>
+        @if (cursos()?.erro; as mensagem) {
+          <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
+        }
+        <select
+          id="curso"
+          name="curso"
+          required
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [attr.aria-invalid]="!!erroDoCampo('curso_id')"
+          [ngModel]="cursoId()"
+          (ngModelChange)="cursoId.set($event)"
+        >
+          <option [ngValue]="null" disabled>Escolha o seu curso</option>
+          @for (curso of cursos()?.cursos ?? []; track curso.id) {
+            <option [ngValue]="curso.id">{{ curso.nome }}</option>
+          }
+        </select>
+        @if (erroDoCampo('curso_id'); as mensagem) {
+          <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
+        }
+      </div>
+
+      <button
+        type="submit"
+        class="w-full rounded-full bg-azul px-6 py-3 font-semibold text-white hover:bg-azul-medio disabled:opacity-60"
+        [disabled]="enviando()"
+      >
+        {{ enviando() ? 'Cadastrando…' : 'Cadastrar' }}
+      </button>
+    </form>
+  }
+</div>

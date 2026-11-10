@@ -21,6 +21,11 @@ export const rotasPublicas: Routes = [
         title: 'Reservar · Sistema de Reservas',
         loadComponent: () => import('./reservar/reservar').then((m) => m.Reservar),
       },
+      {
+        path: 'cadastro',
+        title: 'Cadastro · Sistema de Reservas',
+        loadComponent: () => import('./cadastro/cadastro').then((m) => m.Cadastro),
+      },
     ],
   },
 ];
