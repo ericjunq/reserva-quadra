@@ -1741,3 +1741,100 @@ tests/Feature/AlunoAdminTest.php
 
 README.md e CHECKLIST.md
   - Rota nova na tabela de endpoints, limites, explicação da consulta, LGPD, decisão, testes.
+
+========================================================================
+44. PASSO 11.2 (TELAS) — ÁREA PÚBLICA DE RESERVA NO FRONT
+========================================================================
+
+10/11/2026. 56 testes do front e 244 da API passando. O PC desligou no meio do calendário; o
+template e a rota (ainda sem commit) estavam intactos e o trabalho seguiu deles.
+
+frontend/package.json
+  - @lucide/angular (ícones de traço, componentes standalone com signals). O arquivo do pacote
+    tem 11 MB, mas o build leva só os ícones usados (cada um é um componente: <svg lucideClock>).
+    Nos testes, importar o pacote leva alguns segundos; por isso os testes de rota que carregam
+    páginas sob demanda têm prazo de 30 s (CARREGAMENTO_SOB_DEMANDA em app.routes.spec.ts).
+
+frontend/src/app/publico/modelos.ts
+  - Interfaces das respostas da API pública (Espaco, Curso, Calendario, DiaNoCalendario,
+    HorarioNoCalendario, ReservaNoCalendario, EquipamentoDisponivel, NovaReserva, ReservaCriada,
+    NovoAluno). situacao é string (não união fechada) para aceitar situações novas da API.
+
+frontend/src/app/publico/datas.ts
+  - paraIso/deIso sem passar por UTC (new Date('2026-11-10') vira 09/11 às 21h no Brasil);
+    segundaDaSemana, somarDias, ehDiaUtil, ehDataIso e ehHora (validam o que vem da URL),
+    formatarDia ("Terça-feira, 10/11") e formatarDiaCurto com Intl em pt-BR.
+
+frontend/src/app/publico/textos.ts
+  - Nomes dos tipos de espaço e a frase do horário ("Horários fixos…" ou "Horário livre, das 07:00
+    às 22:00, até 3h por reserva").
+
+frontend/src/app/publico/api-publica.service.ts
+  - listarEspacos e listarCursos com shareReplay(1): uma requisição por visita (o shareReplay
+    refaz a chamada se ela falhar). consultarCalendario guarda cada semana num Map (chave
+    espaço|de|ate). consultarCalendarioDoCurso faz o POST com o RA no corpo (sem cache).
+    reservar() descarta as semanas do espaço depois de criar (tap). consultarEquipamentos e
+    cadastrarAluno.
+
+frontend/src/app/publico/ra-em-memoria.service.ts
+  - Um signal com o RA, só em memória: passa do calendário para a reserva e da reserva para o
+    cadastro e de volta. Some ao recarregar a página e é esquecido depois de reservar.
+
+frontend/src/app/compartilhado/aviso-erro/aviso-erro.ts
+  - Caixa role="alert" com ícone e a mensagem; ng-content para ações ("Tentar de novo", links).
+
+frontend/src/app/publico/inicio/
+  - Espaços da API em cartões (ícone por tipo, horário, limite por curso, link "Ver horários");
+    filtro por tipo com aria-pressed (só aparece se houver mais de um tipo); esqueleto enquanto
+    carrega; erro com "Tentar de novo".
+
+frontend/src/app/publico/calendario/
+  - Inputs id e semana (query param), pela withComponentInputBinding. A semana nunca volta antes
+    da atual e só avança enquanto houver dia dentro de reservas_ate.
+  - toObservable(consulta) + switchMap: trocar de semana cancela a requisição anterior.
+  - Espaço com limite por curso (quadra): campo de RA (10 números conferidos antes de chamar a
+    API, autocomplete off). Com o RA, a consulta vira o POST; a resposta mostra "O seu curso ainda
+    pode fazer N reservas nesta semana" e "Limite do seu curso atingido" nos horários livres que o
+    curso não pode pegar. 422 do RA: mensagem, link "Fazer meu cadastro", RA esquecido e o
+    calendário volta a ser o público.
+  - Grade md:grid-cols-5: no computador os dias ficam lado a lado; no celular, empilhados (a mesma
+    semana). Só segunda a sexta. Dia fechado mostra só o motivo. Horário livre é um link para a
+    reserva com aria-label completo ("Reservar Terça-feira, 10/11, das 19:00 às 20:30").
+    Reservado mostra nome e curso (nunca RA); evento mostra a descrição; situação desconhecida
+    aparece como "Indisponível" com o motivo; bloco encerrado de hoje não repete o motivo.
+
+frontend/src/app/publico/reservar/
+  - Inputs id, data, horario, inicio, fim (query params), validados; URL inválida pede para
+    escolher no calendário.
+  - O dia vem da mesma semana do calendário (cache): vindo do calendário, nenhuma requisição.
+  - FIXO: equipamentos do próprio horário do calendário. LIVRE: select "Até que horas?" com os
+    fins possíveis (blocos livres seguidos a partir do início, até a duração máxima); trocar o fim
+    atualiza a URL (replaceUrl) e consulta os equipamentos do intervalo.
+  - Equipamentos com botões − e + limitados ao disponível; resumo lateral (aside azul).
+  - Envio: RA conferido (10 números) antes; corpo com horario ou hora_inicio/hora_fim e só os
+    equipamentos com quantidade. Sucesso: tela com o próximo passo conforme a resposta
+    (confirmada_em: já confirmada; confirmacao_enviada_em: confirme até a véspera; senão: pedido
+    de confirmação 2 dias úteis antes) e o aviso de cancelamento pelo email; RA e itens limpos.
+  - 422: mensagem e erro no campo do RA (aria-invalid) com o link de cadastro (voltar = URL atual).
+    409: mensagem (e a lista de equipamentos que faltaram, se vier) e recarga do horário; se ele
+    foi ocupado, o formulário some e aparece "não está mais livre".
+
+frontend/src/app/publico/cadastro/
+  - Nome, RA, email e curso (cursos da API), todos com autocomplete off. Aviso de para que servem
+    os dados e de que dá para pedir a anonimização (o link da página de privacidade entra no 11.3).
+  - Sucesso: RA guardado na memória e volta para o voltar (só caminhos internos:
+    caminhoInterno() recusa endereços externos, // e \), ou tela "Cadastro feito!".
+  - Erros por campo do 422.
+
+frontend/src/app/publico/publico.routes.ts e layout-publico/
+  - Rotas espacos/:id, espacos/:id/reservar e cadastro, cada uma sob demanda. Link "Fazer
+    cadastro" no cabeçalho.
+
+Testes novos: datas, api-publica.service, inicio, calendario, reservar, cadastro (ver a tabela do
+README). Os testes de componente fixam a data em 10/11/2026 só para o Date (vi.useFakeTimers com
+toFake: ['Date']) e respondem às requisições com vi.waitFor + HttpTestingController.
+
+Achados levados ao usuário (sem mudança feita):
+  - a mensagem de limite semanal do POST /api/reservas cita o nome do curso do RA;
+  - o pacote inicial (~299 kB, 80 kB comprimido) está quase no aviso de 300 kB, quase todo do
+    Angular; sugestão de subir o aviso para 350 kB e o erro para 500 kB.

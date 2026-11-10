@@ -234,7 +234,11 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 |---|---|
 | `ambientes/` | Endereço da API por ambiente (desenvolvimento e produção) |
 | `app/nucleo/` | Peças usadas pelo app inteiro: `SessaoService` (token do admin no `sessionStorage`), `interceptorApi` (cabeçalhos e erros) e `erro-api.ts` (formato único de erro) |
-| `app/publico/` | Área do aluno: `LayoutPublico` (identidade esportiva), páginas e `publico.routes.ts` |
+| `app/publico/` | Área do aluno: `LayoutPublico` (identidade esportiva), páginas e `publico.routes.ts`; `ApiPublicaService` (chamadas da área pública), `RaEmMemoriaService`, `modelos.ts` (formato das respostas), `datas.ts` e `textos.ts` |
+| `app/publico/inicio/` | `/`: espaços ativos em cartões, com filtro por tipo, horário e limite por curso |
+| `app/publico/calendario/` | `/espacos/:id?semana=`: semana de segunda a sexta (colunas no computador, dias empilhados no celular), quem reservou, motivo dos dias fechados e, na quadra, o limite do curso pelo RA |
+| `app/publico/reservar/` | `/espacos/:id/reservar?data=&horario=` (fixo) ou `?data=&inicio=&fim=` (livre): RA, fim do intervalo (livre), equipamentos, resumo lateral e a tela de sucesso com o próximo email |
+| `app/publico/cadastro/` | `/cadastro?voltar=`: cadastro do aluno com o aviso de uso dos dados; volta para a reserva com o RA preenchido |
 | `app/admin/` | Área do admin: `LayoutAdmin` (neutro), páginas e `admin.routes.ts` |
 | `app/compartilhado/` | Componentes usados nas duas áreas (ex.: página 404) |
 | `styles.css` | Tailwind com a paleta da identidade visual (`azul`, `azul-escuro`, `azul-medio`, `amarelo`) e a Montserrat |
@@ -244,6 +248,15 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
   - sem conexão (0), limite de requisições (429) e erro do servidor (5xx) têm mensagens próprias; o 5xx nunca mostra o texto do servidor;
   - 401 com sessão ativa encerra a sessão ("Sua sessão terminou"); 401 sem sessão (login recusado) mostra a mensagem da API;
   - 403, 404, 409 e 422 mostram a mensagem da API, que já vem em português.
+- **Área pública (11.2):**
+  - **Cache por visita:** espaços e cursos são buscados uma vez; cada semana do calendário fica guardada e a tela de reserva reaproveita a semana já carregada (nenhuma requisição extra vindo do calendário). Depois de uma reserva, ou de um 409, as semanas daquele espaço são descartadas e recarregadas.
+  - **Data e horário na URL** (*query params*), para voltar ou recarregar sem perder a escolha. RA e email nunca vão na URL.
+  - **RA só na memória da aba** (`RaEmMemoriaService`): digitado no calendário, já vem preenchido na reserva; some ao recarregar a página e depois de reservar. Campos de RA, nome e email com `autocomplete="off"` (computadores compartilhados).
+  - **Limite do curso só na quadra** (espaços com `limite_semanal_por_curso`), pela rota `POST .../disponibilidade/curso`. Em salas e laboratórios o RA só é pedido na reserva.
+  - **Horário livre:** o aluno clica num bloco livre e, na reserva, escolhe até que horas; as opções param no primeiro bloco ocupado e na duração máxima do espaço. Os equipamentos do intervalo vêm de `/equipamentos/disponibilidade`.
+  - **Situações novas** da API (ex.: "aula", do passo 12) aparecem como "Indisponível", com o motivo, sem precisar mudar o front.
+  - **Cadastro:** o `voltar` só aceita caminhos do próprio site (começando com `/`, sem `//` nem `\`), para o link não poder mandar o aluno para outro site.
+  - **Tamanho:** cada tela é um pacote sob demanda (início 2,4 kB, calendário 4,2 kB, reserva 5 kB, cadastro 2,5 kB comprimidos); formulários do Angular (17 kB) e ícones (só os usados) também ficam fora do pacote inicial. O pacote inicial (~299 kB, 80 kB comprimido) é quase todo do Angular (núcleo, router) e do rxjs.
 - **Sessão do admin:** token e validade (`expires_at` do login) no `sessionStorage`, que some ao fechar a aba. Sessão vencida ou conteúdo inválido é descartado ao abrir e a cada uso.
 - **Datas e números em pt-BR** (`LOCALE_ID`), `<html lang="pt-BR">` e `Referrer-Policy: no-referrer` no `index.html`, para os tokens dos links de email não vazarem para outros sites.
 - **Acessibilidade:** link "Pular para o conteúdo" nos dois layouts e foco visível em todos os elementos (contorno azul).
@@ -737,6 +750,12 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `app.spec.ts` | Componente raiz com a área das rotas |
 | `app.routes.spec.ts` | Início no layout público, painel no layout do admin (sem o público), página 404, título da página, link "Pular para o conteúdo" |
 | `nucleo/sessao.service.spec.ts` | Token só no `sessionStorage` (nunca no `localStorage`), recuperação ao recarregar, sessão vencida ou inválida descartada, vencimento durante o uso, encerrar |
+| `publico/datas.spec.ts` | Datas sem erro de fuso, segunda-feira da semana, dias úteis, validação de data e hora da URL, formato em português |
+| `publico/api-publica.service.spec.ts` | Espaços buscados uma vez, semana guardada, RA só no corpo do POST, calendário recarregado depois da reserva, equipamentos do intervalo, cadastro |
+| `publico/inicio/inicio.spec.ts` | Cartões com horário, limite e link; filtro por tipo; erro com "tentar de novo" |
+| `publico/calendario/calendario.spec.ts` | Semana de segunda a sexta com links de reserva, quem reservou, dias fechados, situação desconhecida, RA só em espaço com limite, consulta do limite por POST e RA só na memória, RA inexistente, formato do RA, sem voltar para semanas passadas |
+| `publico/reservar/reservar.spec.ts` | Reserva com equipamentos (limite do disponível) e corpo enviado, RA vindo do calendário e esquecido depois, horário livre (opções de fim e equipamentos do intervalo), erro do RA com link de cadastro, 409 recarregando o horário, URL inválida |
+| `publico/cadastro/cadastro.spec.ts` | Aviso de uso dos dados, `autocomplete` desligado, cadastro voltando para a reserva com o RA, confirmação sem volta, erros por campo, `voltar` só para o próprio site |
 | `nucleo/api.interceptor.spec.ts` | `Accept` e `Bearer` só para a API (nunca para outros endereços), 401 com e sem sessão, 422 com os campos, 409 com os dados, 429, 5xx sem detalhes do servidor, falta de conexão |
 
 ---
@@ -757,6 +776,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Repositório de disponibilidade | Consulta de disponibilidade centralizada em `DisponibilidadeEquipamentoRepository`, com índices; base para o campo `disponivel` do item 5 |
 | Datas bloqueadas | Tabela, CRUD do admin, bloqueio de parte do dia, revogação automática com email, importação de feriados (Yasumi) |
 | Dependências | Componentes do Symfony atualizados (7.4.23); `composer audit` sem alertas |
+| Front-end: área pública de reserva (passo 11.2) | API: limite do curso por `POST` com o RA no corpo (só espaços com limite, 20/min), `GET` sem RA. Front: início com os espaços, calendário semanal, reserva (fixo e livre, com equipamentos), cadastro, cache por visita, RA só na memória |
 | Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
@@ -783,7 +803,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base pronta (11.1). **Proposta do 11.2 enviada** (área pública de reserva: espaços, calendário semanal, reserva com equipamentos e cadastro), aguardando aprovação; inclui uma mudança pequena na API: tirar o `registro_academico` do `GET /api/espacos/{id}/disponibilidade` (LGPD: RA na URL e revelação de cadastro).
+1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base (11.1) e área pública de reserva (11.2) prontas; próximo, 11.3 (minhas reservas, cancelar e confirmar pelo link do email, página de privacidade).
 2. **Grade de aulas (importação):** o admin importa a grade da faculdade (espaços e horários de aula) e esses horários deixam de aceitar reservas de alunos. Ideia do usuário em 10/11/2026; detalhes e recomendações iniciais no passo 12 do [`CHECKLIST.md`](CHECKLIST.md).
 3. **API para terceiros autorizados**, com as devidas restrições de segurança (passo 13). O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.
 4. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
