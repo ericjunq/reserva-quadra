@@ -1,0 +1,236 @@
+<div class="mx-auto max-w-6xl px-4 py-8">
+  <a
+    [routerLink]="['/espacos', id()]"
+    class="inline-flex items-center gap-1 text-sm font-semibold text-azul hover:text-azul-medio"
+  >
+    <svg lucideArrowLeft [size]="16" aria-hidden="true"></svg>
+    Voltar ao calendário
+  </a>
+
+  @if (reservaCriada(); as criada) {
+    <section
+      class="mx-auto mt-8 max-w-xl rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200"
+      role="status"
+    >
+      <svg lucideCircleCheck [size]="48" class="mx-auto text-emerald-600" aria-hidden="true"></svg>
+      <h1 class="mt-3 text-2xl font-extrabold italic text-azul">Reserva feita!</h1>
+      <p class="mt-2 text-slate-700">
+        {{ escolha()?.espaco?.nome }} · {{ formatarDia(criada.data_reserva) }}, das
+        {{ criada.hora_inicio }} às {{ criada.hora_fim }}
+      </p>
+
+      @if (criada.confirmada_em) {
+        <p class="mt-4 text-slate-700">
+          Como a reserva é para hoje, ela já está confirmada. Enviamos os detalhes para o seu email.
+        </p>
+      } @else if (criada.confirmacao_enviada_em) {
+        <p class="mt-4 text-slate-700">
+          Enviamos um email pedindo a <strong>confirmação</strong>. Confirme até as 23:59 da
+          véspera; sem a confirmação, a reserva é cancelada automaticamente.
+        </p>
+      } @else {
+        <p class="mt-4 text-slate-700">
+          Enviamos um email com os detalhes. Dois dias úteis antes, você recebe outro email para
+          <strong>confirmar</strong> a reserva.
+        </p>
+      }
+      <p class="mt-2 text-sm text-slate-600">
+        Não vai mais usar? Cancele pelo link do email, até o horário de início.
+      </p>
+
+      <a
+        [routerLink]="['/espacos', id()]"
+        class="mt-6 inline-block rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio"
+      >
+        Ver o calendário
+      </a>
+    </section>
+  } @else if (erroEspacos()) {
+    <div class="mt-6"><app-aviso-erro [mensagem]="erroEspacos()" /></div>
+  } @else if (escolha() === null) {
+    <div class="mt-6">
+      <app-aviso-erro mensagem="Escolha um horário livre no calendário para fazer a reserva." />
+    </div>
+  } @else if (carregando()) {
+    <div class="mt-6 h-64 animate-pulse rounded-2xl bg-white shadow-sm" aria-hidden="true"></div>
+    <p class="sr-only" role="status">Carregando o horário…</p>
+  } @else if (erroDia()) {
+    <div class="mt-6"><app-aviso-erro [mensagem]="erroDia()" /></div>
+  } @else if (horarioIndisponivel()) {
+    <div class="mt-6">
+      <app-aviso-erro
+        [mensagem]="
+          erro()?.mensagem ?? 'Este horário não está mais livre. Escolha outro no calendário.'
+        "
+      >
+        <a [routerLink]="['/espacos', id()]" class="font-semibold underline"
+          >Voltar ao calendário</a
+        >
+      </app-aviso-erro>
+    </div>
+  } @else if (escolha(); as escolha) {
+    <h1 class="mt-4 text-3xl font-extrabold italic text-azul">
+      Reservar {{ escolha.espaco.nome }}
+    </h1>
+
+    <div class="mt-6 grid gap-6 lg:grid-cols-3">
+      <form class="space-y-6 lg:col-span-2" (ngSubmit)="reservar()" novalidate>
+        @if (erro(); as erro) {
+          <app-aviso-erro [mensagem]="erro.mensagem">
+            @if (faltaDeEquipamentos().length) {
+              <ul class="list-disc pl-5 text-sm">
+                @for (item of faltaDeEquipamentos(); track item.nome) {
+                  <li>{{ item.nome }}: {{ item.disponivel }} disponível(is)</li>
+                }
+              </ul>
+            }
+          </app-aviso-erro>
+        }
+
+        <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <h2 class="font-semibold text-slate-900">Seu RA</h2>
+          <label for="ra" class="mt-1 block text-sm text-slate-600">
+            O registro acadêmico, com 10 números
+          </label>
+          <input
+            id="ra"
+            name="ra"
+            inputmode="numeric"
+            autocomplete="off"
+            maxlength="10"
+            required
+            class="mt-2 w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2"
+            [attr.aria-invalid]="!!erro()?.campos?.['registro_academico']"
+            [attr.aria-describedby]="erro()?.campos?.['registro_academico'] ? 'erro-ra' : null"
+            [ngModel]="ra()"
+            (ngModelChange)="ra.set($event)"
+          />
+          @if (erro()?.campos?.['registro_academico']; as mensagens) {
+            <p id="erro-ra" class="mt-2 text-sm text-red-700">{{ mensagens[0] }}</p>
+          }
+          <p class="mt-2 text-sm text-slate-600">
+            Ainda não tem cadastro?
+            <a
+              routerLink="/cadastro"
+              [queryParams]="{ voltar: caminhoAtual() }"
+              class="font-semibold text-azul underline hover:text-azul-medio"
+              >Fazer meu cadastro</a
+            >
+          </p>
+        </section>
+
+        @if (opcoesDeFim().length) {
+          <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h2 class="font-semibold text-slate-900">Até que horas?</h2>
+            <label for="fim" class="mt-1 block text-sm text-slate-600">
+              Começa às {{ escolha.inicio }}. Escolha quando termina.
+            </label>
+            <select
+              id="fim"
+              name="fim"
+              class="mt-2 rounded-lg border border-slate-300 px-3 py-2"
+              [ngModel]="escolha.fim"
+              (ngModelChange)="mudarFim($event)"
+            >
+              @for (fim of opcoesDeFim(); track fim) {
+                <option [value]="fim">{{ fim }}</option>
+              }
+            </select>
+          </section>
+        }
+
+        <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <h2 class="flex items-center gap-2 font-semibold text-slate-900">
+            <svg lucidePackage [size]="18" class="text-azul" aria-hidden="true"></svg>
+            Equipamentos (opcional)
+          </h2>
+          @if (equipamentos().length === 0) {
+            <p class="mt-2 text-sm text-slate-600">
+              Nenhum equipamento disponível para este espaço.
+            </p>
+          } @else {
+            <ul class="mt-3 divide-y divide-slate-100">
+              @for (equipamento of equipamentos(); track equipamento.id) {
+                <li class="flex items-center justify-between gap-4 py-2">
+                  <div>
+                    <p class="font-medium text-slate-900">{{ equipamento.nome }}</p>
+                    <p class="text-sm text-slate-600">
+                      @if (equipamento.disponivel > 0) {
+                        {{ equipamento.disponivel }} disponível(is) neste horário
+                      } @else {
+                        Indisponível neste horário
+                      }
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="flex size-8 items-center justify-center rounded-full ring-1 ring-slate-300 enabled:hover:ring-azul disabled:opacity-40"
+                      [disabled]="!(quantidades()[equipamento.id] > 0)"
+                      [attr.aria-label]="'Menos ' + equipamento.nome"
+                      (click)="alterarQuantidade(equipamento, -1)"
+                    >
+                      <svg lucideMinus [size]="16" aria-hidden="true"></svg>
+                    </button>
+                    <output
+                      class="w-6 text-center font-semibold"
+                      [attr.aria-label]="'Quantidade de ' + equipamento.nome"
+                    >
+                      {{ quantidades()[equipamento.id] ?? 0 }}
+                    </output>
+                    <button
+                      type="button"
+                      class="flex size-8 items-center justify-center rounded-full ring-1 ring-slate-300 enabled:hover:ring-azul disabled:opacity-40"
+                      [disabled]="(quantidades()[equipamento.id] ?? 0) >= equipamento.disponivel"
+                      [attr.aria-label]="'Mais ' + equipamento.nome"
+                      (click)="alterarQuantidade(equipamento, 1)"
+                    >
+                      <svg lucidePlus [size]="16" aria-hidden="true"></svg>
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <button
+          type="submit"
+          class="w-full rounded-full bg-azul px-6 py-3 font-semibold text-white hover:bg-azul-medio disabled:opacity-60 sm:w-auto"
+          [disabled]="enviando()"
+        >
+          {{ enviando() ? 'Reservando…' : 'Reservar' }}
+        </button>
+      </form>
+
+      <aside class="h-fit rounded-2xl bg-azul p-5 text-white shadow-sm lg:sticky lg:top-4">
+        <h2 class="font-extrabold italic">Resumo</h2>
+        <dl class="mt-3 space-y-2 text-sm">
+          <div>
+            <dt class="text-slate-300">Espaço</dt>
+            <dd class="font-semibold">{{ escolha.espaco.nome }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-300">Dia</dt>
+            <dd class="font-semibold">{{ formatarDia(escolha.data) }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-300">Horário</dt>
+            <dd class="font-semibold">{{ faixaDeHorario() }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-300">Equipamentos</dt>
+            <dd class="font-semibold">
+              @for (item of itensEscolhidos(); track item.equipamento.id) {
+                <span class="block">{{ item.quantidade }}× {{ item.equipamento.nome }}</span>
+              } @empty {
+                Nenhum
+              }
+            </dd>
+          </div>
+        </dl>
+        <div class="mt-4 h-1 w-12 -skew-x-12 rounded-sm bg-amarelo" aria-hidden="true"></div>
+      </aside>
+    </div>
+  }
+</div>
