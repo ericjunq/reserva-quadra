@@ -1,4 +1,14 @@
-import { deIso, ehDataIso, ehDiaUtil, ehHora, paraIso, segundaDaSemana, somarDias } from './datas';
+import {
+  deIso,
+  ehDataIso,
+  ehDiaUtil,
+  ehHora,
+  formatarDia,
+  formatarDiaCurto,
+  paraIso,
+  segundaDaSemana,
+  somarDias,
+} from './datas';
 
 describe('datas', () => {
   it('converte sem mudar o dia por causa do fuso', () => {
@@ -30,5 +40,10 @@ describe('datas', () => {
     expect(ehHora('14:30')).toBe(true);
     expect(ehHora('24:00')).toBe(false);
     expect(ehHora('14h')).toBe(false);
+  });
+
+  it('formata o dia em português', () => {
+    expect(formatarDia('2026-11-10')).toBe('Terça-feira, 10/11');
+    expect(formatarDiaCurto('2026-11-10')).toBe('10/11');
   });
 });

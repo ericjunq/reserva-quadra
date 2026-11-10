@@ -1,0 +1,214 @@
+<div class="mx-auto max-w-6xl px-4 py-8">
+  <a
+    routerLink="/"
+    class="inline-flex items-center gap-1 text-sm font-semibold text-azul hover:text-azul-medio"
+  >
+    <svg lucideArrowLeft [size]="16" aria-hidden="true"></svg>
+    Todos os espaços
+  </a>
+
+  @if (erroEspacos()) {
+    <div class="mt-6"><app-aviso-erro [mensagem]="erroEspacos()" /></div>
+  } @else if (espacoNaoEncontrado()) {
+    <div class="mt-6">
+      <app-aviso-erro mensagem="Este espaço não existe ou não aceita reservas no momento." />
+    </div>
+  } @else if (espaco(); as espaco) {
+    <header class="mt-4">
+      <p class="text-sm font-semibold text-slate-600">{{ nomesDosTipos[espaco.tipo] }}</p>
+      <h1 class="text-3xl font-extrabold italic text-azul">{{ espaco.nome }}</h1>
+      <p class="mt-1 text-slate-600">{{ descreverHorario(espaco) }}</p>
+    </header>
+
+    @if (temLimitePorCurso()) {
+      <section
+        class="mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        aria-labelledby="titulo-curso"
+      >
+        <h2 id="titulo-curso" class="flex items-center gap-2 font-semibold text-slate-900">
+          <svg lucideUsers [size]="18" class="text-azul" aria-hidden="true"></svg>
+          Até {{ espaco.limite_semanal_por_curso }} reservas por curso na semana
+        </h2>
+
+        @if (raConsultado() && semanaDoCurso(); as semana) {
+          <p class="mt-2 text-slate-700" role="status">
+            O seu curso ainda pode fazer
+            <strong>{{ semana.restantes }}</strong>
+            {{ semana.restantes === 1 ? 'reserva' : 'reservas' }} nesta semana.
+          </p>
+          <button
+            type="button"
+            class="mt-2 text-sm font-semibold text-azul underline hover:text-azul-medio"
+            (click)="esquecerRa()"
+          >
+            Usar outro RA
+          </button>
+        } @else {
+          <form class="mt-3 flex flex-wrap items-end gap-3" (ngSubmit)="consultarRa()">
+            <div>
+              <label for="ra-calendario" class="block text-sm font-semibold text-slate-700">
+                Informe seu RA para ver quantas reservas o seu curso ainda tem
+              </label>
+              <input
+                id="ra-calendario"
+                name="ra"
+                inputmode="numeric"
+                autocomplete="off"
+                maxlength="10"
+                class="mt-1 w-48 rounded-lg border border-slate-300 px-3 py-2"
+                [attr.aria-invalid]="!!erroRa()"
+                [attr.aria-describedby]="erroRa() ? 'erro-ra-calendario' : null"
+                [ngModel]="raDigitado()"
+                (ngModelChange)="raDigitado.set($event)"
+              />
+            </div>
+            <button
+              type="submit"
+              class="rounded-full bg-azul px-5 py-2 font-semibold text-white hover:bg-azul-medio"
+            >
+              Consultar
+            </button>
+          </form>
+          @if (erroRa()) {
+            <p id="erro-ra-calendario" class="mt-2 text-sm text-red-700">
+              {{ erroRa() }}
+              <a routerLink="/cadastro" class="font-semibold underline">Fazer meu cadastro</a>
+            </p>
+          }
+        }
+      </section>
+    }
+
+    <section class="mt-8" aria-labelledby="titulo-semana">
+      <div class="flex items-center justify-between gap-4">
+        <button
+          type="button"
+          class="flex size-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 enabled:hover:ring-azul disabled:opacity-40"
+          [disabled]="!podeVoltar()"
+          aria-label="Semana anterior"
+          (click)="irParaSemana(-1)"
+        >
+          <svg lucideChevronLeft [size]="20" aria-hidden="true"></svg>
+        </button>
+        <h2 id="titulo-semana" class="text-center font-semibold text-slate-900">
+          Semana de {{ formatarDiaCurto(segunda()) }} a {{ formatarDiaCurto(sexta()) }}
+        </h2>
+        <button
+          type="button"
+          class="flex size-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 enabled:hover:ring-azul disabled:opacity-40"
+          [disabled]="!podeAvancar()"
+          aria-label="Próxima semana"
+          (click)="irParaSemana(1)"
+        >
+          <svg lucideChevronRight [size]="20" aria-hidden="true"></svg>
+        </button>
+      </div>
+
+      @switch (estado()?.tipo) {
+        @case ('erro') {
+          <div class="mt-6">
+            <app-aviso-erro [mensagem]="$any(estado()).mensagem">
+              <button type="button" class="font-semibold underline" (click)="tentarDeNovo()">
+                Tentar de novo
+              </button>
+            </app-aviso-erro>
+          </div>
+        }
+        @case ('pronto') {
+          <div class="mt-6 grid gap-4 md:grid-cols-5">
+            @for (dia of diasUteis(); track dia.data) {
+              <article
+                class="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200"
+                [attr.aria-labelledby]="'dia-' + dia.data"
+              >
+                <h3 [id]="'dia-' + dia.data" class="px-1 font-semibold text-slate-900">
+                  {{ formatarDia(dia.data) }}
+                </h3>
+
+                @if (!dia.reservavel) {
+                  <p class="mt-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
+                    {{ dia.motivo }}
+                  </p>
+                } @else {
+                  <ul class="mt-2 space-y-2">
+                    @for (horario of dia.horarios; track horario.inicio) {
+                      <li>
+                        @if (podeReservar(dia, horario)) {
+                          <a
+                            class="block rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm hover:border-amarelo hover:bg-amarelo/20"
+                            [routerLink]="['/espacos', espaco.id, 'reservar']"
+                            [queryParams]="parametrosDaReserva(dia, horario)"
+                            [attr.aria-label]="
+                              'Reservar ' +
+                              formatarDia(dia.data) +
+                              ', das ' +
+                              horario.inicio +
+                              ' às ' +
+                              horario.fim
+                            "
+                          >
+                            <span class="font-semibold text-slate-900">
+                              {{ horario.inicio }}–{{ horario.fim }}
+                            </span>
+                            <span class="block text-emerald-800">Livre · reservar</span>
+                          </a>
+                        } @else {
+                          <div
+                            class="rounded-lg border px-3 py-2 text-sm"
+                            [class]="
+                              horario.reserva?.do_curso
+                                ? 'border-amarelo bg-amarelo/10'
+                                : 'border-slate-200 bg-slate-50'
+                            "
+                          >
+                            <span class="font-semibold text-slate-700">
+                              {{ horario.inicio }}–{{ horario.fim }}
+                            </span>
+                            @if (horario.situacao === 'LIVRE') {
+                              <span class="block text-slate-600">Limite do seu curso atingido</span>
+                            } @else {
+                              <span class="block text-slate-700">{{
+                                nomeDaSituacao(horario)
+                              }}</span>
+                            }
+                            @if (horario.reserva; as reserva) {
+                              <span class="block text-slate-600">
+                                @if (reserva.tipo === 'EVENTO') {
+                                  {{ reserva.descricao || 'Evento da faculdade' }}
+                                } @else {
+                                  {{ reserva.reservado_por.nome }}
+                                  @if (reserva.reservado_por.curso) {
+                                    · {{ reserva.reservado_por.curso }}
+                                  }
+                                }
+                              </span>
+                              @if (reserva.do_curso) {
+                                <span class="block text-xs font-semibold text-azul"
+                                  >Do seu curso</span
+                                >
+                              }
+                            } @else if (horario.motivo) {
+                              <span class="block text-xs text-slate-600">{{ horario.motivo }}</span>
+                            }
+                          </div>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+              </article>
+            }
+          </div>
+        }
+        @default {
+          <div class="mt-6 grid gap-4 md:grid-cols-5" aria-hidden="true">
+            @for (item of [1, 2, 3, 4, 5]; track item) {
+              <div class="h-48 animate-pulse rounded-2xl bg-white shadow-sm"></div>
+            }
+          </div>
+          <p class="sr-only" role="status">Carregando os horários…</p>
+        }
+      }
+    </section>
+  }
+</div>

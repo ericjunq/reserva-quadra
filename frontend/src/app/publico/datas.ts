@@ -33,3 +33,20 @@ export function ehDataIso(valor: string | null | undefined): valor is string {
 export function ehHora(valor: string | null | undefined): valor is string {
   return !!valor && /^([01]\d|2[0-3]):[0-5]\d$/.test(valor);
 }
+
+const FORMATO_DIA = new Intl.DateTimeFormat('pt-BR', {
+  weekday: 'long',
+  day: '2-digit',
+  month: '2-digit',
+});
+
+const FORMATO_DIA_CURTO = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' });
+
+export function formatarDia(iso: string): string {
+  const texto = FORMATO_DIA.format(deIso(iso));
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+export function formatarDiaCurto(iso: string): string {
+  return FORMATO_DIA_CURTO.format(deIso(iso));
+}

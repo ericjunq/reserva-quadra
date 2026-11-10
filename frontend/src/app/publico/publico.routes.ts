@@ -11,6 +11,11 @@ export const rotasPublicas: Routes = [
         title: 'Sistema de Reservas',
         loadComponent: () => import('./inicio/inicio').then((m) => m.Inicio),
       },
+      {
+        path: 'espacos/:id',
+        title: 'Horários · Sistema de Reservas',
+        loadComponent: () => import('./calendario/calendario').then((m) => m.Calendario),
+      },
     ],
   },
 ];
