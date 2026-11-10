@@ -24,7 +24,7 @@ class DemoSeeder extends Seeder
             'modo_horario'           => 'LIVRE',
             'abre_as'                => '07:00',
             'fecha_as'               => '22:00',
-            'duracao_maxima_minutos' => 120,
+            'duracao_maxima_minutos' => 180,
         ]);
         Espaco::firstOrCreate(['nome' => 'Sala 101'], ['tipo' => TipoEspacoConstant::SALA]);
         Espaco::firstOrCreate(['nome' => 'Sala 102'], ['tipo' => TipoEspacoConstant::SALA]);
