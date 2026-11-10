@@ -16,3 +16,115 @@
     </p>
   </div>
 </section>
+
+<section class="mx-auto max-w-6xl px-4 py-10" aria-labelledby="titulo-espacos">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <h2 id="titulo-espacos" class="text-2xl font-extrabold italic text-azul">Espaços</h2>
+
+    @if (tiposPresentes().length > 1) {
+      <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar por tipo">
+        <button
+          type="button"
+          class="rounded-full border px-4 py-1.5 text-sm font-semibold"
+          [class]="
+            filtro() === null
+              ? 'border-azul bg-azul text-white'
+              : 'border-slate-300 bg-white text-slate-700 hover:border-azul'
+          "
+          [attr.aria-pressed]="filtro() === null"
+          (click)="filtro.set(null)"
+        >
+          Todos
+        </button>
+        @for (tipo of tiposPresentes(); track tipo) {
+          <button
+            type="button"
+            class="rounded-full border px-4 py-1.5 text-sm font-semibold"
+            [class]="
+              filtro() === tipo
+                ? 'border-azul bg-azul text-white'
+                : 'border-slate-300 bg-white text-slate-700 hover:border-azul'
+            "
+            [attr.aria-pressed]="filtro() === tipo"
+            (click)="filtro.set(tipo)"
+          >
+            {{ nomesDosTipos[tipo] }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="mt-6">
+    @if (erro()) {
+      <app-aviso-erro [mensagem]="erro()">
+        <button type="button" class="font-semibold underline" (click)="carregar()">
+          Tentar de novo
+        </button>
+      </app-aviso-erro>
+    } @else if (espacos() === null) {
+      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+        @for (item of [1, 2, 3]; track item) {
+          <li class="h-40 animate-pulse rounded-2xl bg-white shadow-sm"></li>
+        }
+      </ul>
+      <p class="sr-only" role="status">Carregando os espaços…</p>
+    } @else if (visiveis().length === 0) {
+      <p class="text-slate-600">Nenhum espaço disponível para reserva no momento.</p>
+    } @else {
+      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (espaco of visiveis(); track espaco.id) {
+          <li>
+            <a
+              [routerLink]="['/espacos', espaco.id]"
+              class="group flex h-full flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md hover:ring-azul"
+            >
+              <div class="flex items-center gap-3">
+                <span
+                  class="flex size-10 items-center justify-center rounded-full bg-azul/10 text-azul"
+                  aria-hidden="true"
+                >
+                  @switch (espaco.tipo) {
+                    @case ('QUADRA') {
+                      <svg lucideVolleyball [size]="20"></svg>
+                    }
+                    @case ('LABORATORIO') {
+                      <svg lucideFlaskConical [size]="20"></svg>
+                    }
+                    @default {
+                      <svg lucidePresentation [size]="20"></svg>
+                    }
+                  }
+                </span>
+                <div>
+                  <h3 class="font-semibold text-slate-900">{{ espaco.nome }}</h3>
+                  <p class="text-sm text-slate-600">{{ nomesDosTipos[espaco.tipo] }}</p>
+                </div>
+              </div>
+
+              <ul class="mt-4 space-y-1.5 text-sm text-slate-600">
+                <li class="flex items-start gap-2">
+                  <svg lucideClock [size]="16" class="mt-0.5 shrink-0" aria-hidden="true"></svg>
+                  {{ descreverHorario(espaco) }}
+                </li>
+                @if (espaco.limite_semanal_por_curso) {
+                  <li class="flex items-start gap-2">
+                    <svg lucideUsers [size]="16" class="mt-0.5 shrink-0" aria-hidden="true"></svg>
+                    Até {{ espaco.limite_semanal_por_curso }} reservas por curso na semana
+                  </li>
+                }
+              </ul>
+
+              <span
+                class="mt-auto flex items-center gap-1 pt-4 text-sm font-semibold text-azul group-hover:text-azul-medio"
+              >
+                Ver horários
+                <svg lucideChevronRight [size]="16" aria-hidden="true"></svg>
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>
