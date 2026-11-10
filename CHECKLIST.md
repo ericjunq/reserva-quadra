@@ -13,8 +13,8 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 ## 📍 Onde paramos
 
 - **Último passo concluído:** **passo 10, preparação para produção** (09/11/2026, 239 testes passando). Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS e proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` (recomendações de plataforma para o usuário negociar com a TI da faculdade).
-- **Em andamento:** **proposta do passo 11 enviada em 09/11/2026, aguardando aprovação** (8 decisões, no passo 11 do plano). A base visual já foi aprovada. O usuário avisou que provavelmente vai aprovar e implementar **no outro PC (em casa)**: veja "Para retomar o passo 11 em outro PC", logo abaixo.
-- **Próximo passo:** com a aprovação, implementar o subpasso 11.1 (base do projeto Angular).
+- **Em andamento:** **passo 11 aprovado em 09/11/2026** (decisões registradas no passo 11 do plano) e o usuário liberou a implementação. **Subpasso 11.1 (base do projeto Angular) em implementação** no PC Ubuntu.
+- **Próximo passo:** concluir o 11.1 e enviar a proposta curta do 11.2 (área pública: reserva).
 - **Pendente para o deploy (decisão do usuário):** escolher a plataforma (ver `HOSPEDAGEM.md`), definir o backup e o monitor externo.
 - **O usuário precisa:** dar push dos commits; o `.env` local dele ganhou `ADMIN_INICIAL_NOME/EMAIL/SENHA` (Eric / admin@email.com / Admin), `ALERTAS_EMAIL`, `APP_LOCALE=pt_BR`, `LOG_STACK=daily` e `APP_NAME`; **no outro PC**, copiar essas linhas do `.env.example` para o `.env` de lá, senão o `migrate:fresh --seed` não cria o admin (o seeder avisa e segue).
 - **Para retomar o passo 11 em outro PC (instruções para o Claude):**
@@ -24,7 +24,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
   4. Antes do 11.1, conferir se o PC tem **Node.js LTS** e o **npm** (`node -v`, `npm -v`); o Angular CLI pode rodar com `npx @angular/cli@latest`. Se faltar o Node, pedir ao usuário para instalar.
   5. Enviar a proposta curta do 11.1 (arquivos, comandos, decisões menores) e só implementar depois do ok.
   6. A referência visual é `github.com/ericjunq/unifg-reservas` (pasta `frontend`, React + Tailwind, feita por um colega). Vale **só o visual**; a paleta e os ajustes aprovados estão no README. Se precisar olhar, clonar numa pasta temporária fora do projeto.
-- **Ambiente do PC Ubuntu (preparado em 09/11/2026):** sem `sudo` e sem `curl`, então tudo ficou na pasta do usuário: PHP 8.4 + Composer em `~/.config/herd-lite/bin` (binários do php.new baixados com `wget`) e Node 26 LTS + npm em `~/.local/node` (tarball oficial, checksum conferido); os dois entram no `PATH` pelo `~/.bashrc`. `.env` criado do `.env.example`, banco SQLite criado e semeado, 239 testes e Pint ok. Pendente: o registro do npm (`registry.npmjs.org`) não respondeu na sessão do Claude; conferir no terminal do usuário com `npm view @angular/cli version` antes do 11.1.
+- **Ambiente do PC Ubuntu (preparado em 09/11/2026):** sem `sudo` e sem `curl`, então tudo ficou na pasta do usuário: PHP 8.4 + Composer em `~/.config/herd-lite/bin` (binários do php.new baixados com `wget`) e Node 26 LTS + npm em `~/.local/node` (tarball oficial, checksum conferido); os dois entram no `PATH` pelo `~/.bashrc`. `.env` criado do `.env.example`, banco SQLite criado e semeado, 239 testes e Pint ok. A rede deste PC bloqueia o `registry.npmjs.org` (o usuário confirmou no terminal dele), mas o espelho oficial `registry.yarnpkg.com` (mesmos pacotes) responde: o `~/.npmrc` **deste PC** aponta para ele (fora do repositório; o outro PC e o CI usam o registro padrão). Git deste repositório configurado com `ericjunq`, como nos commits anteriores.
 - **Conceitos já explicados ao usuário:** não precisa de branches separadas (o CI roda na `main`; branches + PR só para bloquear merge, quando houver mais pessoas); repositório público não gasta minutos do Actions. Antes: fila e jobs; por que email não deve diferenciar maiúsculas; opção A do link do front (Angular, sem Blade); prazo da confirmação até a véspera (alternativa avaliada e descartada). Em 09/11 (passo 10): **alertas** (o que falha em silêncio hoje; alerta sem dados pessoais, enviado sem passar pela fila, no máximo 1 por hora por problema; monitor externo do `/up` para quando o próprio email cair) e **backup** (regra 3-2-1; banco gerenciado > `spatie/laravel-backup` com armazenamento externo > script manual; `.env` separado num gerenciador de senhas; retenção 7 diários/4 semanais/6 mensais; teste mensal de restauração; LGPD: criptografia, acesso restrito e refazer as anonimizações depois de uma restauração). Também em 09/11: **plataformas de hospedagem** (Laravel Cloud × VPS em São Paulo × VPS + Forge × servidor da faculdade; perguntar antes à TI; registrado em `HOSPEDAGEM.md`); **análise visual do front de referência** (pontos fortes e ajustes); e, na proposta do passo 11, **onde guardar o token** (`sessionStorage` some ao fechar a aba; `localStorage` fica exposto por mais tempo a um ataque XSS; cookie do Sanctum é o mais seguro, mas exige o mesmo domínio e mudanças na API) e **por que não usar o Google Fonts** (o Google recebe o IP de cada visitante, que é dado pessoal, e o site fica mais lento).
 - **Código sem nenhum comentário** desde 09/11/2026, inclusive os padrões do Laravel nos `config/`. Manter assim (regra no `CLAUDE.md`).
 
@@ -55,7 +55,8 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Proposta do passo 11 (09/11):** Angular + Tailwind + CDK, em subpassos 11.1 a 11.8. Recomendações: pasta `frontend/` neste repositório; token em `sessionStorage`; sem biblioteca de componentes pesada; signals; fonte hospedada no site (LGPD); página de privacidade; sem rastreamento.
 - **Documentação renomeada (09/11):** a pedido do usuário, o `DOCUMENTACAO.md` virou o `README.md` (é o que o GitHub mostra na página do repositório) e o README padrão do Laravel foi apagado.
 - **Ambiente no PC Ubuntu (09/11):** PHP, Composer e Node instalados sem `sudo`, na pasta do usuário; testes verdes. Falta confirmar o acesso ao registro do npm.
-- **Agora:** proposta do passo 11 enviada e salva nos guias; o usuário deve aprovar e implementar no outro PC. Próxima ação: confirmar as decisões 1 a 8 e mandar a proposta curta do 11.1.
+- **Decisões do passo 11 (09/11):** o usuário preferia o front **fora** do repositório (back e front separados, conversando só pela API), mas ficou com a pasta `frontend/` na raiz por não saber até onde o Claude alcança. Foi explicado que a separação que importa é a de execução e deploy (o front só consome a API), não a pasta; dá para mover para um repositório próprio depois sem perder o histórico (`git subtree split`). Token: o usuário pediu recomendação; como back e front ficarão em domínios separados, **`sessionStorage` + `Bearer`** (o cookie do Sanctum exige o mesmo domínio). Tailwind, signals, sem rastreamento e página de privacidade com **todos os dados coletados**: aprovados. Foto: depois. Fonte: explicado que é o arquivo da tipografia (Montserrat), servido junto com o site em vez de vir dos servidores do Google.
+- **Agora:** implementando o 11.1. Próxima ação: concluir, documentar e mandar a proposta curta do 11.2.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -228,7 +229,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - **LGPD:** HTTPS e HSTS, CORS restrito, `APP_DEBUG` desligado, **alertas sem dados pessoais** (só a tarefa, a data e o tipo do erro), logs por 14 dias e sem dados pessoais, backups criptografados com acesso restrito e prazo de guarda, sem dados de teste em produção.
 - **Antes:** CORS, fila, cron e supervisor já estavam previstos aqui; cron e supervisor já estão documentados no README (passo 4).
 
-### 11. ⬜ Front-end em Angular — *proposta enviada em 09/11/2026, aguardando aprovação*
+### 11. 🔄 Front-end em Angular — *aprovado em 09/11/2026, em implementação*
 - **Base visual (decisão do usuário, 09/11):** a identidade do front de referência (`github.com/ericjunq/unifg-reservas`, pasta `frontend`), **com os ajustes**: paleta única, foto real no topo com o título em texto, ícones de traço em vez de emojis, tom esportivo só na área pública e admin neutro. Do front de referência vale **só o visual**, não o código. Detalhes em README, "Front-end: identidade visual".
 - **Stack proposta:** Angular (versão estável mais recente, componentes standalone, signals, sem zone.js), Tailwind CSS v4, Angular CDK (diálogos, foco e teclado acessíveis), ícones Lucide, Montserrat hospedada no próprio site, testes unitários com o runner padrão do Angular e Playwright nos fluxos principais.
 - **Telas que o front precisa ter** (links dos emails já usados pela API): `/reservas/cancelar/:token`, `/reservas/confirmar/:token`, `/aceitar-convite/:token`, `/redefinir-senha/:token`.
@@ -241,15 +242,15 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
   - 11.6 Admin, cadastros: espaços, equipamentos, cursos, alunos (com anonimização), datas bloqueadas, admins.
   - 11.7 Admin, histórico de auditoria.
   - 11.8 Acabamento: acessibilidade, orçamento de desempenho, guia de deploy do front.
-- **Decisões em aberto, com recomendação:**
-  1. onde fica o código: **pasta `frontend/` neste mesmo repositório** (um lugar só para os guias, para o CI e para mudanças de API e front no mesmo commit; o deploy continua separado) em vez de um repositório novo;
-  2. onde guardar o token do admin: **`sessionStorage`** (some ao fechar a aba), com saída automática no 401 e cabeçalhos de segurança no front. Alternativas: `localStorage` (fica mais tempo exposto) ou login por cookie do Sanctum (mais seguro, mas exige API e front no mesmo domínio e mudanças na API; fica como evolução);
-  3. componentes: **Tailwind + componentes próprios + Angular CDK**, em vez de Angular Material ou PrimeNG (pesam mais e impõem outro visual);
-  4. estado: **signals e services**, sem NgRx (o sistema não precisa);
-  5. fonte **hospedada no próprio site** (sem Google Fonts, que recebe o IP de cada visitante) e só 3 pesos;
-  6. foto do topo: **o usuário consegue uma foto real da quadra** (com a faculdade); até lá, um fundo com as cores e os detalhes gráficos;
-  7. **página de privacidade** (transparência da LGPD): o que é coletado, para quê, por quanto tempo e como pedir a anonimização. O texto deve ser validado com a faculdade;
-  8. **sem ferramentas de rastreamento** (Google Analytics e afins) no front.
+- **Decisões (09/11/2026):**
+  1. código na **pasta `frontend/` deste repositório**: aprovado. O usuário preferia um repositório separado; ficou na raiz, com a opção de separar depois (`git subtree split`). Back e front continuam independentes: o front só consome a API e tem deploy próprio;
+  2. token do admin em **`sessionStorage`** com `Authorization: Bearer`, saída automática no 401: recomendação aceita (o usuário pediu a recomendação). Motivo: API e front em domínios separados; o cookie do Sanctum exigiria o mesmo domínio e fica como evolução;
+  3. **Tailwind + componentes próprios + Angular CDK** (o CDK só entra quando houver diálogo): aprovado;
+  4. **signals e services**, sem NgRx: aprovado;
+  5. fonte **Montserrat servida junto com o site** (pacote `@fontsource`, só o alfabeto latino e 3 pesos), sem Google Fonts: explicado ao usuário e mantido;
+  6. foto real da quadra: **depois**; até lá, fundo com as cores e os detalhes gráficos;
+  7. **página de privacidade** listando **todos os dados coletados**, para quê, por quanto tempo e como pedir a anonimização: aprovado (texto a validar com a faculdade);
+  8. **sem ferramentas de rastreamento**: aprovado.
 - **Desempenho:** área pública e admin em pacotes separados, carregados sob demanda (o aluno não baixa o admin); orçamento de tamanho no build; imagens WebP/AVIF com versões por tamanho de tela; filtros com espera ao digitar; paginação e exportação feitas pela API.
 - **LGPD:** RA e email só no corpo das requisições e só na memória da tela (nada em URL, `localStorage` ou log); tokens dos links trocados logo na abertura da página e o front com `Referrer-Policy: no-referrer`; mensagens genéricas iguais às da API; sem rastreamento; página de privacidade.
 - **Regras do projeto valem no front:** nenhum comentário no código, nomes em português, um commit por alteração, testes antes de cada commit, proposta antes de cada subpasso.
