@@ -14,8 +14,8 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 
 - **Último passo concluído:** **passo 10, preparação para produção** (09/11/2026, 239 testes passando). Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS e proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` (recomendações de plataforma para o usuário negociar com a TI da faculdade).
 - **Último subpasso concluído:** **11.1, base do front Angular** (09/11/2026, 22 testes do front + 239 da API). Projeto em `frontend/` (Angular 22 sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API (sessão no `sessionStorage`, erros padronizados), pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI.
-- **Em andamento:** nada. O passo 11 foi aprovado em 09/11/2026 (decisões no plano, abaixo).
-- **Próximo passo:** enviar a **proposta curta do 11.2** (área pública: início com os espaços, calendário FIXO/LIVRE, reserva com equipamentos, cadastro do aluno) e só implementar depois do ok. Os ícones Lucide (`@lucide/angular`) e o Angular CDK entram quando uma tela usar.
+- **Em andamento:** **proposta do 11.2 enviada em 09/11/2026, aguardando aprovação** (7 decisões, no passo 11 do plano). Destaque: a decisão 3 propõe uma mudança pequena na API (tirar o RA do GET de disponibilidade).
+- **Próximo passo:** com a aprovação, implementar o 11.2. O Angular CDK entra quando uma tela usar diálogo.
 - **Pendente para o deploy (decisão do usuário):** escolher a plataforma (ver `HOSPEDAGEM.md`), definir o backup e o monitor externo.
 - **O usuário precisa:** dar push dos commits (o CI agora tem o job `Front-end`; conferir se fica verde); para ver o front: `php artisan serve` na raiz e `cd frontend && npm start` (http://localhost:4200); o `.env` local dele ganhou `ADMIN_INICIAL_NOME/EMAIL/SENHA` (Eric / admin@email.com / Admin), `ALERTAS_EMAIL`, `APP_LOCALE=pt_BR`, `LOG_STACK=daily` e `APP_NAME`; **no outro PC**, copiar essas linhas do `.env.example` para o `.env` de lá, senão o `migrate:fresh --seed` não cria o admin (o seeder avisa e segue).
 - **Para retomar o passo 11 em outro PC (instruções para o Claude):**
@@ -58,7 +58,8 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Ambiente no PC Ubuntu (09/11):** PHP, Composer e Node instalados sem `sudo`, na pasta do usuário; testes verdes. Falta confirmar o acesso ao registro do npm.
 - **Decisões do passo 11 (09/11):** o usuário preferia o front **fora** do repositório (back e front separados, conversando só pela API), mas ficou com a pasta `frontend/` na raiz por não saber até onde o Claude alcança. Foi explicado que a separação que importa é a de execução e deploy (o front só consome a API), não a pasta; dá para mover para um repositório próprio depois sem perder o histórico (`git subtree split`). Token: o usuário pediu recomendação; como back e front ficarão em domínios separados, **`sessionStorage` + `Bearer`** (o cookie do Sanctum exige o mesmo domínio). Tailwind, signals, sem rastreamento e página de privacidade com **todos os dados coletados**: aprovados. Foto: depois. Fonte: explicado que é o arquivo da tipografia (Montserrat), servido junto com o site em vez de vir dos servidores do Google.
 - **11.1 implementado (09/11):** projeto gerado com `ng new` (Angular 22.2: sem zone.js, Vitest e Tailwind já vêm prontos) e limpo de comentários. Ícones e CDK ficaram para quando uma tela usar (sem dependência sem uso). Um teste mostrou que o login recusado também responde 401 ("Credenciais inválidas"): o front só troca a mensagem do 401 quando havia sessão, e mostra a da API nos outros casos. O 5xx nunca mostra o texto do servidor (pode ter detalhes internos). O token nunca vai para URLs fora da API. Orçamento do pacote inicial: 300 kB aviso / 450 kB erro (hoje 247 kB, 67 kB comprimido).
-- **Agora:** 11.1 concluído e documentado. Próxima ação: proposta curta do 11.2.
+- **Proposta do 11.2 (09/11):** o usuário percebeu que só dá para testar o front quando as telas chamarem a API; o 11.2 é o primeiro com chamadas. Ao revisar o endpoint de disponibilidade, apareceu um ponto de LGPD antigo: ele aceita o RA na query string (GET) e a validação `exists` revela se o RA está cadastrado. Recomendação: retirar o parâmetro e o front usar o `curso_id`.
+- **Agora:** proposta do 11.2 enviada. Próxima ação: aprovação das 7 decisões.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -238,7 +239,19 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - **Telas que o front precisa ter** (links dos emails já usados pela API): `/reservas/cancelar/:token`, `/reservas/confirmar/:token`, `/aceitar-convite/:token`, `/redefinir-senha/:token`.
 - **Subpassos (cada um com proposta curta, testes e commit):**
   - ✅ 11.1 Base (*concluído em 09/11/2026, 22 testes do front*): projeto, Tailwind com a paleta, fontes, layouts público e admin, cliente HTTP (URL da API, token, erros 401/409/422/429), rotas com carregamento sob demanda, datas em pt-BR, testes e CI do front. Ícones e CDK adiados para quando uma tela usar.
-  - 11.2 Público, reserva: início com os espaços, calendário de disponibilidade (FIXO e LIVRE), reserva com equipamentos, cadastro do aluno.
+  - 11.2 Público, reserva — *proposta enviada em 09/11/2026, aguardando aprovação*:
+    - **Telas:** início com os espaços ativos e filtro por tipo (`/`); calendário do espaço (`/espacos/:id`); reserva com RA, equipamentos e resumo lateral (`/espacos/:id/reservar`); cadastro do aluno (`/cadastro`); tela de sucesso explicando os emails (registrada / confirme).
+    - **Arquivos:** `publico/espacos/` (service + tipos), `publico/inicio/` (lista), `publico/calendario/` (FIXO em grade, LIVRE em blocos), `publico/reservar/`, `publico/cadastro/`, `compartilhado/` (botão, campo com erro, aviso de erro), specs de cada um, `publico.routes.ts`; dependência `@lucide/angular`.
+    - **Decisões em aberto, com recomendação:**
+      1. calendário por **semana (seg–sex), navegável**, uma requisição por semana guardada em memória; no celular, lista por dia. Alternativa: mês inteiro (resposta bem maior nos espaços LIVRE);
+      2. data e horário escolhidos **na URL** (`?data=&horario=` ou `?data=&inicio=&fim=`): não são dados pessoais, e voltar ou recarregar não perde a escolha. RA e email nunca na URL;
+      3. **retirar o `registro_academico` do `GET /api/espacos/{id}/disponibilidade`** (mudança pequena na API) e o front usar só o `curso_id` para mostrar quantas reservas o curso ainda tem. Hoje o RA vai na URL (fica em log de servidor e histórico do navegador) e o `exists` da validação revela se um RA está cadastrado, o que contraria as regras de LGPD do projeto;
+      4. **não lembrar o RA** no navegador (computadores compartilhados); o aluno digita a cada reserva;
+      5. RA não cadastrado: mensagem com link "Fazer meu cadastro", que volta para a reserva com a escolha preservada (`/cadastro?voltar=` só com o caminho interno);
+      6. sem polling: o calendário recarrega ao abrir, ao trocar de semana e quando a reserva recebe 409 (horário ocupado por outra pessoa), com aviso;
+      7. testes unitários agora; **Playwright fica para o 11.8** (precisa baixar navegadores, e a rede deste PC bloqueia alguns downloads).
+    - **Desempenho:** uma requisição por semana (com cache em memória); equipamentos do FIXO vêm do próprio calendário; no LIVRE, a disponibilidade dos equipamentos só é pedida depois de escolher o intervalo; espaços carregados uma vez por visita; cursos só na tela de cadastro; cada tela no seu pacote.
+    - **LGPD:** RA e email só no corpo do POST; formulário limpo depois do sucesso; calendário mostra só nome e curso (como a API); aviso curto no cadastro sobre o que é coletado e para quê (o link para a página de privacidade entra no 11.3); nenhum dado pessoal em `localStorage` ou URL.
   - 11.3 Público, pós-reserva: minhas reservas (RA + email), cancelar e confirmar pelo link, página de privacidade.
   - 11.4 Admin, acesso: login, esqueci e redefinir senha, aceitar convite, trocar senha, sair.
   - 11.5 Admin, reservas: lista com filtros e totais, detalhe, revogar, eventos, devolução, exportação.
