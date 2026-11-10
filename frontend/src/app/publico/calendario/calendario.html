@@ -187,7 +187,7 @@
                                   >Do seu curso</span
                                 >
                               }
-                            } @else if (horario.motivo) {
+                            } @else if (horario.motivo && horario.situacao !== 'ENCERRADO') {
                               <span class="block text-xs text-slate-600">{{ horario.motivo }}</span>
                             }
                           </div>
