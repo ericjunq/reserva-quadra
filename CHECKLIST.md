@@ -14,7 +14,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 
 - **Último passo concluído:** **passo 10, preparação para produção** (09/11/2026, 239 testes passando). Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS e proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` (recomendações de plataforma para o usuário negociar com a TI da faculdade).
 - **Último subpasso concluído:** **11.1, base do front Angular** (09/11/2026, 22 testes do front + 239 da API). Projeto em `frontend/` (Angular 22 sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API (sessão no `sessionStorage`, erros padronizados), pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI.
-- **Em andamento:** **proposta do 11.2 enviada em 09/11/2026**: decisões 5, 6 e 7 aprovadas em 10/11; 1, 2, 4 e 5 aprovadas; **3 (ideia do usuário: RA puxa o curso) com recomendação de fazer por POST, aguardando ok** (no passo 11 do plano). Destaque: a decisão 3 propõe uma mudança pequena na API (tirar o RA do GET de disponibilidade).
+- **Em andamento:** **proposta do 11.2 enviada em 09/11/2026**: decisões 5, 6 e 7 aprovadas em 10/11; 1, 2, 4 e 5 aprovadas; **3 (ideia do usuário: RA puxa o curso) ajustada por ele (quadra, 20/min); versão final enviada, aguardando o ok** (no passo 11 do plano). **Novo passo 12 no plano: importação da grade de aulas** (perguntas enviadas ao usuário). Destaque: a decisão 3 propõe uma mudança pequena na API (tirar o RA do GET de disponibilidade).
 - **Próximo passo:** com a aprovação, implementar o 11.2. O Angular CDK entra quando uma tela usar diálogo.
 - **Pendente para o deploy (decisão do usuário):** escolher a plataforma (ver `HOSPEDAGEM.md`), definir o backup e o monitor externo.
 - **O usuário precisa:** responder à **proposta do 11.2** (7 decisões). Push em dia: o CI de 10/11/2026 (`f9c16ac`) passou nos **5 jobs**, inclusive o `Front-end`. Para ver o front: `php artisan serve` na raiz e `cd frontend && npm start` (http://localhost:4200). **No outro PC**: `git pull`, copiar as linhas novas do `.env.example` para o `.env` (`ADMIN_INICIAL_*`, `ALERTAS_EMAIL`, `APP_LOCALE=pt_BR`, `LOG_STACK=daily`, `APP_NAME`) e rodar `cd frontend && npm install`.
@@ -62,7 +62,9 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **CI verde com o front (10/11):** o usuário deu push; os 5 jobs passaram (Pint/audit, SQLite, MySQL, Postgres e Front-end).
 - **Resposta do usuário ao 11.2 (10/11):** aprovou 5 (com a condição de não haver inconsistência ou trava: a escolha não reserva nada até o POST), 6 e 7. Pediu explicação de 1 a 4. Explicado: (1) "lista" é a **mesma semana** com os dias empilhados na tela estreita do celular, não meses; (2) sim, *query params*, só data e horário; (3) RA na URL vai para logs e histórico, e a validação `exists` responde diferente para RA cadastrado (dá para descobrir quem tem cadastro testando RAs); o `curso_id` dá a mesma informação sem dado pessoal; (4) guardar o RA no navegador deixaria o RA do aluno anterior no computador do laboratório.
 - **Decisões 1, 2, 4 e 5 do 11.2 aprovadas (10/11).** Na 3, o usuário propôs que o RA puxe o curso. Avaliado como bom para o aluno; recomendado com o RA no corpo de um POST (fora da URL e dos logs), limite de 10/min e sem o nome do curso na resposta.
-- **Agora:** aguardando o ok da versão da decisão 3 com POST; depois, implementar o 11.2 (começando pela API).
+- **Ajustes do usuário na decisão 3 (10/11):** o curso importa sobretudo na quadra (atléticas); limite de 20/min. A rota de consulta com RA fica só para espaços com limite semanal. Limite por IP explicado (Wi-Fi da faculdade compartilha IP); revisar os outros limites no 11.8.
+- **Ideia nova do usuário (10/11): importar a grade de aulas** da faculdade, para que horários de aula não aceitem reservas. Virou o **passo 12** do plano (a API para terceiros passou a ser o 13, e foi reforçada por ele). Recomendação inicial: aula como ocupação semanal recorrente (poucas linhas, consulta por índice), importação por planilha com prévia, sem dados de professores ou alunos. Perguntas sobre o formato da grade enviadas ao usuário.
+- **Agora:** aguardando o ok final da decisão 3 (versão ajustada) para implementar o 11.2, e as respostas sobre a grade de aulas para detalhar o passo 12.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -260,6 +262,8 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
       - o `GET` continua público e aceita só `curso_id`; o `registro_academico` sai dele;
       - no front, o RA digitado no calendário fica **só na memória** e já vem preenchido no formulário de reserva (sem digitar duas vezes; some ao recarregar a página, como na decisão 4);
       - o que sobra: a resposta ainda revela se o RA existe, mas isso o `POST /api/reservas` já revela hoje (o aluno precisa saber que tem de se cadastrar); com o POST e o limite de 10 por minuto, o risco fica igual ao que já existe.
+      - **Respostas do usuário (10/11):** perguntou para que serve a rota (explicado: é uma **consulta**, não cria nada; usa POST só para o RA ir no corpo, como `minhas-reservas`); o curso importa **principalmente na quadra** (atléticas), não nas salas; o risco restante é aceitável; limite de **20 por minuto** em vez de 10.
+      - **Versão ajustada, enviada para o ok final:** a rota só vale para espaços **com limite semanal por curso** (hoje, a quadra); nos outros, a API responde 422 e o front nem mostra o campo de RA no calendário (o RA só aparece no formulário de reserva). Limite de 20/min. Observação levada ao usuário: o limite é **por IP**, e no Wi-Fi da faculdade muitos alunos saem pelo mesmo IP; por isso 20 faz sentido, e os limites das outras rotas públicas (10/min) devem ser revistos no 11.8, antes de entrar em uso.
     - **Desempenho:** uma requisição por semana (com cache em memória); equipamentos do FIXO vêm do próprio calendário; no LIVRE, a disponibilidade dos equipamentos só é pedida depois de escolher o intervalo; espaços carregados uma vez por visita; cursos só na tela de cadastro; cada tela no seu pacote.
     - **LGPD:** RA e email só no corpo do POST; formulário limpo depois do sucesso; calendário mostra só nome e curso (como a API); aviso curto no cadastro sobre o que é coletado e para quê (o link para a página de privacidade entra no 11.3); nenhum dado pessoal em `localStorage` ou URL.
   - 11.3 Público, pós-reserva: minhas reservas (RA + email), cancelar e confirmar pelo link, página de privacidade.
@@ -281,7 +285,23 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - **LGPD:** RA e email só no corpo das requisições e só na memória da tela (nada em URL, `localStorage` ou log); tokens dos links trocados logo na abertura da página e o front com `Referrer-Policy: no-referrer`; mensagens genéricas iguais às da API; sem rastreamento; página de privacidade.
 - **Regras do projeto valem no front:** nenhum comentário no código, nomes em português, um commit por alteração, testes antes de cada commit, proposta antes de cada subpasso.
 
-### 12. ⬜ Final — API para terceiros autorizados
+### 12. ⬜ Grade de aulas (importação) — *ideia do usuário em 10/11/2026; proposta a detalhar*
+- **Problema:** as aulas ocupam laboratórios, salas e às vezes a quadra em horários fixos da semana. Sem isso no sistema, um aluno poderia reservar um espaço que está com aula.
+- **Ideia:** o admin **importa a grade de aulas** da faculdade (todos os espaços com os horários ocupados), e esses horários deixam de aceitar reservas de alunos. O calendário mostra "Aula".
+- **Primeiras recomendações (a confirmar na proposta):**
+  - guardar a aula como **ocupação semanal recorrente** (espaço, dia da semana, início, fim, vigência de/até, descrição curta como "Aula — Turma X"), e **não** uma linha por data: o semestre inteiro cabe em poucas linhas e a verificação é uma consulta por índice (espaço + dia da semana);
+  - dia da semana calculado em PHP (sem função de data de um banco específico);
+  - importação por **arquivo CSV/Excel** enviado pelo admin, com prévia (o que entra, o que conflita, linhas com erro) antes de confirmar; cada importação substitui a grade do período, para dar para corrigir e reimportar;
+  - reservas de alunos que caírem em horário de aula: revogar com justificativa e email (como nas datas bloqueadas), mostrando antes na prévia;
+  - eventos do admin podem ou não passar por cima de aulas (a decidir);
+  - mais tarde, a grade pode chegar **pela API de terceiros** (passo 13): o sistema acadêmico da faculdade envia as aulas direto.
+- **Perguntas ao usuário antes da proposta:** em que formato a faculdade consegue exportar a grade (planilha, CSV, acesso ao banco, outro sistema)? Os nomes dos espaços batem com os nossos? A grade muda por semestre? Há aulas em datas avulsas (reposição) ou só semanais?
+- **Desempenho:** recorrência semanal em vez de expandir datas; índice por espaço e dia da semana; importação em lote numa transação; o calendário carrega as aulas da semana numa consulta só.
+- **LGPD:** importar só espaço, dia, horário, vigência e uma descrição curta; **não** importar nomes de professores nem listas de alunos (não têm finalidade aqui); o arquivo enviado não é guardado depois de importado.
+- **Onde entra:** depois do 11.2. O calendário do 11.2 já trata qualquer situação nova que a API devolver (mostra como indisponível, com o motivo), então a grade não obriga refazer telas.
+
+### 13. ⬜ Final — API para terceiros autorizados
+- **Reforçado pelo usuário (10/11):** permitir que outros sistemas se conectem, com as devidas restrições e regras de segurança. Um dos primeiros clientes pode ser o sistema acadêmico, enviando a grade de aulas (passo 12).
 - Tabela de **clientes de API** gerenciada pelos admins, com tokens Sanctum por cliente e permissões por *ability* (ex.: `reservas:ler`, `reservas:criar`), que podem ser revogadas.
 - Rotas versionadas em `/api/v1`, limite de requisições por cliente, documentação OpenAPI (Swagger) e auditoria indicando qual cliente fez cada alteração.
 

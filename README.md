@@ -777,8 +777,9 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
 1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base pronta (11.1). **Proposta do 11.2 enviada** (área pública de reserva: espaços, calendário semanal, reserva com equipamentos e cadastro), aguardando aprovação; inclui uma mudança pequena na API: tirar o `registro_academico` do `GET /api/espacos/{id}/disponibilidade` (LGPD: RA na URL e revelação de cadastro).
-2. **API para terceiros autorizados.**
-3. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
+2. **Grade de aulas (importação):** o admin importa a grade da faculdade (espaços e horários de aula) e esses horários deixam de aceitar reservas de alunos. Ideia do usuário em 10/11/2026; detalhes e recomendações iniciais no passo 12 do [`CHECKLIST.md`](CHECKLIST.md).
+3. **API para terceiros autorizados**, com as devidas restrições de segurança (passo 13). O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.
+4. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
 
 ### Front-end: identidade visual
 
