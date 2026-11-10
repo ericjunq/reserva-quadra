@@ -25,6 +25,10 @@
               }
             ],
             "styles": [
+              "@fontsource/montserrat/latin-400.css",
+              "@fontsource/montserrat/latin-600.css",
+              "@fontsource/montserrat/latin-800.css",
+              "@fontsource/montserrat/latin-800-italic.css",
               "src/styles.css"
             ]
           },

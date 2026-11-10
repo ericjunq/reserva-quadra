@@ -1,1 +1,19 @@
 @import 'tailwindcss';
+
+@theme {
+  --color-azul: #0d2c6b;
+  --color-azul-escuro: #06163a;
+  --color-azul-medio: #144096;
+  --color-amarelo: #f5b400;
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-azul-medio;
+  }
+}
