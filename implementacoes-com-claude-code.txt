@@ -1693,3 +1693,51 @@ CHECKLIST.md e README.md (planejamento, sem código)
     antes de confirmar, sem dados de professores e alunos. A API para terceiros virou o passo 13.
   - Decisões do 11.2 todas aprovadas; a 3 ficou com a ideia do usuário (o RA puxa o curso, por
     POST, só em espaços com limite semanal, 20 por minuto).
+
+========================================================================
+43. PASSO 11.2 (PARTE DA API) — LIMITE DO CURSO CONSULTADO POR POST
+========================================================================
+
+10/11/2026. 244 testes passando (5 novos).
+
+Decisão 3 do 11.2, com a ideia do usuário: o aluno informa o RA no calendário e o sistema descobre o
+curso. Antes, o RA ia no GET (query string), ficava em logs e no histórico do navegador, e a regra
+exists respondia diferente para RA cadastrado, com 60 tentativas por minuto.
+
+app/Http/Requests/ConsultarDisponibilidadeRequest.php
+  - Saiu o registro_academico (e o prohibits com o curso_id). curso() só usa o curso_id.
+  - Imports de Aluno e Rule removidos.
+
+app/Http/Requests/ConsultarDisponibilidadeDoCursoRequest.php (novo)
+  - Estende o anterior: reaproveita de/ate e a regra dos 31 dias (parent::after()), sem curso_id.
+  - authorize(): espaço inativo → 404 antes de validar (não processa o RA à toa).
+  - registro_academico: bail, required, string, size:10 e uma closure que recusa espaço sem
+    limite_semanal_por_curso. Com o bail, em espaço sem limite o aluno nem é procurado (LGPD:
+    não tratar dado sem finalidade; desempenho: nenhuma consulta).
+  - after(): uma consulta só, Aluno::with('curso') pelo RA e ativo. Não achou → "Não encontramos
+    um aluno ativo com este RA." (mesma mensagem para inexistente e inativo).
+  - curso(): o curso do aluno encontrado.
+
+app/Http/Controllers/EspacoController.php
+  - disponibilidadeDoCurso(): chama o mesmo DisponibilidadeService::consultar com
+    identificarCurso: false.
+
+app/Services/DisponibilidadeService.php
+  - consultar() ganhou o parâmetro identificarCurso (padrão true). Com false, o bloco curso sai
+    sem id e nome (só limite_semanal e semanas): quem testar um RA alheio não descobre o curso.
+
+routes/api.php
+  - POST /api/espacos/{espaco}/disponibilidade/curso com throttle:20,1 (pedido do usuário; o
+    limite é por IP, e o Wi-Fi da faculdade compartilha IP).
+
+tests/Feature/DisponibilidadeTest.php
+  - consultarComRa(); teste do limite do curso agora por POST e sem curso.id/curso.nome;
+    GET ignora o RA; GET na rota nova = 405; espaço sem limite = 422; validações (RA ausente,
+    tamanho, inexistente e inativo com a mesma mensagem, período, de obrigatório); espaço
+    inativo = 404.
+
+tests/Feature/AlunoAdminTest.php
+  - Aluno inativo: a consulta com RA passou para o POST (espaço com limite).
+
+README.md e CHECKLIST.md
+  - Rota nova na tabela de endpoints, limites, explicação da consulta, LGPD, decisão, testes.

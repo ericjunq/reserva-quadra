@@ -297,7 +297,8 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | GET | `/api/espacos?tipo=QUADRA` | Espaços ativos (filtro opcional) |
 | GET | `/api/espacos/{id}/equipamentos` | Equipamentos reserváveis no espaço (os dele + os compartilháveis) |
 | GET | `/api/espacos/{id}/equipamentos/disponibilidade?data=&hora_inicio=&hora_fim=` | Disponível de cada equipamento num intervalo (usado nos espaços LIVRE) |
-| GET | `/api/espacos/{id}/disponibilidade?de=&ate=` | Calendário do espaço: situação de cada horário e equipamentos disponíveis |
+| GET | `/api/espacos/{id}/disponibilidade?de=&ate=` | Calendário do espaço: situação de cada horário e equipamentos disponíveis (opcional `curso_id`) |
+| POST | `/api/espacos/{id}/disponibilidade/curso` | O mesmo calendário com o limite semanal do curso do aluno (`registro_academico`, `de`, `ate` no corpo); só em espaços com limite por curso |
 | POST | `/api/reservas` | Cria uma reserva |
 | POST | `/api/minhas-reservas` | O aluno consulta as próprias reservas (RA + email no corpo) |
 | GET | `/api/reservas/cancelamento/{token}` | Resumo da reserva do link do email (`pode_cancelar`) |
@@ -309,14 +310,18 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | POST | `/api/redefinir-senha` | Define a senha nova com o token do email |
 | POST | `/api/convites/aceitar` | Admin convidado define a senha com o token do convite |
 
-`POST /api/alunos`, `POST /api/reservas`, `POST /api/minhas-reservas` e as rotas de cancelamento e de confirmação aceitam no máximo 10 requisições por minuto. O login e o "esqueci a senha" aceitam 5; a redefinição e o aceite de convite, 10. A consulta de disponibilidade aceita 60.
+`POST /api/alunos`, `POST /api/reservas`, `POST /api/minhas-reservas` e as rotas de cancelamento e de confirmação aceitam no máximo 10 requisições por minuto. O login e o "esqueci a senha" aceitam 5; a redefinição e o aceite de convite, 10. A consulta de disponibilidade aceita 60; a consulta com o RA (`/disponibilidade/curso`), 20.
 
 **Consulta de disponibilidade:**
 
 `GET /api/espacos/1/disponibilidade?de=2026-11-09&ate=2026-11-13`
 
 - `de` é obrigatório. `ate` é opcional (sem ele, a consulta é de um dia) e o período pode ter até 31 dias, para o front navegar pelo calendário.
-- Opcional: `registro_academico` **ou** `curso_id`. Com eles, a resposta mostra todas as reservas igualmente e acrescenta os dados do curso: quantas reservas ele já tem em cada semana, quantas restam, `do_curso` em cada reserva e `disponivel_para_o_curso` em cada horário.
+- Opcional: `curso_id`. Com ele, a resposta mostra todas as reservas igualmente e acrescenta os dados do curso (`curso`: `id`, `nome`, `limite_semanal` e `semanas` com quantas reservas ele já tem e quantas restam), `do_curso` em cada reserva e `disponivel_para_o_curso` em cada horário.
+- **Com o RA do aluno** (o front mostra "quantas reservas o seu curso ainda tem"): `POST /api/espacos/{id}/disponibilidade/curso` com `registro_academico`, `de` e `ate` no **corpo**. A resposta é a mesma, mas `curso` vem **sem `id` e `nome`** (traz só `limite_semanal` e `semanas`).
+  - Só vale em espaços com `limite_semanal_por_curso` (hoje, a quadra); nos outros responde 422, sem nem procurar o aluno. Em salas e laboratórios o RA só é pedido na reserva.
+  - RA inexistente ou de aluno inativo: 422 "Não encontramos um aluno ativo com este RA." (o mesmo que a reserva já revela). Espaço inativo: 404. No máximo 20 consultas por minuto.
+  - O `GET` não aceita mais o `registro_academico`: um RA na URL ficaria nos logs do servidor e no histórico do navegador, e a validação respondia diferente para RA cadastrado e não cadastrado com 60 tentativas por minuto.
 - `reservas_ate`: último dia que aceita reservas de alunos (10 dias úteis à frente).
 - Cada dia tem `reservavel` e `motivo` (data passada, fim de semana, fora da antecedência ou bloqueio do dia inteiro).
 - Cada horário tem `situacao`: `LIVRE`, `RESERVADO`, `EVENTO`, `BLOQUEADO`, `INDISPONIVEL` (o dia não aceita reservas) ou `ENCERRADO` (horário de hoje passou do limite). Também traz `motivo`, `reserva` (com `reservado_por`: nome e curso do aluno, ou nome do admin; RA e email nunca aparecem) e `equipamentos` (`total` e `disponivel` naquele horário, incluindo os compartilháveis).
@@ -538,6 +543,7 @@ POST /api/admin/reservas/15/devolucao
 ### LGPD
 
 - **Rotas públicas** nunca mostram RA nem email; o calendário mostra só nome e curso de quem reservou.
+- **RA nunca na URL:** a consulta do limite do curso pelo RA é um `POST` com o RA no corpo (`/disponibilidade/curso`), com 20 por minuto, só em espaços com limite por curso, e sem o nome do curso na resposta.
 - **Consulta das próprias reservas** (`POST /api/minhas-reservas`): exige RA **e** email do mesmo aluno (email sem diferenciar maiúsculas), enviados no **corpo** da requisição, nunca na URL. Dados errados recebem sempre `404` com a mesma mensagem ("Não encontramos reservas para esses dados."), sem revelar se o RA existe. Aluno inativo consulta o próprio histórico; aluno anonimizado não aparece. A resposta não traz RA, email nem auditoria.
   - `periodo`: `FUTURAS` (padrão; de hoje em diante, ordem crescente, todos os status) ou `TODAS` (ordem decrescente). Paginada (`per_page` na URL).
 - **Anonimização** (`POST /api/admin/alunos/{id}/anonimizar`, irreversível, exige `"confirmar": true`): troca nome por "Aluno anonimizado", RA por `A` + id (ex.: `A000000042`) e email por um endereço inválido; desativa o aluno; revoga as reservas futuras **sem enviar email**; e substitui nome, RA e email por `[anonimizado]` no histórico de auditoria. As reservas passadas continuam, para as estatísticas, ligadas ao aluno anônimo. O RA original fica livre para um novo cadastro.
@@ -611,6 +617,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Disponibilidade como **calendário** (até 31 dias) | O front navega por semanas/meses; reservas continuam limitadas a 10 dias úteis, e os dias fora da janela vêm com o motivo |
 | Consulta mostra **quem reservou** (nome e curso) | Facilita o mapeamento do uso. Por ser pública, não mostra RA nem email (LGPD) |
 | Consulta com RA ou curso **não filtra** as reservas | Mostra o espaço inteiro e apenas aponta o limite e a disponibilidade do curso |
+| RA do calendário por **POST** (`/disponibilidade/curso`), fora do `GET` | Ideia do usuário (10/11/2026): o aluno digita o RA e o sistema descobre o curso. Por POST para o RA não ir para URL e logs; 20 por minuto (pedido do usuário; o limite é por IP e o Wi-Fi da faculdade compartilha IP); só em espaços com limite por curso, porque o curso só importa na quadra (atléticas); sem o nome do curso na resposta |
 | Eventos podem revogar reservas de alunos | Eventos da faculdade têm prioridade; justificativa obrigatória e aluno avisado |
 | Reservas não confirmadas são revogadas automaticamente | Libera horários de quem não vai usar |
 | Pedido de confirmação **2 dias úteis** antes | Em dias corridos, reserva de segunda pediria confirmação no sábado, quando muita gente não abre o email da faculdade |
@@ -715,7 +722,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `AuditoriaTest` | Colunas e histórico na criação, alteração, desativação e exclusão; ações públicas sem admin; revogação; alteração sem mudança; auditoria só nas rotas do admin; histórico após remover o admin |
 | `ExportacaoReservasTest` | Login, colunas obrigatórias, opcionais e todas, responsável em eventos, período e atalhos, filtros, mais de um lote, proteção contra fórmulas, validações |
 | `ListagemReservasTest` | Login obrigatório, padrão de hoje em diante, ordem, cada filtro e combinações, dados do aluno/espaço/equipamentos/revogação, totais por status, paginação, consultas sem N+1, validações |
-| `DisponibilidadeTest` | Situações dos horários, quem reservou sem RA/email, bloqueios, motivos do calendário, equipamentos por horário, dados do curso por RA/curso, validações |
+| `DisponibilidadeTest` | Situações dos horários, quem reservou sem RA/email, bloqueios, motivos do calendário, equipamentos por horário, dados do curso por `curso_id`, consulta com RA só por POST (sem id/nome do curso, só em espaço com limite, RA inexistente ou inativo com a mesma mensagem, espaço inativo), `GET` ignorando o RA, validações |
 | `TraducaoTest` | Mensagens de validação em português com o nome do campo |
 | `SegurancaHttpTest` | CORS só para o front, cabeçalhos de segurança, HSTS só por HTTPS |
 | `AlertaTest` | Destinatários (admins ativos e `ALERTAS_EMAIL`), sem dados pessoais, limite de 1 por hora, toda tarefa agendada com alerta |

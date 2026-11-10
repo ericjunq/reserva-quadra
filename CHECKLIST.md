@@ -6,7 +6,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 10/11/2026 · 239 testes da API + 22 do front passando
+Última atualização: 10/11/2026 · 244 testes da API + 22 do front passando
 
 ---
 
@@ -66,7 +66,8 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Ideia nova do usuário (10/11): importar a grade de aulas** da faculdade, para que horários de aula não aceitem reservas. Virou o **passo 12** do plano (a API para terceiros passou a ser o 13, e foi reforçada por ele). Recomendação inicial: aula como ocupação semanal recorrente (poucas linhas, consulta por índice), importação por planilha com prévia, sem dados de professores ou alunos. Perguntas sobre o formato da grade enviadas ao usuário.
 - **Decisão 3 do 11.2 aprovada (10/11):** o usuário confirmou: em salas e laboratórios basta o RA (identifica o aluno), e só na quadra (espaços com limite semanal) o curso influencia. Todas as decisões do 11.2 estão aprovadas.
 - **Grade de aulas, respostas do usuário (10/11):** CSV/Excel; horário de aula bloqueado o semestre todo (não deixar reservar, em vez de revogar); salas com número e cidade ("Sala 1 - Guanambi"); grade pode mudar por semestre; reposição é evento do admin. Recomendado reconhecer o espaço por um código. Duração máxima: é por espaço; o laboratório de demonstração passou de 120 para 180 min a pedido dele.
-- **Agora:** implementar o 11.2 (começando pela API: rota POST de consulta com RA para espaços com limite, 20/min, e o `GET` sem RA). O passo 12 terá a proposta completa quando chegar a vez dele.
+- **11.2, parte da API pronta (10/11):** `POST /api/espacos/{id}/disponibilidade/curso` (RA no corpo, 20/min, só espaço com limite, `curso` sem `id`/`nome`; RA inexistente e inativo com a mesma mensagem; uma consulta para o aluno com o curso, e nenhuma em espaço sem limite); o `GET` deixou de aceitar o RA. 244 testes.
+- **Agora:** implementar as telas do 11.2 no front. O passo 12 terá a proposta completa quando chegar a vez dele.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -102,7 +103,7 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Ver os espaços ativos (com filtro por tipo)
 - [x] Ver os equipamentos que pode pedir em um espaço (os do espaço + compartilháveis)
 - [x] Ver o calendário de um espaço (até 31 dias): horários livres, reservados, eventos e bloqueios, quem reservou e equipamentos disponíveis
-- [x] Informar o RA ou o curso no calendário para ver quantas reservas o curso ainda tem na semana
+- [x] Informar o RA (por POST, só na quadra) ou o curso no calendário para ver quantas reservas o curso ainda tem na semana
 - [x] Reservar um espaço em um horário, com ou sem equipamentos
 - [x] Em espaços com horário livre, escolher início e fim (blocos de 30 min, dentro da janela e até a duração máxima)
 - [x] Consultar as próprias reservas informando RA + email (futuras ou todas)
