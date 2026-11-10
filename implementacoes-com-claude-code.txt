@@ -1838,3 +1838,44 @@ Achados levados ao usuário (sem mudança feita):
   - a mensagem de limite semanal do POST /api/reservas cita o nome do curso do RA;
   - o pacote inicial (~299 kB, 80 kB comprimido) está quase no aviso de 300 kB, quase todo do
     Angular; sugestão de subir o aviso para 350 kB e o erro para 500 kB.
+
+========================================================================
+45. AJUSTES DO 11.2 APROVADOS E PROPOSTA DO 11.3
+========================================================================
+
+10/11/2026. 244 testes da API e 58 do front passando.
+
+app/Services/ReservaService.php (verificarLimiteSemanalDoCurso)
+  - Mensagem nova: "O seu curso já atingiu o limite de N reserva(s) nesta semana para <espaço>."
+    Antes citava o nome do curso do RA, e quem digitasse um RA alheio descobria o curso dele.
+    Bônus de desempenho: $aluno->curso não é mais carregado (uma consulta a menos).
+tests/Feature/LimiteSemanalTest.php
+  - Mensagem nova e sem dados extras na resposta.
+
+frontend/angular.json
+  - Orçamento do pacote inicial: aviso 350 kB, erro 500 kB (antes 300/450). A base do Angular
+    (núcleo 169 kB, router 97 kB, common, rxjs) já passa de 275 kB; nosso código no pacote inicial
+    tem ~3 kB. Comprimido, o pacote inicial tem ~80 kB.
+
+frontend/src/app/publico/datas.ts
+  - formatarDiaDaSemanaCurto ("ter").
+
+frontend/src/app/publico/calendario/ (ideia do usuário: escolher o dia e ver a disponibilidade dele)
+  - calendario.ts: input dia (query param); ehLivre; diaEscolhido (o da URL, senão o primeiro com
+    horário livre, senão o primeiro aberto, senão o primeiro); escolherDia (URL com replaceUrl, para
+    o voltar do navegador não passar por cada dia); irParaSemana limpa o dia; horariosLivres;
+    resumoDoDia ("N livres", "1 livre", "Lotado", "Fechado"); reservasDoDia (junta blocos seguidos
+    da mesma reserva: 15:00–16:00 · Ana Souza (Direito)).
+  - calendario.html: no horário livre, 5 botões de dia (aria-pressed, aria-label com o resumo) e o
+    painel do dia escolhido: grade de 3/5/8 colunas (celular/tablet/computador) com o horário de
+    início; livres são links verdes, os outros cinza com a situação só para leitor de tela;
+    legenda; lista "Reservas do dia". Horário fixo continua com as 5 colunas.
+  - Campo de RA da quadra: label em cima e o botão "Consultar" ao lado do campo.
+  - calendario.spec.ts: 2 testes do horário livre (dias, dia padrão, links só dos livres, reservas
+    agrupadas, troca de dia pela URL).
+
+CHECKLIST.md e README.md
+  - Itens 8 a 10 de "Para o usuário rever" resolvidos; decisões; testes; proposta do 11.3 com 6
+    decisões (cancelar só pelo email, token fora da barra de endereço, RA e email só na memória,
+    paginação simples, privacidade com controlador e contato a confirmar, confirmação sem botão
+    de cancelar).

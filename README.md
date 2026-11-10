@@ -236,7 +236,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/nucleo/` | Peças usadas pelo app inteiro: `SessaoService` (token do admin no `sessionStorage`), `interceptorApi` (cabeçalhos e erros) e `erro-api.ts` (formato único de erro) |
 | `app/publico/` | Área do aluno: `LayoutPublico` (identidade esportiva), páginas e `publico.routes.ts`; `ApiPublicaService` (chamadas da área pública), `RaEmMemoriaService`, `modelos.ts` (formato das respostas), `datas.ts` e `textos.ts` |
 | `app/publico/inicio/` | `/`: espaços ativos em cartões, com filtro por tipo, horário e limite por curso |
-| `app/publico/calendario/` | `/espacos/:id?semana=`: semana de segunda a sexta (colunas no computador, dias empilhados no celular), quem reservou, motivo dos dias fechados e, na quadra, o limite do curso pelo RA |
+| `app/publico/calendario/` | `/espacos/:id?semana=&dia=`: horário fixo em 5 colunas (dias empilhados no celular); horário livre com a escolha do dia (botões com "N livres") e a grade compacta do dia escolhido, mais as reservas do dia; quem reservou, motivo dos dias fechados e, na quadra, o limite do curso pelo RA |
 | `app/publico/reservar/` | `/espacos/:id/reservar?data=&horario=` (fixo) ou `?data=&inicio=&fim=` (livre): RA, fim do intervalo (livre), equipamentos, resumo lateral e a tela de sucesso com o próximo email |
 | `app/publico/cadastro/` | `/cadastro?voltar=`: cadastro do aluno com o aviso de uso dos dados; volta para a reserva com o RA preenchido |
 | `app/admin/` | Área do admin: `LayoutAdmin` (neutro), páginas e `admin.routes.ts` |
@@ -256,7 +256,8 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
   - **Horário livre:** o aluno clica num bloco livre e, na reserva, escolhe até que horas; as opções param no primeiro bloco ocupado e na duração máxima do espaço. Os equipamentos do intervalo vêm de `/equipamentos/disponibilidade`.
   - **Situações novas** da API (ex.: "aula", do passo 12) aparecem como "Indisponível", com o motivo, sem precisar mudar o front.
   - **Cadastro:** o `voltar` só aceita caminhos do próprio site (começando com `/`, sem `//` nem `\`), para o link não poder mandar o aluno para outro site.
-  - **Tamanho:** cada tela é um pacote sob demanda (início 2,4 kB, calendário 4,2 kB, reserva 5 kB, cadastro 2,5 kB comprimidos); formulários do Angular (17 kB) e ícones (só os usados) também ficam fora do pacote inicial. O pacote inicial (~299 kB, 80 kB comprimido) é quase todo do Angular (núcleo, router) e do rxjs.
+  - **Calendário do horário livre:** o aluno escolhe o dia (botões com "N livres", "Lotado" ou "Fechado"; o primeiro dia com horário livre vem selecionado) e vê só aquele dia em grade compacta, com os horários de início livres como link e a lista das reservas do dia. O dia vai na URL (`?dia=`).
+  - **Tamanho:** cada tela é um pacote sob demanda (início 2,4 kB, calendário 4,2 kB, reserva 5 kB, cadastro 2,5 kB comprimidos); formulários do Angular (17 kB) e ícones (só os usados) também ficam fora do pacote inicial. O pacote inicial (~300 kB, 80 kB comprimido) é quase todo do Angular (núcleo, router) e do rxjs; o orçamento é 350 kB (aviso) e 500 kB (erro).
 - **Sessão do admin:** token e validade (`expires_at` do login) no `sessionStorage`, que some ao fechar a aba. Sessão vencida ou conteúdo inválido é descartado ao abrir e a cada uso.
 - **Datas e números em pt-BR** (`LOCALE_ID`), `<html lang="pt-BR">` e `Referrer-Policy: no-referrer` no `index.html`, para os tokens dos links de email não vazarem para outros sites.
 - **Acessibilidade:** link "Pular para o conteúdo" nos dois layouts e foco visível em todos os elementos (contorno azul).
@@ -416,7 +417,7 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 | No máximo **10 dias úteis** à frente (fins de semana não contam) | 422 |
 | Horário de **hoje**: aceito até **20 minutos antes do término** (ex.: 19:00–20:30 até as 20:10) | 422 |
 | Um espaço aceita **uma reserva por horário** | 409 |
-| Espaço com `limite_semanal_por_curso` (quadra = 3): no máximo N reservas do mesmo curso de **segunda a sexta** | 409 |
+| Espaço com `limite_semanal_por_curso` (quadra = 3): no máximo N reservas do mesmo curso de **segunda a sexta** ("O seu curso já atingiu o limite…", sem o nome do curso) | 409 |
 | Data/horário não pode estar numa **data bloqueada** (mensagem traz o motivo) | 422 |
 
 ### Horários fixos e livres
@@ -630,6 +631,9 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Disponibilidade como **calendário** (até 31 dias) | O front navega por semanas/meses; reservas continuam limitadas a 10 dias úteis, e os dias fora da janela vêm com o motivo |
 | Consulta mostra **quem reservou** (nome e curso) | Facilita o mapeamento do uso. Por ser pública, não mostra RA nem email (LGPD) |
 | Consulta com RA ou curso **não filtra** as reservas | Mostra o espaço inteiro e apenas aponta o limite e a disponibilidade do curso |
+| Mensagem do limite semanal sem o nome do curso | Quem digitasse um RA alheio descobria o curso dele quando o limite estourava (achado no 11.2, aprovado pelo usuário em 10/11/2026) |
+| Orçamento do front: aviso 350 kB, erro 500 kB | A base do Angular (núcleo, router, rxjs) já ocupa ~275 kB do pacote inicial; o limite de 300 kB seria ultrapassado sem código nosso (aprovado em 10/11/2026) |
+| Horário livre escolhido **por dia** no calendário | Ideia do usuário: 30 blocos por dia em 5 colunas deixavam a tela enorme; agora o aluno escolhe o dia e vê só ele |
 | RA do calendário por **POST** (`/disponibilidade/curso`), fora do `GET` | Ideia do usuário (10/11/2026): o aluno digita o RA e o sistema descobre o curso. Por POST para o RA não ir para URL e logs; 20 por minuto (pedido do usuário; o limite é por IP e o Wi-Fi da faculdade compartilha IP); só em espaços com limite por curso, porque o curso só importa na quadra (atléticas); sem o nome do curso na resposta |
 | Eventos podem revogar reservas de alunos | Eventos da faculdade têm prioridade; justificativa obrigatória e aluno avisado |
 | Reservas não confirmadas são revogadas automaticamente | Libera horários de quem não vai usar |
@@ -753,7 +757,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `publico/datas.spec.ts` | Datas sem erro de fuso, segunda-feira da semana, dias úteis, validação de data e hora da URL, formato em português |
 | `publico/api-publica.service.spec.ts` | Espaços buscados uma vez, semana guardada, RA só no corpo do POST, calendário recarregado depois da reserva, equipamentos do intervalo, cadastro |
 | `publico/inicio/inicio.spec.ts` | Cartões com horário, limite e link; filtro por tipo; erro com "tentar de novo" |
-| `publico/calendario/calendario.spec.ts` | Semana de segunda a sexta com links de reserva, quem reservou, dias fechados, situação desconhecida, RA só em espaço com limite, consulta do limite por POST e RA só na memória, RA inexistente, formato do RA, sem voltar para semanas passadas |
+| `publico/calendario/calendario.spec.ts` | Horário livre: botões dos dias com o resumo, dia escolhido por padrão e pela URL, só os blocos livres como link, reservas do dia agrupadas. Semana de segunda a sexta com links de reserva, quem reservou, dias fechados, situação desconhecida, RA só em espaço com limite, consulta do limite por POST e RA só na memória, RA inexistente, formato do RA, sem voltar para semanas passadas |
 | `publico/reservar/reservar.spec.ts` | Reserva com equipamentos (limite do disponível) e corpo enviado, RA vindo do calendário e esquecido depois, horário livre (opções de fim e equipamentos do intervalo), erro do RA com link de cadastro, 409 recarregando o horário, URL inválida |
 | `publico/cadastro/cadastro.spec.ts` | Aviso de uso dos dados, `autocomplete` desligado, cadastro voltando para a reserva com o RA, confirmação sem volta, erros por campo, `voltar` só para o próprio site |
 | `nucleo/api.interceptor.spec.ts` | `Accept` e `Bearer` só para a API (nunca para outros endereços), 401 com e sem sessão, 422 com os campos, 409 com os dados, 429, 5xx sem detalhes do servidor, falta de conexão |
@@ -803,7 +807,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base (11.1) e área pública de reserva (11.2) prontas; próximo, 11.3 (minhas reservas, cancelar e confirmar pelo link do email, página de privacidade).
+1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base (11.1) e área pública de reserva (11.2) prontas; **proposta do 11.3 enviada** (minhas reservas, cancelar e confirmar pelo link do email, página de privacidade).
 2. **Grade de aulas (importação):** o admin importa a grade da faculdade (espaços e horários de aula) e esses horários deixam de aceitar reservas de alunos. Ideia do usuário em 10/11/2026; detalhes e recomendações iniciais no passo 12 do [`CHECKLIST.md`](CHECKLIST.md).
 3. **API para terceiros autorizados**, com as devidas restrições de segurança (passo 13). O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.
 4. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
