@@ -222,10 +222,8 @@ class ReservaService
         )->get($segunda->toDateString(), 0);
 
         if ($total >= $limite) {
-            $curso = $aluno->curso->nome;
-
             throw new RegraNegocioException(
-                "O curso {$curso} já tem {$total} reserva(s) nesta semana para {$espaco->nome}. O limite é {$limite} por semana.",
+                "O seu curso já atingiu o limite de {$limite} reserva(s) nesta semana para {$espaco->nome}.",
                 409,
             );
         }

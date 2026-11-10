@@ -44,7 +44,8 @@ class LimiteSemanalTest extends TestCase
 
         $this->reservar($this->ti, '2026-11-12')
             ->assertStatus(409)
-            ->assertJsonPath('message', 'O curso TI já tem 3 reserva(s) nesta semana para Quadra. O limite é 3 por semana.');
+            ->assertJsonPath('message', 'O seu curso já atingiu o limite de 3 reserva(s) nesta semana para Quadra.')
+            ->assertJsonMissingPath('dados');
     }
 
     public function test_limite_e_por_curso_e_reinicia_na_semana_seguinte(): void
