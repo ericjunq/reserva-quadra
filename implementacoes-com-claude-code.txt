@@ -1674,3 +1674,22 @@ CHECKLIST.md
   - "Onde paramos": proposta do 11.2 aguardando aprovação; push com token; conceitos explicados
     (fonte = arquivo da tipografia, pasta fora do projeto, push com token, como subir o front).
   - Trilha de ideias: proposta do 11.2 e a coleta de uso do Angular CLI recusada.
+
+========================================================================
+42. DURAÇÃO DO LABORATÓRIO DE DEMONSTRAÇÃO E GRADE DE AULAS NO PLANO
+========================================================================
+
+10/11/2026. 239 testes da API passando.
+
+database/seeders/DemoSeeder.php
+  - Laboratório de Informática (LIVRE): duracao_maxima_minutos de 120 para 180. Pedido do usuário:
+    uma aula dura 3h. A duração máxima é configurada por espaço pelo admin; não existe um
+    máximo global. O registro só muda depois de um migrate:fresh --seed (firstOrCreate não
+    altera o que já existe).
+
+CHECKLIST.md e README.md (planejamento, sem código)
+  - Passo 12 novo: importação da grade de aulas (CSV/Excel), com horário de aula bloqueado o
+    semestre todo, reposição como evento do admin, espaço reconhecido por um código, prévia
+    antes de confirmar, sem dados de professores e alunos. A API para terceiros virou o passo 13.
+  - Decisões do 11.2 todas aprovadas; a 3 ficou com a ideia do usuário (o RA puxa o curso, por
+    POST, só em espaços com limite semanal, 20 por minuto).
