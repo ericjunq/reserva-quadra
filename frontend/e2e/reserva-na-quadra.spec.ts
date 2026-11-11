@@ -52,7 +52,9 @@ test('o calendário abre direto pelo endereço e reaproveita a semana já carreg
   await page.getByRole('button', { name: 'Semana anterior' }).click();
   await expect(page.getByText(tituloDaSemana(datas.segundaAtual))).toBeVisible();
 
-  const consultas = chamadas.filter((chamada) => chamada.url.includes('/disponibilidade'));
+  const consultas = chamadas.filter((chamada) =>
+    chamada.url.startsWith('/api/espacos/1/disponibilidade'),
+  );
   expect(consultas.map((chamada) => chamada.url)).toEqual([
     `/api/espacos/1/disponibilidade?de=${datas.segundaAtual}&ate=${datas.sextaAtual}`,
     `/api/espacos/1/disponibilidade?de=${datas.segundaSeguinte}&ate=${datas.sextaSeguinte}`,

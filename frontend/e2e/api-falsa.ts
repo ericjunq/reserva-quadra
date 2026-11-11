@@ -98,6 +98,43 @@ function calendarioFixo(de: string) {
   };
 }
 
+function calendarioLivre(de: string) {
+  const dias = [0, 1, 2, 3, 4].map((deslocamento) => paraIso(somarDias(deIso(de), deslocamento)));
+  return {
+    espaco: { ...espacos[1], bloco_minutos: 15 },
+    de,
+    ate: dias[4],
+    reservas_ate: datas.reservasAte,
+    curso: null,
+    dias: dias.map((data) => {
+      const reservavel = data > datas.hoje && data <= datas.reservasAte && ehDiaUtil(data);
+      return {
+        data,
+        reservavel,
+        motivo: reservavel ? null : 'Fora do período de reservas.',
+        fim_minimo: null,
+        ocupados:
+          data === datas.tercaSeguinte
+            ? [
+                {
+                  inicio: '14:00',
+                  fim: '15:30',
+                  situacao: 'RESERVADO',
+                  motivo: null,
+                  reserva: {
+                    id: 12,
+                    tipo: 'ALUNO',
+                    descricao: null,
+                    reservado_por: { tipo: 'ALUNO', nome: 'Carla Dias', curso: 'Enfermagem' },
+                  },
+                },
+              ]
+            : [],
+      };
+    }),
+  };
+}
+
 export interface Chamada {
   metodo: string;
   url: string;
@@ -125,8 +162,17 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
     if (caminho === '/cursos') {
       return json({ data: [{ id: 2, nome: 'Direito', ativo: true }] });
     }
+    if (caminho === '/disponibilidade/versao') {
+      return json({ data: { versao: 'v1' } });
+    }
     if (caminho === '/espacos/1/disponibilidade') {
       return json({ data: calendarioFixo(url.searchParams.get('de')!) });
+    }
+    if (caminho === '/espacos/4/disponibilidade') {
+      return json({ data: calendarioLivre(url.searchParams.get('de')!) });
+    }
+    if (caminho === '/espacos/4/equipamentos/disponibilidade') {
+      return json({ data: [{ id: 5, nome: 'Microscópio', total: 2, disponivel: 2 }] });
     }
     if (caminho === '/reservas' && requisicao.method() === 'POST') {
       const corpo = requisicao.postDataJSON();
@@ -135,8 +181,8 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
           data: {
             id: 50,
             data_reserva: corpo.data_reserva,
-            hora_inicio: '20:30',
-            hora_fim: '22:00',
+            hora_inicio: corpo.hora_inicio ?? '20:30',
+            hora_fim: corpo.hora_fim ?? '22:00',
             confirmacao_enviada_em: null,
             confirmada_em: null,
           },
