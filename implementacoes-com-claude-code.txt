@@ -1879,3 +1879,46 @@ CHECKLIST.md e README.md
     decisões (cancelar só pelo email, token fora da barra de endereço, RA e email só na memória,
     paginação simples, privacidade com controlador e contato a confirmar, confirmação sem botão
     de cancelar).
+
+========================================================================
+46. LOG SEM ERROS ESPERADOS E TESTES NO NAVEGADOR (PLAYWRIGHT)
+========================================================================
+
+10 e 11/11/2026. 246 testes da API, 58 do front e 6 no navegador passando.
+
+bootstrap/app.php
+  - $exceptions->dontReport(RegraNegocioException::class): erros de regra de negócio (link inválido,
+    horário ocupado, limite) são respostas normais da API e não vão mais para o log como ERROR.
+phpunit.xml
+  - LOG_CHANNEL=null: os testes não gravam mais no storage/logs do desenvolvimento.
+tests/Feature/LogTest.php (novo)
+  - shouldReport falso para RegraNegocioException e verdadeiro para um erro inesperado.
+tests/Feature/VerificarProducaoTest.php
+  - O teste dos itens configurados declara logging.default = stack (antes vinha do .env).
+
+frontend/package.json, package-lock.json
+  - @playwright/test (instalado com PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1: usa o Chrome do sistema) e o
+    script "e2e".
+frontend/playwright.config.ts (novo)
+  - testDir e2e; channel chrome; projetos "computador" (1280x900) e "celular" (400x800, isMobile);
+    webServer com ng serve --configuration production na porta 4300; expect com 10 s; trace só
+    nas falhas; no CI: reporter github, 1 nova tentativa e proibição de test.only.
+frontend/e2e/api-falsa.ts (novo)
+  - prepararApi(page): page.route('**/api/**') responde espaços, cursos, calendário da quadra,
+    reserva e cadastro, e guarda as chamadas (método, URL, corpo) para os testes conferirem.
+  - Datas relativas ao dia real (hoje, semana atual, semana seguinte, limite de reservas) com as
+    funções de src/app/publico/datas.ts; tituloDaSemana e rotuloDoHorario repetem os textos da tela.
+  - Sem relógio falso: com page.clock (e com uma troca do Date feita pela sessão antiga, que ficou
+    aberta depois que o VS Code fechou), o Angular não atualizava a tela quando a página abria
+    direto pelo endereço; sem ele, funciona.
+frontend/e2e/reserva-na-quadra.spec.ts (novo)
+  - Fluxo completo da quadra com equipamento (corpo do POST conferido e RA fora das URLs);
+    calendário aberto direto pelo endereço com a semana anterior reaproveitada (só 2 consultas);
+    cadastro saindo da reserva e voltando com o RA preenchido.
+frontend/.gitignore
+  - test-results e playwright-report.
+.github/workflows/ci.yml
+  - Prettier também em e2e e playwright.config.ts; passo novo "Testes no navegador" (npx
+    playwright test, com o Chrome que já vem no runner do GitHub).
+CLAUDE.md, README.md, CHECKLIST.md
+  - Comandos e regra dos testes no navegador; portas 8000/4200 reservadas ao usuário; log.

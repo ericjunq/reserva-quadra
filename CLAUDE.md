@@ -66,7 +66,9 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - O campo de data da reserva se chama `data_reserva`, nunca `data`, porque um campo `data` faria o resource perder o wrapper `{"data": ...}`.
 - O **front-end é em Angular**, na pasta `frontend/` deste repositório (decisão de 09/11/2026), e só consome a API, com deploy próprio. **Não criar telas em Blade.** Links de email apontam para `FRONTEND_URL`.
 - **No front valem as mesmas regras:** nenhum comentário (TS, HTML, CSS), nomes em português, um commit por alteração, testes antes de cada commit, proposta antes de cada subpasso, desempenho e LGPD em toda decisão. A identidade visual aprovada está no README ("Front-end: identidade visual").
-- **Comandos do front** (dentro de `frontend/`): `npx prettier --write src` antes de commitar (equivale ao Pint), `npx ng test --watch=false` e `npx ng build` (o build confere o orçamento de tamanho). Arquivos gerados pelo Angular CLI também perdem os comentários.
+- **Comandos do front** (dentro de `frontend/`): `npx prettier --write src e2e` antes de commitar (equivale ao Pint), `npx ng test --watch=false`, `npx ng build` (o build confere o orçamento de tamanho) e `npx playwright test` (testes no navegador). Arquivos gerados pelo Angular CLI também perdem os comentários.
+- **Testes no navegador (Playwright):** todo fluxo de tela novo ganha um teste em `frontend/e2e` que clica como uma pessoa. A API é simulada com `page.route` em `e2e/api-falsa.ts`, com datas relativas ao dia real (sem `page.clock`, que trava a atualização do Angular). Rodam no build de produção, na porta 4300.
+- **Servidores para testes ou capturas:** nunca nas portas 8000 e 4200, que são as do usuário; usar outras (ex.: API 8123, front 4300) e desligar ao terminar.
 - **Padrões do front:** chamadas à API sempre com `ambiente.urlApi` (o `interceptorApi` só põe o token nessas URLs); erros chegam às telas como `ErroApi`; token só pelo `SessaoService` (`sessionStorage`); RA e email só no corpo das requisições e na memória da tela; dependência nova só quando uma tela a usar.
 
 ### Compatibilidade entre bancos (SQLite, MySQL e Postgres)

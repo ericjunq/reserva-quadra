@@ -86,6 +86,7 @@ npm install                     # primeira vez
 npm start                       # http://localhost:4200 (com a API rodando em http://localhost:8000)
 npx ng test --watch=false       # testes unitários (Vitest)
 npx ng build                    # build de produção em frontend/dist (falha se passar do orçamento de tamanho)
+npx playwright test             # testes no navegador (Chrome instalado; sobe o front sozinho na porta 4300)
 npx prettier --write src        # formata no padrão do projeto (.prettierrc)
 ```
 
@@ -204,7 +205,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 - **CORS:** só os endereços de `CORS_ALLOWED_ORIGINS` (o front) podem chamar a API pelo navegador. A exportação expõe o cabeçalho `Content-Disposition`, para o front saber o nome do arquivo.
 - **Cabeçalhos em toda resposta** (`CabecalhosDeSeguranca`): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` e, por HTTPS, `Strict-Transport-Security` (1 ano).
 - **HTTPS:** em produção, todo endereço gerado pelo Laravel usa `https://`. O redirecionamento de HTTP para HTTPS é feito pelo Nginx.
-- **Logs:** um arquivo por dia, guardados por 14 dias; em produção, só a partir de `warning`.
+- **Logs:** um arquivo por dia, guardados por 14 dias; em produção, só a partir de `warning`. Erros de regra de negócio (`RegraNegocioException`, ex.: "Link inválido ou expirado", horário ocupado) **não** vão para o log: são respostas normais da API. Os testes usam `LOG_CHANNEL=null` e não gravam no log do desenvolvimento.
 - **Mensagens em português (pt_BR):** os arquivos de tradução ficam em `lang/pt_BR`, com os nomes dos campos do sistema (ex.: `data_reserva` aparece como "data da reserva"). Foram gerados pelo laravel-lang, que depois foi removido para não deixar dependência.
 - **`php artisan sistema:verificar-producao`:** confere a configuração (ambiente, debug, HTTPS, CORS, banco, fila, email, logs, alertas, admin principal, feriados, caches) e mostra ✅ ou ❌ com o que fazer.
 
@@ -701,7 +702,7 @@ Arquivo: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Roda a cada **p
 | Job | O que faz |
 |---|---|
 | `Pint e composer audit` | `vendor/bin/pint --test` (acusa código fora do padrão, sem alterar) e `composer audit` (dependência com vulnerabilidade conhecida) |
-| `Front-end` | Node 24, `npm ci`, Prettier (`--check`), testes (Vitest), build de produção (com o orçamento de tamanho) e `npm audit --audit-level=high` |
+| `Front-end` | Node 24, `npm ci`, Prettier (`--check` em `src` e `e2e`), testes (Vitest), build de produção (com o orçamento de tamanho), `npm audit --audit-level=high` e os testes no navegador (Playwright com o Chrome do runner) |
 | `Testes (sqlite)` · `Testes (mysql)` · `Testes (pgsql)` | `php artisan test` em cada banco, em paralelo. MySQL 8.0 e Postgres 16 sobem como serviços temporários do GitHub |
 
 - Primeira execução (09/11/2026): os 226 testes passaram nos três bancos, sem nenhum ajuste de compatibilidade.
@@ -745,7 +746,17 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `AlertaTest` | Destinatários (admins ativos e `ALERTAS_EMAIL`), sem dados pessoais, limite de 1 por hora, toda tarefa agendada com alerta |
 | `AdminSeederTest` | Admin principal pelo `.env`, sem duplicar; sem senha não cria |
 | `VerificarProducaoTest` | Itens com ❌ e ✅ e o código de saída |
+| `LogTest` | Erro de regra de negócio (`RegraNegocioException`) fora do log; erro inesperado continua no log |
 | `DisponibilidadeEquipamentoRepositoryTest` | Disponível por data/horário, soma entre espaços, revogadas, sobreposição, maior uso futuro |
+
+**Testes no navegador** (`frontend/e2e`, Playwright): abrem o build de produção no Chrome já instalado (`channel: 'chrome'`, sem baixar navegador), na porta 4300, em tamanho de computador e de celular, e clicam nos fluxos como uma pessoa. A API é simulada no próprio navegador (`e2e/api-falsa.ts`, `page.route`), com datas calculadas a partir do dia real pelas mesmas funções do app.
+
+| Arquivo | O que cobre |
+|---|---|
+| `e2e/reserva-na-quadra.spec.ts` | Início → quadra → próxima semana → horário → RA + equipamento → reserva feita, com o corpo enviado e o RA fora das URLs; calendário aberto direto pelo endereço e a semana anterior reaproveitada sem nova consulta; cadastro saindo da reserva e voltando com o RA preenchido |
+
+- **Por que não fixar a data no navegador:** com o relógio falso do Playwright (`page.clock`), o Angular deixava de atualizar a tela depois das respostas quando a página era aberta direto pelo endereço; os testes acusavam um defeito que o app não tem. Os dados simulados seguem o dia real.
+- **Por que o build de produção:** no servidor de desenvolvimento cada página é compilada na primeira visita, o que deixava os testes lentos e instáveis; o de produção é o que o aluno usa.
 
 **Testes do front** (`frontend/src`, ao lado de cada arquivo, `*.spec.ts`):
 

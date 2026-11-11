@@ -6,7 +6,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 10/11/2026 · 244 testes da API + 58 do front passando
+Última atualização: 11/11/2026 · 246 testes da API + 58 do front + 6 no navegador passando
 
 ---
 
