@@ -1922,3 +1922,97 @@ frontend/.gitignore
     playwright test, com o Chrome que já vem no runner do GitHub).
 CLAUDE.md, README.md, CHECKLIST.md
   - Comandos e regra dos testes no navegador; portas 8000/4200 reservadas ao usuário; log.
+
+========================================================================
+47. PASSO 11.2b — HORÁRIO LIVRE SEM BLOCOS E DADOS SEMPRE ATUALIZADOS
+========================================================================
+
+11/11/2026. 251 testes da API, 69 do front e 8 no navegador passando.
+
+Decisões do usuário: o aluno digita qualquer horário e a API arredonda (para não sobrar horário
+quebrado); a tela mostra a janela e os horários ocupados e o aluno monta o próprio intervalo (até
+3h); a quadra continua com os dois horários fixos; dados atualizados com o menor intervalo possível
+sem pesar.
+
+API
+config/reservas.php
+  - bloco_minutos padrão 15 (antes 30). Agora é o passo do arredondamento.
+app/Support/IntervaloReserva.php
+  - arredondar(): H:i → múltiplo de bloco mais próximo (round; 14:07 → 14:00; 14:08 → 14:15), no
+    máximo 24h − bloco; valores fora do formato passam intactos para a validação acusar.
+  - blocos() removido (era usado só pelo calendário em blocos).
+app/Http/Requests/Concerns/ValidaHorarioDaReserva.php
+  - arredondarIntervalo(): merge de hora_inicio e hora_fim arredondados.
+app/Http/Requests/StoreReservaRequest.php, StoreEventoRequest.php
+  - prepareForValidation() chama arredondarIntervalo(): a validação (janela, duração, conflito,
+    "hoje até 20 min antes do fim") já trabalha com os horários finais.
+app/Http/Requests/ConsultarEquipamentosNoIntervaloRequest.php
+  - Arredonda também, para os equipamentos baterem com o intervalo que será reservado.
+app/Services/DisponibilidadeService.php
+  - Horário livre: montarDiaLivre() devolve reservavel, motivo, fim_minimo (só hoje) e ocupados
+    (reservas ativas e bloqueios de parte do dia, ordenados pelo início, com quem reservou e o
+    motivo do bloqueio). fimMinimoDeHoje(): agora + 20 min (contando os segundos), arredondado para
+    cima no passo; se passar do fechamento, o dia vem fechado ("Os horários de hoje já foram
+    encerrados."). Horário fixo continua com horarios e equipamentos por horário
+    (intervalosFixos(); montarHorario() recebe sempre a lista de equipamentos).
+app/Support/VersaoDisponibilidade.php (novo)
+  - avancar(): grava um ULID novo no cache (chave disponibilidade.versao).
+  - atual(): sha1 do ULID + data + faixa de 5 min, cortado em 16 caracteres. Uma leitura de cache;
+    nenhuma consulta às reservas.
+app/Models/Concerns/AtualizaDisponibilidade.php (novo)
+  - saved e deleted chamam VersaoDisponibilidade::avancar() depois do commit (DB::afterCommit): o
+    front nunca vê a versão nova antes de os dados estarem gravados.
+app/Models/Reserva, DataBloqueada, Espaco, Equipamento, Aluno, Curso
+  - use AtualizaDisponibilidade. Aluno e Curso porque o calendário mostra nome e curso (uma
+    anonimização aparece no calendário na próxima consulta).
+app/Http/Controllers/VersaoDisponibilidadeController.php (novo) e routes/api.php
+  - GET /api/disponibilidade/versao, throttle:300,1 (a rota é barata e, na faculdade, muitos
+    alunos saem pelo mesmo IP).
+database/seeders/DemoSeeder.php
+  - Laboratórios de Química, Biologia e Informática e as salas 101 e 102 com horário livre
+    (07:00–22:00, 180 min). A quadra continua fixa.
+tests/Feature/HorarioLivreTest.php
+  - Configuração: 08:10 e 50 min agora são os exemplos desalinhados (com passo 15, 08:15 e 45 valem).
+  - Validações do intervalo com o arredondamento (14:03–14:05 vira 14:00–14:00: fim antes do início).
+  - Teste novo do arredondamento (14:07–15:38 → 14:00–15:45; conflito e duração máxima depois do
+    arredondamento). Evento com horário quebrado é arredondado.
+  - Calendário com janela e ocupados (reserva e bloqueio, sem RA) e fim_minimo de hoje / dia
+    encerrado.
+tests/Feature/VersaoDisponibilidadeTest.php (novo)
+
+Front
+frontend/src/app/publico/modelos.ts
+  - Ocupacao; DiaNoCalendario com horarios (fixo), ocupados e fim_minimo (livre) opcionais.
+frontend/src/app/publico/intervalo.ts (novo)
+  - minutos, hora, arredondar (igual à API), descreverOcupacao, horariosLivres (lacunas do dia a
+    partir da janela, dos ocupados e do fim mínimo de hoje), avaliarIntervalo (início e fim
+    arredondados + o motivo da recusa: formato, dia fechado, fim antes do início, fora da janela,
+    acima da duração máxima, antes do fim mínimo de hoje, conflito com qual ocupado) e
+    duracaoLegivel ("3h", "1h30", "45 min").
+frontend/src/app/publico/atualizacao-disponibilidade.service.ts (novo)
+  - observar(DestroyRef): conta as telas abertas; com a primeira, consulta a versão e liga um
+    intervalo de 15 s (só com a aba visível; visibilitychange liga, desliga e consulta na volta);
+    com a última fechada, desliga tudo. Não dispara outra consulta enquanto a anterior não volta.
+    O signal versao conta as mudanças.
+frontend/src/app/publico/api-publica.service.ts
+  - consultarVersao().
+frontend/src/app/publico/calendario/
+  - Horário livre: janela (computed com abre, fecha, duração e passo), minutosLivres e resumoDoDia
+    ("13h30 livres", "Lotado", "Fechado"), livresDoDia, avaliacao (do início e fim digitados) e
+    continuar() (vai para a reserva com o intervalo arredondado). Template com "Horários ocupados",
+    "Horários livres" e o formulário "Monte o seu horário" (inputs type=time, prévia ao vivo com
+    aria-live, botão desligado enquanto houver erro). escolherDia limpa o horário digitado.
+  - Atualização: observa o serviço; quando a versão muda, esquece as semanas do espaço e recarrega.
+    carregar() não mostra o esqueleto nem troca os dados por erro quando é uma recarga da mesma
+    semana (silenciosa).
+  - Removidos: reservasDoDia e o cálculo por blocos.
+frontend/src/app/publico/reservar/
+  - Horário livre: avaliacaoLivre (as mesmas regras do calendário sobre o dia carregado);
+    motivoIndisponivel explica por que o intervalo não serve mais; "Alterar horário" e "Escolher
+    outro horário" voltam ao calendário na semana e no dia da reserva. Removidos o select "Até que
+    horas?" e o cálculo por blocos. Equipamentos do intervalo pedidos uma vez por intervalo
+    (distinctUntilChanged na chave). Atualização automática igual à do calendário.
+frontend/e2e/api-falsa.ts e reserva-no-laboratorio.spec.ts
+  - Calendário livre simulado (um ocupado na terça seguinte), versão e equipamentos do intervalo;
+    teste do laboratório do começo ao fim. O teste da semana reaproveitada filtra só as consultas
+    do calendário (a rota de versão também tem "disponibilidade" no caminho).

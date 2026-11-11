@@ -122,7 +122,7 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | Variável | Padrão | O que controla |
 |---|---|---|
 | `RESERVA_ANTECEDENCIA_MAXIMA_DIAS_UTEIS` | 10 | Até quantos dias úteis à frente o aluno pode reservar |
-| `RESERVA_BLOCO_MINUTOS` | 30 | Tamanho do bloco dos horários livres (início, fim e duração são múltiplos dele) |
+| `RESERVA_BLOCO_MINUTOS` | 15 | Passo dos horários livres: a API arredonda início e fim para o múltiplo mais próximo (14:07 → 14:00; 15:38 → 15:45); janela e duração máxima do espaço também são múltiplos dele |
 | `RESERVA_MINUTOS_ANTES_DO_FIM` | 20 | Até quantos minutos antes do fim um horário de hoje pode ser reservado |
 | `RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES` | 2 | Quantos dias **úteis** antes da reserva sai o pedido de confirmação |
 | `RESERVA_HORARIO_PEDIDO_CONFIRMACAO` | 08:00 | Horário diário do comando que envia os pedidos |
@@ -254,7 +254,8 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
   - **Data e horário na URL** (*query params*), para voltar ou recarregar sem perder a escolha. RA e email nunca vão na URL.
   - **RA só na memória da aba** (`RaEmMemoriaService`): digitado no calendário, já vem preenchido na reserva; some ao recarregar a página e depois de reservar. Campos de RA, nome e email com `autocomplete="off"` (computadores compartilhados).
   - **Limite do curso só na quadra** (espaços com `limite_semanal_por_curso`), pela rota `POST .../disponibilidade/curso`. Em salas e laboratórios o RA só é pedido na reserva.
-  - **Horário livre:** o aluno clica num bloco livre e, na reserva, escolhe até que horas; as opções param no primeiro bloco ocupado e na duração máxima do espaço. Os equipamentos do intervalo vêm de `/equipamentos/disponibilidade`.
+  - **Horário livre (11.2b):** o aluno escolhe o dia e vê a janela do espaço, os **horários ocupados** (com nome e curso, eventos e bloqueios) e os **horários livres**; digita **início e fim** e a tela mostra na hora como vai ficar com o arredondamento de 15 min (mesmo cálculo da API, em `intervalo.ts`) ou o motivo da recusa (fora da janela, mais que a duração máxima, conflito com um ocupado, hoje antes do mínimo). "Continuar" leva à reserva com o intervalo já arredondado; lá, "Alterar horário" volta ao dia. Os equipamentos do intervalo vêm de `/equipamentos/disponibilidade`.
+  - **Dados sempre atualizados sem pesar:** enquanto o calendário ou a reserva estão abertos e visíveis, o front consulta `GET /api/disponibilidade/versao` a cada 15 s (resposta de poucos bytes, uma leitura de cache na API) e também na hora em que o aluno volta para a aba; só quando a versão muda ele baixa a semana de novo, em segundo plano, sem piscar a tela. Com a aba escondida, para de consultar.
   - **Situações novas** da API (ex.: "aula", do passo 12) aparecem como "Indisponível", com o motivo, sem precisar mudar o front.
   - **Cadastro:** o `voltar` só aceita caminhos do próprio site (começando com `/`, sem `//` nem `\`), para o link não poder mandar o aluno para outro site.
   - **Calendário do horário livre:** o aluno escolhe o dia (botões com "N livres", "Lotado" ou "Fechado"; o primeiro dia com horário livre vem selecionado) e vê só aquele dia em grade compacta, com os horários de início livres como link e a lista das reservas do dia. O dia vai na URL (`?dia=`).
@@ -308,6 +309,7 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | Método | Rota | Descrição |
 |---|---|---|
 | GET | `/api/cursos` | Cursos ativos (para o cadastro) |
+| GET | `/api/disponibilidade/versao` | Código que muda sempre que algo do calendário muda (reserva, bloqueio, espaço, equipamento, aluno, curso) e a cada 5 minutos; o front consulta a cada 15 s e só recarrega a semana quando ele muda |
 | POST | `/api/alunos` | Cadastro de aluno |
 | GET | `/api/espacos?tipo=QUADRA` | Espaços ativos (filtro opcional) |
 | GET | `/api/espacos/{id}/equipamentos` | Equipamentos reserváveis no espaço (os dele + os compartilháveis) |
@@ -340,7 +342,7 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 - `reservas_ate`: último dia que aceita reservas de alunos (10 dias úteis à frente).
 - Cada dia tem `reservavel` e `motivo` (data passada, fim de semana, fora da antecedência ou bloqueio do dia inteiro).
 - Cada horário tem `situacao`: `LIVRE`, `RESERVADO`, `EVENTO`, `BLOQUEADO`, `INDISPONIVEL` (o dia não aceita reservas) ou `ENCERRADO` (horário de hoje passou do limite). Também traz `motivo`, `reserva` (com `reservado_por`: nome e curso do aluno, ou nome do admin; RA e email nunca aparecem) e `equipamentos` (`total` e `disponivel` naquele horário, incluindo os compartilháveis).
-- **Espaços LIVRE:** `espaco` traz `modo_horario`, `abre_as`, `fecha_as`, `duracao_maxima_minutos` e `bloco_minutos`; cada dia lista os **blocos** da janela (ex.: 07:00–07:30, 07:30–08:00…) com a mesma `situacao`/`reserva`, `horario: null` e **sem** `equipamentos` (para o intervalo escolhido, usar `/equipamentos/disponibilidade`).
+- **Espaços LIVRE:** `espaco` traz `modo_horario`, `abre_as`, `fecha_as`, `duracao_maxima_minutos` e `bloco_minutos` (o passo do arredondamento, 15). Cada dia traz `reservavel`, `motivo`, **`ocupados`** (lista de `inicio`, `fim`, `situacao` = `RESERVADO`, `EVENTO` ou `BLOQUEADO`, `motivo` e `reserva` com quem reservou) e, só para hoje, **`fim_minimo`** (o primeiro fim aceito hoje, já arredondado; se passar do fechamento, o dia vem fechado com "Os horários de hoje já foram encerrados."). Não há mais blocos nem `horarios` no horário livre: a resposta fica pequena e o front monta o resto. Equipamentos do intervalo escolhido: `/equipamentos/disponibilidade`.
 
 
 **Exemplo de reserva:**
@@ -425,10 +427,10 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 
 - **FIXO** (padrão; a quadra): a reserva usa `horario` (`PRIMEIRO_HORARIO` 19:00–20:30, `SEGUNDO_HORARIO` 20:30–22:00, iguais para todos os espaços). Mandar `hora_inicio`/`hora_fim` é recusado.
 - **LIVRE**: o espaço tem janela (`abre_as`–`fecha_as`) e `duracao_maxima_minutos`; a reserva usa `hora_inicio` e `hora_fim`:
-  - múltiplos do bloco (30 min), dentro da janela, fim depois do início, duração de 30 min até a máxima do espaço (422);
+  - **arredondados para o múltiplo de 15 min mais próximo** antes de validar (o aluno digita o que quiser; a resposta traz o horário final), dentro da janela, fim depois do início, duração até a máxima do espaço (422);
   - mandar `horario` é recusado;
   - as outras regras valem igual: dia útil, antecedência, hoje até 20 min antes do **fim escolhido**, bloqueios (inclusive de parte do dia), conflito por sobreposição (14:00–15:00 e 15:00–16:00 não conflitam), limite semanal (conta reservas, não horas), confirmação, cancelamento e devolução.
-- **Eventos** em espaço LIVRE: blocos de 30 min, podendo sair da janela e sem duração máxima.
+- **Eventos** em espaço LIVRE: horários arredondados da mesma forma, podendo sair da janela e sem duração máxima.
 - **Configuração:** o admin define no cadastro/edição do espaço (no LIVRE, os três campos são obrigatórios, alinhados ao bloco, fechamento depois da abertura, duração máxima múltipla do bloco e que caiba na janela). **Trocar o modo** com reservas futuras é recusado (409). Mudar a janela ou a duração não afeta as reservas já feitas.
 
 ### Equipamentos na reserva
@@ -618,10 +620,11 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Espaço exclusivo por horário | Regra atual da quadra. Está isolada em `verificarConflitoDeEspaco()` e pode ser removida se um dia o espaço for compartilhado |
 | Reserva guarda `hora_inicio` e `hora_fim`; conflito por **sobreposição** | Funciona igual nos horários fixos e livres |
 | Modo de horário **por espaço** (FIXO/LIVRE) | A quadra continua fixa; laboratórios e salas podem ter horário livre |
-| Bloco de **30 min global** (configurável) | Simplifica calendário e cálculo de pico; por espaço só faria sentido com espaços muito diferentes |
+| Passo de **15 min global** (configurável), com **arredondamento na API** | Ideia do usuário (10/11/2026): o aluno digita qualquer hora e a API arredonda para não sobrarem horários quebrados (14:07); antes era 30 min e o horário precisava vir alinhado |
 | Duração mínima de 1 bloco; **máxima por espaço** | Cada espaço decide quanto tempo uma reserva pode ocupar |
 | Equipamentos pelo **pico de uso** | Somar reservas que se sobrepõem ao intervalo superestima o uso quando elas não acontecem ao mesmo tempo |
-| Calendário LIVRE em blocos, **sem equipamentos por bloco** | A resposta ficaria enorme (blocos × equipamentos × dias); os equipamentos vêm da consulta por intervalo |
+| Calendário LIVRE com **janela e intervalos ocupados**, sem blocos | Pedido do usuário (11.2b): o aluno vê o que está ocupado e monta o próprio horário; a resposta fica menor que a lista de blocos |
+| Atualização por **versão** (`/disponibilidade/versao`) a cada 15 s | O usuário pediu dados atualizados com o menor intervalo possível sem afetar o desempenho: a consulta de versão é uma leitura de cache; a semana só é baixada quando algo muda. A versão também muda a cada 5 min, porque o "hoje" (horários encerrados) muda com o relógio |
 | Eventos podem sair da janela e passar da duração máxima | Decisão do admin (ex.: palestra até 23:00) |
 | Limite semanal continua contando **reservas**, não horas | Mantém a regra combinada para a quadra |
 | Trocar o modo com reservas futuras é recusado | Reserva fixa em espaço livre (ou o contrário) ficaria incoerente |
@@ -635,6 +638,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Mensagem do limite semanal sem o nome do curso | Quem digitasse um RA alheio descobria o curso dele quando o limite estourava (achado no 11.2, aprovado pelo usuário em 10/11/2026) |
 | Orçamento do front: aviso 350 kB, erro 500 kB | A base do Angular (núcleo, router, rxjs) já ocupa ~275 kB do pacote inicial; o limite de 300 kB seria ultrapassado sem código nosso (aprovado em 10/11/2026) |
 | Horário livre escolhido **por dia** no calendário | Ideia do usuário: 30 blocos por dia em 5 colunas deixavam a tela enorme; agora o aluno escolhe o dia e vê só ele |
+| Laboratórios e salas de demonstração com horário livre | Pedido do usuário: 07:00–22:00, até 3h (duração de uma aula); a quadra continua com os horários fixos |
 | RA do calendário por **POST** (`/disponibilidade/curso`), fora do `GET` | Ideia do usuário (10/11/2026): o aluno digita o RA e o sistema descobre o curso. Por POST para o RA não ir para URL e logs; 20 por minuto (pedido do usuário; o limite é por IP e o Wi-Fi da faculdade compartilha IP); só em espaços com limite por curso, porque o curso só importa na quadra (atléticas); sem o nome do curso na resposta |
 | Eventos podem revogar reservas de alunos | Eventos da faculdade têm prioridade; justificativa obrigatória e aluno avisado |
 | Reservas não confirmadas são revogadas automaticamente | Libera horários de quem não vai usar |
@@ -717,7 +721,8 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
-| `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela, equipamentos pelo pico, redução de estoque pelo pico, calendário em blocos, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
+| `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, **arredondamento para 15 min** (inclusive em conflitos e na duração máxima), espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela e arredondado, equipamentos pelo pico, redução de estoque pelo pico, **calendário com janela e ocupados** (reservas e bloqueios, sem RA), **`fim_minimo` de hoje e dia encerrado**, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
+| `VersaoDisponibilidadeTest` | Versão igual sem mudanças; muda depois de uma reserva e de um bloqueio; muda a cada faixa de 5 minutos; resposta só com a versão |
 | `AuditoriaConsultaTest` | Histórico de um registro em ordem, nome curto no banco, filtros por admin e sem admin, por ação e período, senha oculta e aluno anonimizado, validações, paginação |
 | `AdminPrincipalTest` | Principal não desativado nem editado por outros, edita a si mesmo, desativa os outros, flag não muda pela API, seeder, comandos de criação (senha fraca, duplicado) e de transferência |
 | `SenhaTest` | Esqueci a senha (link só com token, 60 min), resposta igual para inexistente/inativo, redefinição derrubando sessões com email de aviso, uso único e vencimento, token/email errados, regras da senha, aceite de convite em até 2 dias, link de redefinição não serve no convite, troca logado mantendo a sessão atual |
@@ -753,6 +758,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 | Arquivo | O que cobre |
 |---|---|
+| `e2e/reserva-no-laboratorio.spec.ts` | Laboratório: escolher o dia, ver o ocupado, digitar um horário em conflito (botão desligado), digitar 15:37–17:52 e ver 15:30–17:45, continuar, ver os equipamentos e reservar com o intervalo arredondado |
 | `e2e/reserva-na-quadra.spec.ts` | Início → quadra → próxima semana → horário → RA + equipamento → reserva feita, com o corpo enviado e o RA fora das URLs; calendário aberto direto pelo endereço e a semana anterior reaproveitada sem nova consulta; cadastro saindo da reserva e voltando com o RA preenchido |
 
 - **Por que não fixar a data no navegador:** com o relógio falso do Playwright (`page.clock`), o Angular deixava de atualizar a tela depois das respostas quando a página era aberta direto pelo endereço; os testes acusavam um defeito que o app não tem. Os dados simulados seguem o dia real.
@@ -768,8 +774,10 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `publico/datas.spec.ts` | Datas sem erro de fuso, segunda-feira da semana, dias úteis, validação de data e hora da URL, formato em português |
 | `publico/api-publica.service.spec.ts` | Espaços buscados uma vez, semana guardada, RA só no corpo do POST, calendário recarregado depois da reserva, equipamentos do intervalo, cadastro |
 | `publico/inicio/inicio.spec.ts` | Cartões com horário, limite e link; filtro por tipo; erro com "tentar de novo" |
-| `publico/calendario/calendario.spec.ts` | Horário livre: botões dos dias com o resumo, dia escolhido por padrão e pela URL, só os blocos livres como link, reservas do dia agrupadas. Semana de segunda a sexta com links de reserva, quem reservou, dias fechados, situação desconhecida, RA só em espaço com limite, consulta do limite por POST e RA só na memória, RA inexistente, formato do RA, sem voltar para semanas passadas |
-| `publico/reservar/reservar.spec.ts` | Reserva com equipamentos (limite do disponível) e corpo enviado, RA vindo do calendário e esquecido depois, horário livre (opções de fim e equipamentos do intervalo), erro do RA com link de cadastro, 409 recarregando o horário, URL inválida |
+| `publico/intervalo.spec.ts` | Arredondamento igual ao da API, intervalo aceito com os horários finais, cada motivo de recusa, horários livres do dia, duração legível |
+| `publico/atualizacao-disponibilidade.service.spec.ts` | Consulta da versão ao abrir e a cada 15 s, aviso só quando muda, para ao sair da tela, sem acumular consultas |
+| `publico/calendario/calendario.spec.ts` | Recarga em segundo plano quando a versão muda. Horário livre: botões dos dias com as horas livres, janela, ocupados e livres do dia, arredondamento ao digitar com o erro de conflito, "Continuar" para a reserva, troca de dia limpando o horário. Semana de segunda a sexta com links de reserva, quem reservou, dias fechados, situação desconhecida, RA só em espaço com limite, consulta do limite por POST e RA só na memória, RA inexistente, formato do RA, sem voltar para semanas passadas |
+| `publico/reservar/reservar.spec.ts` | Reserva com equipamentos (limite do disponível) e corpo enviado, RA vindo do calendário e esquecido depois, horário livre (intervalo da URL, "Alterar horário", equipamentos do intervalo, intervalo já ocupado), erro do RA com link de cadastro, 409 recarregando o horário, URL inválida |
 | `publico/cadastro/cadastro.spec.ts` | Aviso de uso dos dados, `autocomplete` desligado, cadastro voltando para a reserva com o RA, confirmação sem volta, erros por campo, `voltar` só para o próprio site |
 | `nucleo/api.interceptor.spec.ts` | `Accept` e `Bearer` só para a API (nunca para outros endereços), 401 com e sem sessão, 422 com os campos, 409 com os dados, 429, 5xx sem detalhes do servidor, falta de conexão |
 
@@ -795,6 +803,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
+| Horário livre sem blocos (passo 11.2b) | API: arredondamento para 15 min, calendário LIVRE com janela e ocupados, `fim_minimo` de hoje, rota de versão da disponibilidade; demonstração com laboratórios e salas de horário livre. Front: horário montado pelo aluno com prévia do arredondamento, horários ocupados e livres, atualização automática sem piscar; testes no navegador do laboratório |
 | Horários livres (passo 8) | Modo FIXO/LIVRE por espaço, reserva e evento com início/fim em blocos de 30 min, equipamentos pelo pico de uso, calendário em blocos, consulta de equipamentos por intervalo |
 | Consulta do histórico (passo 7) | `GET /api/admin/auditorias` com filtros, morph map com nomes curtos |
 | Admin principal | Flag `principal`, proteções contra desativação e edição por outros, comandos `admin:criar-principal` e `admin:transferir-principal` |
