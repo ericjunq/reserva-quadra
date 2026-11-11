@@ -109,7 +109,7 @@ jobs:
         run: php artisan test
 
   frontend:
-    name: Front-end (formato, testes, build e npm audit)
+    name: Front-end (formato, testes, build, npm audit e navegador)
     runs-on: ubuntu-latest
 
     defaults:
@@ -129,7 +129,7 @@ jobs:
         run: npm ci
 
       - name: Padrão de código (Prettier)
-        run: npx prettier --check src
+        run: npx prettier --check src e2e playwright.config.ts
 
       - name: Testes
         run: npx ng test --watch=false
@@ -139,3 +139,6 @@ jobs:
 
       - name: Vulnerabilidades (npm audit)
         run: npm audit --audit-level=high
+
+      - name: Testes no navegador (Playwright com o Chrome do runner)
+        run: npx playwright test
