@@ -20,6 +20,15 @@ trait ValidaHorarioDaReserva
         ];
     }
 
+    protected function arredondarIntervalo(): void
+    {
+        foreach (['hora_inicio', 'hora_fim'] as $campo) {
+            if ($this->filled($campo)) {
+                $this->merge([$campo => IntervaloReserva::arredondar($this->input($campo))]);
+            }
+        }
+    }
+
     protected function validarHorarioDoEspaco(Validator $validator, bool $respeitarJanela): void
     {
         if ($validator->errors()->hasAny(['espaco_id', 'horario', 'hora_inicio', 'hora_fim'])) {

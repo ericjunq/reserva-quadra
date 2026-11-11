@@ -12,6 +12,14 @@ class ConsultarEquipamentosNoIntervaloRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'hora_inicio' => IntervaloReserva::arredondar($this->input('hora_inicio')),
+            'hora_fim'    => IntervaloReserva::arredondar($this->input('hora_fim')),
+        ]);
+    }
+
     public function rules(): array
     {
         return [

@@ -37,6 +37,18 @@ class IntervaloReserva
         return substr($hora, 0, 5);
     }
 
+    public static function arredondar(mixed $hora): mixed
+    {
+        if (! is_string($hora) || ! preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/', $hora)) {
+            return $hora;
+        }
+
+        $bloco = self::bloco();
+        $minutos = min((int) round(self::minutos($hora) / $bloco) * $bloco, 24 * 60 - $bloco);
+
+        return self::curta(self::hora($minutos));
+    }
+
     public static function alinhada(string $hora): bool
     {
         return self::minutos($hora) % self::bloco() === 0;
@@ -52,16 +64,5 @@ class IntervaloReserva
         $fim = self::normalizar($dados['hora_fim'] ?? null);
 
         return $inicio && $fim && $inicio < $fim ? [$inicio, $fim] : null;
-    }
-
-    public static function blocos(string $inicio, string $fim): array
-    {
-        $blocos = [];
-
-        for ($m = self::minutos($inicio); $m < self::minutos($fim); $m += self::bloco()) {
-            $blocos[] = [self::hora($m), self::hora(min($m + self::bloco(), self::minutos($fim)))];
-        }
-
-        return $blocos;
     }
 }

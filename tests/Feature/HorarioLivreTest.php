@@ -82,9 +82,9 @@ class HorarioLivreTest extends TestCase
         $base = ['tipo' => 'LABORATORIO', 'modo_horario' => 'LIVRE', 'abre_as' => '08:00', 'fecha_as' => '18:00', 'duracao_maxima_minutos' => 90];
 
         $this->postJson('/api/admin/espacos', ['nome' => 'A', ...$base, 'abre_as' => null])->assertStatus(422)->assertJsonValidationErrors('abre_as');
-        $this->postJson('/api/admin/espacos', ['nome' => 'B', ...$base, 'abre_as' => '08:15'])->assertStatus(422)->assertJsonValidationErrors('abre_as');
+        $this->postJson('/api/admin/espacos', ['nome' => 'B', ...$base, 'abre_as' => '08:10'])->assertStatus(422)->assertJsonValidationErrors('abre_as');
         $this->postJson('/api/admin/espacos', ['nome' => 'C', ...$base, 'fecha_as' => '07:00'])->assertStatus(422)->assertJsonValidationErrors('fecha_as');
-        $this->postJson('/api/admin/espacos', ['nome' => 'D', ...$base, 'duracao_maxima_minutos' => 45])->assertStatus(422)->assertJsonValidationErrors('duracao_maxima_minutos');
+        $this->postJson('/api/admin/espacos', ['nome' => 'D', ...$base, 'duracao_maxima_minutos' => 50])->assertStatus(422)->assertJsonValidationErrors('duracao_maxima_minutos');
         $this->postJson('/api/admin/espacos', ['nome' => 'E', ...$base, 'duracao_maxima_minutos' => 660])->assertStatus(422)->assertJsonValidationErrors('duracao_maxima_minutos');
         $this->patchJson("/api/admin/espacos/{$this->lab->id}", ['fecha_as' => '06:00'])->assertStatus(422)->assertJsonValidationErrors('fecha_as');
     }
@@ -115,12 +115,26 @@ class HorarioLivreTest extends TestCase
     {
         $this->reservar('14:00', '15:00', ['horario' => 'PRIMEIRO_HORARIO'])->assertStatus(422)->assertJsonValidationErrors('horario');
         $this->reservar('', '')->assertStatus(422)->assertJsonValidationErrors('hora_inicio');
-        $this->reservar('14:15', '15:00')->assertStatus(422)->assertJsonValidationErrors('hora_inicio');
+        $this->reservar('14:03', '14:05')->assertStatus(422)->assertJsonValidationErrors('hora_fim');
+        $this->reservar('14:1', '15:00')->assertStatus(422)->assertJsonValidationErrors('hora_inicio');
         $this->reservar('15:00', '14:00')->assertStatus(422)->assertJsonValidationErrors('hora_fim');
         $this->reservar('06:30', '07:30')->assertStatus(422)->assertJsonValidationErrors('hora_inicio');
         $this->reservar('21:00', '22:30')->assertStatus(422)->assertJsonValidationErrors('hora_inicio');
         $this->reservar('14:00', '16:30')->assertStatus(422)->assertJsonValidationErrors('hora_fim');
         $this->reservar('14:00', '16:00')->assertCreated();
+    }
+
+    public function test_horarios_quebrados_sao_arredondados_para_15_minutos(): void
+    {
+        $this->reservar('14:07', '15:38')->assertCreated()
+            ->assertJsonPath('data.hora_inicio', '14:00')
+            ->assertJsonPath('data.hora_fim', '15:45');
+        $this->reservar('16:08', '16:52')->assertCreated()
+            ->assertJsonPath('data.hora_inicio', '16:15')
+            ->assertJsonPath('data.hora_fim', '16:45');
+        $this->reservar('13:52', '14:08')->assertStatus(409);
+        $this->reservar('09:00', '11:08')->assertStatus(422)->assertJsonValidationErrors('hora_fim');
+        $this->reservar('09:00', '11:07')->assertCreated()->assertJsonPath('data.hora_fim', '11:00');
     }
 
     public function test_espaco_fixo_nao_aceita_inicio_e_fim(): void
@@ -178,10 +192,12 @@ class HorarioLivreTest extends TestCase
         $this->postJson('/api/admin/reservas/eventos', [
             'espaco_id'    => $this->lab->id,
             'data_reserva' => '2026-11-15',
-            'hora_inicio'  => '18:15',
-            'hora_fim'     => '19:00',
-            'descricao'    => 'Desalinhado',
-        ])->assertStatus(422)->assertJsonValidationErrors('hora_inicio');
+            'hora_inicio'  => '18:07',
+            'hora_fim'     => '19:08',
+            'descricao'    => 'Horário quebrado',
+        ])->assertCreated()
+            ->assertJsonPath('data.hora_inicio', '18:00')
+            ->assertJsonPath('data.hora_fim', '19:15');
     }
 
     public function test_equipamentos_pelo_pico_de_uso(): void
@@ -210,24 +226,45 @@ class HorarioLivreTest extends TestCase
         $this->patchJson("/api/admin/equipamentos/{$projetor->id}", ['quantidade_total' => 2])->assertOk();
     }
 
-    public function test_calendario_em_blocos(): void
+    public function test_calendario_mostra_a_janela_e_os_intervalos_ocupados(): void
     {
-        $this->reservaExistente('14:00:00', '15:00:00');
+        $this->reservaExistente('14:00:00', '15:30:00');
+        DataBloqueada::factory()->entre('2026-11-12', '2026-11-12')->dasHoras('09:00', '10:00')->create([
+            'espaco_id' => $this->lab->id, 'motivo' => 'Manutenção',
+        ]);
 
         $resposta = $this->getJson("/api/espacos/{$this->lab->id}/disponibilidade?de=2026-11-12")->assertOk()
             ->assertJsonPath('data.espaco.modo_horario', 'LIVRE')
             ->assertJsonPath('data.espaco.abre_as', '07:00')
-            ->assertJsonPath('data.espaco.bloco_minutos', 30)
-            ->assertJsonCount(30, 'data.dias.0.horarios');
+            ->assertJsonPath('data.espaco.fecha_as', '22:00')
+            ->assertJsonPath('data.espaco.bloco_minutos', 15)
+            ->assertJsonPath('data.dias.0.reservavel', true)
+            ->assertJsonPath('data.dias.0.fim_minimo', null)
+            ->assertJsonMissingPath('data.dias.0.horarios')
+            ->assertJsonCount(2, 'data.dias.0.ocupados');
 
-        $blocos = collect($resposta->json('data.dias.0.horarios'))->keyBy('inicio');
+        $this->assertSame(
+            [['09:00', '10:00', 'BLOQUEADO', 'Manutenção'], ['14:00', '15:30', 'RESERVADO', null]],
+            collect($resposta->json('data.dias.0.ocupados'))->map(fn ($o) => [$o['inicio'], $o['fim'], $o['situacao'], $o['motivo']])->all(),
+        );
+        $this->assertArrayHasKey('nome', $resposta->json('data.dias.0.ocupados.1.reserva.reservado_por'));
+        $this->assertStringNotContainsString('registro_academico', $resposta->getContent());
+    }
 
-        $this->assertSame('RESERVADO', $blocos['14:00']['situacao']);
-        $this->assertSame('RESERVADO', $blocos['14:30']['situacao']);
-        $this->assertSame('LIVRE', $blocos['15:00']['situacao']);
-        $this->assertSame('15:30', $blocos['15:00']['fim']);
-        $this->assertNull($blocos['15:00']['horario']);
-        $this->assertArrayNotHasKey('equipamentos', $blocos['15:00']);
+    public function test_calendario_de_hoje_informa_o_fim_minimo(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-09 14:07:30'));
+
+        $this->getJson("/api/espacos/{$this->lab->id}/disponibilidade?de=2026-11-09")->assertOk()
+            ->assertJsonPath('data.dias.0.reservavel', true)
+            ->assertJsonPath('data.dias.0.fim_minimo', '14:30');
+
+        $this->travelTo(Carbon::parse('2026-11-09 21:45'));
+
+        $this->getJson("/api/espacos/{$this->lab->id}/disponibilidade?de=2026-11-09")->assertOk()
+            ->assertJsonPath('data.dias.0.reservavel', false)
+            ->assertJsonPath('data.dias.0.motivo', 'Os horários de hoje já foram encerrados.')
+            ->assertJsonPath('data.dias.0.fim_minimo', null);
     }
 
     public function test_consulta_de_equipamentos_por_intervalo(): void

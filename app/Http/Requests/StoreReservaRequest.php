@@ -20,6 +20,11 @@ class StoreReservaRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->arredondarIntervalo();
+    }
+
     public function rules(): array
     {
         return [

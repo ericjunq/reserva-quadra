@@ -30,7 +30,7 @@ class DisponibilidadeService
     {
         $equipamentos = $espaco->livre() ? collect() : $this->equipamentoService->listarAtivos($espaco);
         $uso = $this->disponibilidade->usoNoPeriodo($equipamentos->pluck('id')->all(), $de, $ate)->groupBy('data');
-        $intervalos = $this->intervalosDoDia($espaco);
+        $intervalos = $espaco->livre() ? [] : $this->intervalosFixos();
         $reservas = $this->reservasDoPeriodo($espaco, $de, $ate)->groupBy(fn (Reserva $r) => $r->data_reserva->toDateString());
         $bloqueios = $this->bloqueiosDoPeriodo($espaco, $de, $ate);
         $semanas = $curso && $espaco->limite_semanal_por_curso ? $this->semanasDoCurso($espaco, $curso, $de, $ate) : null;
@@ -45,6 +45,12 @@ class DisponibilidadeService
             $motivo = $this->motivoDoDia($dia, $bloqueiosDoDia);
             $restantesNaSemana = $semanas[$dia->copy()->startOfWeek(Carbon::MONDAY)->toDateString()]['restantes'] ?? null;
 
+            if ($espaco->livre()) {
+                $dias[] = $this->montarDiaLivre($espaco, $dia, $motivo, $reservas[$data] ?? collect(), $bloqueiosDoDia, $curso);
+
+                continue;
+            }
+
             $dias[] = [
                 'data'       => $data,
                 'reservavel' => $motivo === null,
@@ -52,7 +58,7 @@ class DisponibilidadeService
                 'horarios'   => array_map(
                     fn (array $intervalo) => $this->montarHorario(
                         $intervalo, $dia, $motivo, $reservas[$data] ?? collect(), $bloqueiosDoDia,
-                        $espaco->livre() ? null : $equipamentos, $uso[$data] ?? collect(), $curso, $restantesNaSemana,
+                        $equipamentos, $uso[$data] ?? collect(), $curso, $restantesNaSemana,
                     ),
                     $intervalos,
                 ),
@@ -82,15 +88,57 @@ class DisponibilidadeService
         ];
     }
 
-    private function intervalosDoDia(Espaco $espaco): array
+    private function montarDiaLivre(Espaco $espaco, Carbon $dia, ?string $motivo, Collection $reservas, Collection $bloqueios, ?Curso $curso): array
     {
-        if ($espaco->livre()) {
-            return array_map(
-                fn (array $bloco) => [null, $bloco[0], $bloco[1]],
-                IntervaloReserva::blocos($espaco->abre_as, $espaco->fecha_as),
-            );
+        $fimMinimo = null;
+
+        if ($motivo === null && $dia->isToday()) {
+            $fimMinimo = $this->fimMinimoDeHoje();
+
+            if ($fimMinimo > IntervaloReserva::curta($espaco->fecha_as)) {
+                [$motivo, $fimMinimo] = ['Os horários de hoje já foram encerrados.', null];
+            }
         }
 
+        $ocupados = $reservas
+            ->map(fn (Reserva $reserva) => [
+                'inicio'   => IntervaloReserva::curta($reserva->hora_inicio),
+                'fim'      => IntervaloReserva::curta($reserva->hora_fim),
+                'situacao' => $reserva->tipo === TipoReservaConstant::EVENTO ? 'EVENTO' : 'RESERVADO',
+                'motivo'   => null,
+                'reserva'  => $this->montarReserva($reserva, $curso),
+            ])
+            ->concat($bloqueios->reject(fn (DataBloqueada $bloqueio) => $bloqueio->diaInteiro())->map(fn (DataBloqueada $bloqueio) => [
+                'inicio'   => IntervaloReserva::curta($bloqueio->hora_inicio),
+                'fim'      => IntervaloReserva::curta($bloqueio->hora_fim),
+                'situacao' => 'BLOQUEADO',
+                'motivo'   => $bloqueio->motivo,
+                'reserva'  => null,
+            ]))
+            ->sortBy('inicio')
+            ->values()
+            ->all();
+
+        return [
+            'data'       => $dia->toDateString(),
+            'reservavel' => $motivo === null,
+            'motivo'     => $motivo,
+            'fim_minimo' => $fimMinimo,
+            'ocupados'   => $ocupados,
+        ];
+    }
+
+    private function fimMinimoDeHoje(): string
+    {
+        $agora = now();
+        $minutos = $agora->hour * 60 + $agora->minute + ($agora->second > 0 ? 1 : 0) + (int) config('reservas.minutos_antes_do_fim');
+        $bloco = IntervaloReserva::bloco();
+
+        return IntervaloReserva::curta(IntervaloReserva::hora((int) ceil($minutos / $bloco) * $bloco));
+    }
+
+    private function intervalosFixos(): array
+    {
         return array_map(
             fn (HorarioReservaConstant $horario) => [$horario, $horario->horaInicio(), $horario->horaFim()],
             HorarioReservaConstant::cases(),
@@ -103,7 +151,7 @@ class DisponibilidadeService
         ?string $motivoDoDia,
         Collection $reservas,
         Collection $bloqueios,
-        ?Collection $equipamentos,
+        Collection $equipamentos,
         Collection $uso,
         ?Curso $curso,
         ?int $restantesNaSemana,
@@ -132,10 +180,6 @@ class DisponibilidadeService
 
         if ($curso) {
             $resultado['disponivel_para_o_curso'] = $situacao === 'LIVRE' && ($restantesNaSemana === null || $restantesNaSemana > 0);
-        }
-
-        if ($equipamentos === null) {
-            return $resultado;
         }
 
         $resultado['equipamentos'] = $equipamentos->map(function ($equipamento) use ($uso, $inicio, $fim) {
