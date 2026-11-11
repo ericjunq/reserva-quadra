@@ -32,6 +32,12 @@ export class ApiPublicaService {
     return this.espacos$;
   }
 
+  consultarVersao(): Observable<string> {
+    return this.http
+      .get<Resposta<{ versao: string }>>(`${this.url}/disponibilidade/versao`)
+      .pipe(map((resposta) => resposta.data.versao));
+  }
+
   listarCursos(): Observable<Curso[]> {
     this.cursos$ ??= this.http.get<Resposta<Curso[]>>(`${this.url}/cursos`).pipe(
       map((resposta) => resposta.data),
