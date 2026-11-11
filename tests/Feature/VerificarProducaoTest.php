@@ -43,6 +43,7 @@ class VerificarProducaoTest extends TestCase
             'cors.allowed_origins'            => ['https://reservas.fac.edu'],
             'mail.default'                    => 'smtp',
             'mail.from.address'               => 'reservas@fac.edu',
+            'logging.default'                 => 'stack',
             'logging.channels.stack.channels' => ['daily'],
             'logging.channels.daily.level'    => 'warning',
             'reservas.alertas_email'          => 'ti@fac.edu',

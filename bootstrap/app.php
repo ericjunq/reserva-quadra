@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
+        $exceptions->dontReport(RegraNegocioException::class);
+
         $exceptions->render(fn (RegraNegocioException $e) => response()->json(
             array_filter(['message' => $e->getMessage(), 'dados' => $e->dados]),
             $e->status,
