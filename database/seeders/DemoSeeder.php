@@ -17,17 +17,12 @@ class DemoSeeder extends Seeder
             ['nome' => 'Quadra Poliesportiva'],
             ['tipo' => TipoEspacoConstant::QUADRA, 'limite_semanal_por_curso' => 3],
         );
-        $labQuimica = Espaco::firstOrCreate(['nome' => 'Laboratório de Química'], ['tipo' => TipoEspacoConstant::LABORATORIO]);
-        $labBiologia = Espaco::firstOrCreate(['nome' => 'Laboratório de Biologia'], ['tipo' => TipoEspacoConstant::LABORATORIO]);
-        Espaco::firstOrCreate(['nome' => 'Laboratório de Informática'], [
-            'tipo'                   => TipoEspacoConstant::LABORATORIO,
-            'modo_horario'           => 'LIVRE',
-            'abre_as'                => '07:00',
-            'fecha_as'               => '22:00',
-            'duracao_maxima_minutos' => 180,
-        ]);
-        Espaco::firstOrCreate(['nome' => 'Sala 101'], ['tipo' => TipoEspacoConstant::SALA]);
-        Espaco::firstOrCreate(['nome' => 'Sala 102'], ['tipo' => TipoEspacoConstant::SALA]);
+        $horarioLivre = ['modo_horario' => 'LIVRE', 'abre_as' => '07:00', 'fecha_as' => '22:00', 'duracao_maxima_minutos' => 180];
+        $labQuimica = Espaco::firstOrCreate(['nome' => 'Laboratório de Química'], ['tipo' => TipoEspacoConstant::LABORATORIO, ...$horarioLivre]);
+        $labBiologia = Espaco::firstOrCreate(['nome' => 'Laboratório de Biologia'], ['tipo' => TipoEspacoConstant::LABORATORIO, ...$horarioLivre]);
+        Espaco::firstOrCreate(['nome' => 'Laboratório de Informática'], ['tipo' => TipoEspacoConstant::LABORATORIO, ...$horarioLivre]);
+        Espaco::firstOrCreate(['nome' => 'Sala 101'], ['tipo' => TipoEspacoConstant::SALA, ...$horarioLivre]);
+        Espaco::firstOrCreate(['nome' => 'Sala 102'], ['tipo' => TipoEspacoConstant::SALA, ...$horarioLivre]);
 
         $equipamentos = [
             [$quadra, 'Bola de futsal', 4, false],
