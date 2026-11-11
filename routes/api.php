@@ -14,9 +14,11 @@ use App\Http\Controllers\ExportacaoReservasController;
 use App\Http\Controllers\MinhasReservasController;
 use App\Http\Controllers\ReservaController;
 use App\Http\Controllers\SenhaController;
+use App\Http\Controllers\VersaoDisponibilidadeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/cursos', [CursoController::class, 'ativos']);
+Route::get('/disponibilidade/versao', VersaoDisponibilidadeController::class)->middleware('throttle:300,1');
 Route::get('/espacos', [EspacoController::class, 'ativos']);
 Route::get('/espacos/{espaco}/equipamentos', [EquipamentoController::class, 'ativos']);
 Route::get('/espacos/{espaco}/equipamentos/disponibilidade', [EquipamentoController::class, 'disponibilidade'])->middleware('throttle:60,1');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Constants\ModoHorarioConstant;
 use App\Constants\TipoEspacoConstant;
+use App\Models\Concerns\AtualizaDisponibilidade;
 use App\Models\Concerns\Auditavel;
 use App\Support\IntervaloReserva;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Espaco extends Model
 {
-    use Auditavel, HasFactory;
+    use AtualizaDisponibilidade, Auditavel, HasFactory;
 
     protected $fillable = [
         'nome',

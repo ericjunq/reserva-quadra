@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AtualizaDisponibilidade;
 use App\Models\Concerns\Auditavel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Equipamento extends Model
 {
-    use Auditavel, HasFactory;
+    use AtualizaDisponibilidade, Auditavel, HasFactory;
 
     protected $fillable = ['espaco_id', 'nome', 'quantidade_total', 'ativo', 'compartilhavel'];
 

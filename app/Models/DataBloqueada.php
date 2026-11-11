@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Constants\OrigemBloqueioConstant;
+use App\Models\Concerns\AtualizaDisponibilidade;
 use App\Models\Concerns\Auditavel;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DataBloqueada extends Model
 {
-    use Auditavel, HasFactory;
+    use AtualizaDisponibilidade, Auditavel, HasFactory;
 
     protected $table = 'datas_bloqueadas';
 
