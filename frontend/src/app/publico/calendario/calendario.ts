@@ -1,4 +1,13 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -8,10 +17,11 @@ import {
   LucideChevronRight,
   LucideUsers,
 } from '@lucide/angular';
-import { Observable, catchError, map, of, startWith, switchMap } from 'rxjs';
+import { EMPTY, Observable, catchError, map, of, startWith, switchMap } from 'rxjs';
 import { AvisoErro } from '../../compartilhado/aviso-erro/aviso-erro';
 import { ErroApi } from '../../nucleo/erro-api';
 import { ApiPublicaService } from '../api-publica.service';
+import { AtualizacaoDisponibilidadeService } from '../atualizacao-disponibilidade.service';
 import {
   deIso,
   ehDataIso,
@@ -23,6 +33,15 @@ import {
   segundaDaSemana,
   somarDias,
 } from '../datas';
+import {
+  Avaliacao,
+  Janela,
+  avaliarIntervalo,
+  descreverOcupacao,
+  duracaoLegivel,
+  horariosLivres,
+  minutos,
+} from '../intervalo';
 import {
   Calendario as DadosCalendario,
   DiaNoCalendario,
@@ -36,14 +55,6 @@ type Estado =
   | { tipo: 'carregando' }
   | { tipo: 'pronto'; calendario: DadosCalendario }
   | { tipo: 'erro'; mensagem: string };
-
-interface ReservaAgrupada {
-  id: number;
-  inicio: string;
-  fim: string;
-  texto: string;
-  doCurso: boolean;
-}
 
 const NOMES_DAS_SITUACOES: Record<string, string> = {
   LIVRE: 'Livre',
@@ -70,6 +81,7 @@ export class Calendario {
   private readonly api = inject(ApiPublicaService);
   private readonly router = inject(Router);
   private readonly raEmMemoria = inject(RaEmMemoriaService);
+  private readonly atualizacao = inject(AtualizacaoDisponibilidadeService);
 
   readonly id = input.required<string>();
   readonly semana = input<string>();
@@ -80,11 +92,15 @@ export class Calendario {
   protected readonly formatarDia = formatarDia;
   protected readonly formatarDiaCurto = formatarDiaCurto;
   protected readonly formatarDiaDaSemanaCurto = formatarDiaDaSemanaCurto;
+  protected readonly descreverOcupacao = descreverOcupacao;
+  protected readonly duracaoLegivel = duracaoLegivel;
 
   protected readonly raDigitado = signal('');
   protected readonly raConsultado = signal<string | null>(null);
   protected readonly erroRa = signal<string | null>(null);
   protected readonly recarregar = signal(0);
+  protected readonly inicioDigitado = signal('');
+  protected readonly fimDigitado = signal('');
 
   private readonly espacoId = computed(() => Number(this.id()));
 
@@ -155,15 +171,43 @@ export class Calendario {
 
   protected readonly ehLivre = computed(() => this.calendario()?.espaco.modo_horario === 'LIVRE');
 
+  protected readonly janela = computed<Janela | null>(() => {
+    const espaco = this.calendario()?.espaco;
+    if (espaco?.modo_horario !== 'LIVRE' || !espaco.abre_as || !espaco.fecha_as) {
+      return null;
+    }
+    return {
+      abre: espaco.abre_as,
+      fecha: espaco.fecha_as,
+      duracaoMaxima: espaco.duracao_maxima_minutos ?? 0,
+      bloco: espaco.bloco_minutos ?? 15,
+    };
+  });
+
   protected readonly diaEscolhido = computed<DiaNoCalendario | null>(() => {
     const dias = this.diasUteis();
     return (
       dias.find((dia) => dia.data === this.dia()) ??
-      dias.find((dia) => this.horariosLivres(dia) > 0) ??
+      dias.find((dia) => this.minutosLivres(dia) > 0) ??
       dias.find((dia) => dia.reservavel) ??
       dias[0] ??
       null
     );
+  });
+
+  protected readonly livresDoDia = computed(() => {
+    const dia = this.diaEscolhido();
+    const janela = this.janela();
+    return dia?.reservavel && janela ? horariosLivres(dia, janela) : [];
+  });
+
+  protected readonly avaliacao = computed<Avaliacao | null>(() => {
+    const dia = this.diaEscolhido();
+    const janela = this.janela();
+    if (!dia || !janela || (!this.inicioDigitado() && !this.fimDigitado())) {
+      return null;
+    }
+    return avaliarIntervalo(dia, janela, this.inicioDigitado(), this.fimDigitado());
   });
 
   protected readonly podeVoltar = computed(() => this.segunda() > this.segundaAtual);
@@ -179,6 +223,20 @@ export class Calendario {
       this.raDigitado.set(raLembrado);
       this.raConsultado.set(raLembrado);
     }
+
+    this.atualizacao.observar(inject(DestroyRef));
+    let mudancasVistas = 0;
+    effect(() => {
+      const mudancas = this.atualizacao.versao();
+      if (mudancas === mudancasVistas) {
+        return;
+      }
+      mudancasVistas = mudancas;
+      untracked(() => {
+        this.api.esquecerCalendarios(this.espacoId());
+        this.recarregar.update((valor) => valor + 1);
+      });
+    });
 
     effect(() => {
       const ra = this.raConsultado();
@@ -198,6 +256,8 @@ export class Calendario {
   }
 
   protected escolherDia(data: string): void {
+    this.inicioDigitado.set('');
+    this.fimDigitado.set('');
     this.router.navigate([], {
       queryParams: { dia: data },
       queryParamsHandling: 'merge',
@@ -205,46 +265,34 @@ export class Calendario {
     });
   }
 
-  protected horariosLivres(dia: DiaNoCalendario): number {
-    return dia.horarios.filter((horario) => this.podeReservar(dia, horario)).length;
+  protected minutosLivres(dia: DiaNoCalendario): number {
+    const janela = this.janela();
+    if (!dia.reservavel || !janela) {
+      return 0;
+    }
+    return horariosLivres(dia, janela).reduce(
+      (total, livre) => total + minutos(livre.fim) - minutos(livre.inicio),
+      0,
+    );
   }
 
   protected resumoDoDia(dia: DiaNoCalendario): string {
     if (!dia.reservavel) {
       return 'Fechado';
     }
-    const livres = this.horariosLivres(dia);
-    if (livres === 0) {
-      return 'Lotado';
-    }
-    return livres === 1 ? '1 livre' : `${livres} livres`;
+    const livres = this.minutosLivres(dia);
+    return livres ? `${duracaoLegivel(livres)} livres` : 'Lotado';
   }
 
-  protected reservasDoDia(dia: DiaNoCalendario): ReservaAgrupada[] {
-    const agrupadas: ReservaAgrupada[] = [];
-    for (const horario of dia.horarios) {
-      const reserva = horario.reserva;
-      if (!reserva) {
-        continue;
-      }
-      const anterior = agrupadas[agrupadas.length - 1];
-      if (anterior?.id === reserva.id && anterior.fim === horario.inicio) {
-        anterior.fim = horario.fim;
-        continue;
-      }
-      const quem = reserva.reservado_por;
-      agrupadas.push({
-        id: reserva.id,
-        inicio: horario.inicio,
-        fim: horario.fim,
-        texto:
-          reserva.tipo === 'EVENTO'
-            ? reserva.descricao || 'Evento da faculdade'
-            : `${quem.nome ?? ''}${quem.curso ? ` (${quem.curso})` : ''}`,
-        doCurso: !!reserva.do_curso,
-      });
+  protected continuar(): void {
+    const avaliacao = this.avaliacao();
+    const dia = this.diaEscolhido();
+    if (!avaliacao || avaliacao.erro || !dia) {
+      return;
     }
-    return agrupadas;
+    this.router.navigate(['/espacos', this.espacoId(), 'reservar'], {
+      queryParams: { data: dia.data, inicio: avaliacao.inicio, fim: avaliacao.fim },
+    });
   }
 
   protected consultarRa(): void {
@@ -279,9 +327,7 @@ export class Calendario {
   }
 
   protected parametrosDaReserva(dia: DiaNoCalendario, horario: HorarioNoCalendario) {
-    return horario.horario
-      ? { data: dia.data, horario: horario.horario }
-      : { data: dia.data, inicio: horario.inicio, fim: horario.fim };
+    return { data: dia.data, horario: horario.horario };
   }
 
   private carregar(consulta: {
@@ -299,7 +345,10 @@ export class Calendario {
         )
       : this.api.consultarCalendario(consulta.espacoId, consulta.de, consulta.ate);
 
-    return pedido.pipe(
+    const atual = untracked(() => this.calendario());
+    const silencioso = atual?.espaco.id === consulta.espacoId && atual.de === consulta.de;
+
+    const resultado = pedido.pipe(
       map((calendario): Estado => ({ tipo: 'pronto', calendario })),
       catchError((erro: ErroApi) => {
         if (consulta.ra && erro.status === 422) {
@@ -308,9 +357,12 @@ export class Calendario {
           this.raEmMemoria.esquecer();
           return of<Estado>({ tipo: 'carregando' });
         }
+        if (silencioso) {
+          return EMPTY;
+        }
         return of<Estado>({ tipo: 'erro', mensagem: erro.mensagem });
       }),
-      startWith<Estado>({ tipo: 'carregando' }),
     );
+    return silencioso ? resultado : resultado.pipe(startWith<Estado>({ tipo: 'carregando' }));
   }
 }

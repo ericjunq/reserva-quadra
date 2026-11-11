@@ -44,11 +44,21 @@ export interface HorarioNoCalendario {
   disponivel_para_o_curso?: boolean;
 }
 
+export interface Ocupacao {
+  inicio: string;
+  fim: string;
+  situacao: string;
+  motivo: string | null;
+  reserva: ReservaNoCalendario | null;
+}
+
 export interface DiaNoCalendario {
   data: string;
   reservavel: boolean;
   motivo: string | null;
-  horarios: HorarioNoCalendario[];
+  horarios?: HorarioNoCalendario[];
+  ocupados?: Ocupacao[];
+  fim_minimo?: string | null;
 }
 
 export interface SemanaDoCurso {

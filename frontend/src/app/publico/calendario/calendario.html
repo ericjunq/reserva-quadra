@@ -152,68 +152,117 @@
                   <p class="mt-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
                     {{ dia.motivo }}
                   </p>
-                } @else {
+                } @else if (janela(); as janela) {
                   <p class="mt-1 text-sm text-slate-600">
-                    Escolha o horário de início. Na próxima tela você define até que horas.
-                  </p>
-                  <ul class="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8">
-                    @for (horario of dia.horarios; track horario.inicio) {
-                      <li>
-                        @if (podeReservar(dia, horario)) {
-                          <a
-                            class="block rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-center text-sm font-semibold text-slate-900 hover:border-amarelo hover:bg-amarelo/20"
-                            [routerLink]="['/espacos', espaco.id, 'reservar']"
-                            [queryParams]="parametrosDaReserva(dia, horario)"
-                            [attr.aria-label]="
-                              'Reservar ' +
-                              formatarDia(dia.data) +
-                              ', a partir das ' +
-                              horario.inicio
-                            "
-                          >
-                            {{ horario.inicio }}
-                          </a>
-                        } @else {
-                          <span
-                            class="block rounded-lg border border-slate-200 bg-slate-200 px-2 py-2 text-center text-sm text-slate-600"
-                          >
-                            {{ horario.inicio }}
-                            <span class="sr-only">, {{ nomeDaSituacao(horario) }}</span>
-                          </span>
-                        }
-                      </li>
+                    Aberto das {{ janela.abre }} às {{ janela.fecha }} · até
+                    {{ duracaoLegivel(janela.duracaoMaxima) }} por reserva
+                    @if (dia.fim_minimo) {
+                      · hoje, só horários que terminem a partir das {{ dia.fim_minimo }}
                     }
-                  </ul>
-                  <p class="mt-3 flex flex-wrap gap-4 text-xs text-slate-600">
-                    <span class="flex items-center gap-1">
-                      <span
-                        class="size-3 rounded border border-emerald-200 bg-emerald-50"
-                        aria-hidden="true"
-                      ></span>
-                      Livre
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <span class="size-3 rounded bg-slate-200" aria-hidden="true"></span>
-                      Ocupado ou encerrado
-                    </span>
                   </p>
 
-                  @if (reservasDoDia(dia); as reservas) {
-                    @if (reservas.length) {
-                      <h4 class="mt-5 font-semibold text-slate-900">Reservas do dia</h4>
-                      <ul class="mt-2 space-y-1 text-sm text-slate-700">
-                        @for (item of reservas; track item.id) {
-                          <li>
-                            <span class="font-semibold">{{ item.inicio }}–{{ item.fim }}</span>
-                            · {{ item.texto }}
-                            @if (item.doCurso) {
-                              <span class="text-xs font-semibold text-azul">(do seu curso)</span>
-                            }
-                          </li>
+                  <div class="mt-4 grid gap-6 md:grid-cols-2">
+                    <section aria-labelledby="titulo-ocupados">
+                      <h4 id="titulo-ocupados" class="font-semibold text-slate-900">
+                        Horários ocupados
+                      </h4>
+                      @if (dia.ocupados?.length) {
+                        <ul class="mt-2 space-y-1 text-sm text-slate-700">
+                          @for (ocupacao of dia.ocupados; track ocupacao.inicio + ocupacao.fim) {
+                            <li class="rounded-lg bg-slate-100 px-3 py-2">
+                              <span class="font-semibold"
+                                >{{ ocupacao.inicio }}–{{ ocupacao.fim }}</span
+                              >
+                              · {{ descreverOcupacao(ocupacao) }}
+                              @if (ocupacao.reserva?.do_curso) {
+                                <span class="text-xs font-semibold text-azul">(do seu curso)</span>
+                              }
+                            </li>
+                          }
+                        </ul>
+                      } @else {
+                        <p class="mt-2 text-sm text-slate-600">Nenhum. O dia está todo livre.</p>
+                      }
+
+                      @if (livresDoDia().length) {
+                        <h4 class="mt-4 font-semibold text-slate-900">Horários livres</h4>
+                        <ul class="mt-2 flex flex-wrap gap-2 text-sm">
+                          @for (livre of livresDoDia(); track livre.inicio) {
+                            <li
+                              class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-900"
+                            >
+                              {{ livre.inicio }}–{{ livre.fim }}
+                            </li>
+                          }
+                        </ul>
+                      }
+                    </section>
+
+                    <form
+                      class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200"
+                      aria-labelledby="titulo-montar"
+                      (ngSubmit)="continuar()"
+                    >
+                      <h4 id="titulo-montar" class="font-semibold text-slate-900">
+                        Monte o seu horário
+                      </h4>
+                      <div class="mt-3 flex flex-wrap gap-4">
+                        <div>
+                          <label for="inicio" class="block text-sm font-semibold text-slate-700"
+                            >Início</label
+                          >
+                          <input
+                            id="inicio"
+                            name="inicio"
+                            type="time"
+                            class="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2"
+                            [ngModel]="inicioDigitado()"
+                            (ngModelChange)="inicioDigitado.set($event ?? '')"
+                          />
+                        </div>
+                        <div>
+                          <label for="fim" class="block text-sm font-semibold text-slate-700"
+                            >Fim</label
+                          >
+                          <input
+                            id="fim"
+                            name="fim"
+                            type="time"
+                            class="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2"
+                            [ngModel]="fimDigitado()"
+                            (ngModelChange)="fimDigitado.set($event ?? '')"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="mt-3 min-h-10 text-sm" aria-live="polite">
+                        @if (avaliacao(); as avaliacao) {
+                          @if (avaliacao.erro) {
+                            <p class="text-red-700">{{ avaliacao.erro }}</p>
+                          } @else {
+                            <p class="text-emerald-800">
+                              Sua reserva ficará das <strong>{{ avaliacao.inicio }}</strong> às
+                              <strong>{{ avaliacao.fim }}</strong
+                              >.
+                            </p>
+                          }
+                        } @else {
+                          <p class="text-slate-600">
+                            Os horários são arredondados para múltiplos de
+                            {{ janela.bloco }} minutos.
+                          </p>
                         }
-                      </ul>
-                    }
-                  }
+                      </div>
+
+                      <button
+                        type="submit"
+                        class="mt-2 rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio disabled:opacity-50"
+                        [disabled]="!avaliacao() || !!avaliacao()?.erro"
+                      >
+                        Continuar
+                      </button>
+                    </form>
+                  </div>
                 }
               </article>
             }

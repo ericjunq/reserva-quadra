@@ -1,11 +1,13 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ambiente } from '../../../ambientes/ambiente';
 import { interceptorApi } from '../../nucleo/api.interceptor';
 import { Calendario, DiaNoCalendario, Espaco, HorarioNoCalendario } from '../modelos';
 import { RaEmMemoriaService } from '../ra-em-memoria.service';
+import { AtualizacaoDisponibilidadeService } from '../atualizacao-disponibilidade.service';
 import { Reservar } from './reservar';
 
 const url = ambiente.urlApi;
@@ -49,10 +51,6 @@ function horarioFixo(dados: Partial<HorarioNoCalendario> = {}): HorarioNoCalenda
   };
 }
 
-function bloco(inicio: string, fim: string, situacao = 'LIVRE'): HorarioNoCalendario {
-  return { horario: null, inicio, fim, situacao, motivo: null, reserva: null };
-}
-
 function calendario(espaco: Espaco, horarios: HorarioNoCalendario[]): Calendario {
   const dia = (data: string): DiaNoCalendario => ({
     data,
@@ -71,6 +69,7 @@ function calendario(espaco: Espaco, horarios: HorarioNoCalendario[]): Calendario
 }
 
 describe('Reservar', () => {
+  const mudancas = signal(0);
   let controle: HttpTestingController;
   let fixture: ComponentFixture<Reservar>;
   let pagina: HTMLElement;
@@ -84,6 +83,10 @@ describe('Reservar', () => {
         provideRouter([]),
         provideHttpClient(withInterceptors([interceptorApi])),
         provideHttpClientTesting(),
+        {
+          provide: AtualizacaoDisponibilidadeService,
+          useValue: { observar: () => undefined, versao: mudancas },
+        },
       ],
     });
     controle = TestBed.inject(HttpTestingController);
@@ -215,23 +218,33 @@ describe('Reservar', () => {
     expect(memoria.ra()).toBeNull();
   });
 
-  it('em horário livre, deixa escolher o fim até a duração máxima e consulta os equipamentos do intervalo', async () => {
-    await abrir(laboratorio, { data: '2026-11-12', inicio: '14:00', fim: '14:30' }, [
-      bloco('14:00', '14:30'),
-      bloco('14:30', '15:00'),
-      bloco('15:00', '15:30'),
-      bloco('15:30', '16:00'),
-      bloco('16:00', '16:30', 'RESERVADO'),
-    ]);
+  it('em horário livre, usa o intervalo escolhido e consulta os equipamentos dele', async () => {
+    fixture = TestBed.createComponent(Reservar);
+    fixture.componentRef.setInput('id', '4');
+    fixture.componentRef.setInput('data', '2026-11-12');
+    fixture.componentRef.setInput('inicio', '14:00');
+    fixture.componentRef.setInput('fim', '15:30');
+    pagina = fixture.nativeElement;
+    await responder(`${url}/espacos`, { data: [quadra, laboratorio] });
+    const dados = calendario(laboratorio, []);
+    dados.espaco.bloco_minutos = 15;
+    dados.dias = dados.dias.map((dia) => ({
+      data: dia.data,
+      reservavel: true,
+      motivo: null,
+      fim_minimo: null,
+      ocupados: [
+        { inicio: '16:00', fim: '16:30', situacao: 'RESERVADO', motivo: null, reserva: null },
+      ],
+    }));
+    await responder(semana.replace('ID', '4'), { data: dados });
     await responder(
-      `${url}/espacos/4/equipamentos/disponibilidade?data=2026-11-12&hora_inicio=14:00&hora_fim=14:30`,
+      `${url}/espacos/4/equipamentos/disponibilidade?data=2026-11-12&hora_inicio=14:00&hora_fim=15:30`,
       { data: [{ id: 5, nome: 'Microscópio', total: 2, disponivel: 1 }] },
     );
 
-    const opcoes = [...pagina.querySelectorAll('#fim option')].map((opcao) =>
-      opcao.textContent?.trim(),
-    );
-    expect(opcoes).toEqual(['14:30', '15:00', '15:30']);
+    expect(pagina.querySelector('aside')?.textContent).toContain('14:00 às 15:30');
+    expect(pagina.querySelector('aside a')?.textContent).toContain('Alterar horário');
     expect(pagina.textContent).toContain('Microscópio');
 
     digitarRa('2024000001');
@@ -243,7 +256,7 @@ describe('Reservar', () => {
           id: 3,
           data_reserva: '2026-11-12',
           hora_inicio: '14:00',
-          hora_fim: '14:30',
+          hora_fim: '15:30',
           confirmacao_enviada_em: null,
           confirmada_em: null,
         },
@@ -256,9 +269,35 @@ describe('Reservar', () => {
       espaco_id: 4,
       data_reserva: '2026-11-12',
       hora_inicio: '14:00',
-      hora_fim: '14:30',
+      hora_fim: '15:30',
     });
     expect(pagina.textContent).toContain('Dois dias úteis antes');
+  });
+
+  it('em horário livre, avisa quando o intervalo já foi ocupado', async () => {
+    fixture = TestBed.createComponent(Reservar);
+    fixture.componentRef.setInput('id', '4');
+    fixture.componentRef.setInput('data', '2026-11-12');
+    fixture.componentRef.setInput('inicio', '15:30');
+    fixture.componentRef.setInput('fim', '16:45');
+    pagina = fixture.nativeElement;
+    await responder(`${url}/espacos`, { data: [quadra, laboratorio] });
+    const dados = calendario(laboratorio, []);
+    dados.dias = dados.dias.map((dia) => ({
+      data: dia.data,
+      reservavel: true,
+      motivo: null,
+      fim_minimo: null,
+      ocupados: [
+        { inicio: '16:00', fim: '16:30', situacao: 'EVENTO', motivo: null, reserva: null },
+      ],
+    }));
+    await responder(semana.replace('ID', '4'), { data: dados });
+
+    expect(pagina.textContent).toContain(
+      'Esse horário bate com 16:00–16:30 (Evento da faculdade).',
+    );
+    expect(pagina.querySelector('form')).toBeNull();
   });
 
   it('mostra o erro do RA com o link de cadastro que volta para a reserva', async () => {

@@ -1,5 +1,6 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { ambiente } from '../../../ambientes/ambiente';
@@ -11,6 +12,7 @@ import {
   HorarioNoCalendario,
 } from '../modelos';
 import { RaEmMemoriaService } from '../ra-em-memoria.service';
+import { AtualizacaoDisponibilidadeService } from '../atualizacao-disponibilidade.service';
 import { Calendario } from './calendario';
 
 const url = ambiente.urlApi;
@@ -96,6 +98,7 @@ function calendario(dados: Partial<DadosCalendario> = {}): DadosCalendario {
 }
 
 describe('Calendario', () => {
+  const mudancas = signal(0);
   let controle: HttpTestingController;
   let fixture: ComponentFixture<Calendario>;
 
@@ -108,6 +111,10 @@ describe('Calendario', () => {
         provideRouter([]),
         provideHttpClient(withInterceptors([interceptorApi])),
         provideHttpClientTesting(),
+        {
+          provide: AtualizacaoDisponibilidadeService,
+          useValue: { observar: () => undefined, versao: mudancas },
+        },
       ],
     });
     controle = TestBed.inject(HttpTestingController);
@@ -157,8 +164,8 @@ describe('Calendario', () => {
   it('mostra quem reservou, o motivo dos dias fechados e situações desconhecidas', async () => {
     const dados = calendario();
     dados.dias[0] = dia('2026-11-09', { reservavel: false, motivo: 'Data passada.' });
-    dados.dias[1].horarios[0] = {
-      ...dados.dias[1].horarios[0],
+    dados.dias[1].horarios![0] = {
+      ...dados.dias[1].horarios![0],
       situacao: 'RESERVADO',
       reserva: {
         id: 7,
@@ -167,8 +174,8 @@ describe('Calendario', () => {
         reservado_por: { tipo: 'ALUNO', nome: 'Ana Souza', curso: 'Direito' },
       },
     };
-    dados.dias[2].horarios[0] = {
-      ...dados.dias[2].horarios[0],
+    dados.dias[2].horarios![0] = {
+      ...dados.dias[2].horarios![0],
       situacao: 'AULA',
       motivo: 'Aula de Anatomia',
     };
@@ -206,7 +213,7 @@ describe('Calendario', () => {
         semanas: [{ inicio: '2026-11-09', fim: '2026-11-13', reservas: 2, restantes: 1 }],
       },
     });
-    dados.dias[1].horarios[1] = { ...dados.dias[1].horarios[1], disponivel_para_o_curso: false };
+    dados.dias[1].horarios![1] = { ...dados.dias[1].horarios![1], disponivel_para_o_curso: false };
 
     await vi.waitFor(() => {
       fixture.detectChanges();
@@ -275,35 +282,81 @@ describe('Calendario', () => {
     expect(proxima.disabled).toBe(false);
   });
 
-  describe('horário livre', () => {
-    const reservaDaAna = {
-      id: 7,
-      tipo: 'ALUNO' as const,
-      descricao: null,
-      reservado_por: { tipo: 'ALUNO' as const, nome: 'Ana Souza', curso: 'Direito' },
-    };
+  it('recarrega a semana sem piscar a tela quando a disponibilidade muda', async () => {
+    const pagina = await abrir(quadra);
+    expect(pagina.textContent).not.toContain('Ana Souza');
 
+    const atualizado = calendario();
+    atualizado.dias[2].horarios![0] = {
+      ...atualizado.dias[2].horarios![0],
+      situacao: 'RESERVADO',
+      reserva: {
+        id: 8,
+        tipo: 'ALUNO',
+        descricao: null,
+        reservado_por: { tipo: 'ALUNO', nome: 'Ana Souza', curso: 'Direito' },
+      },
+    };
+    mudancas.set(1);
+    fixture.detectChanges();
+    expect(pagina.querySelectorAll('article').length).toBe(5);
+
+    await responder(`${url}/espacos/1/disponibilidade?de=2026-11-09&ate=2026-11-13`, {
+      data: atualizado,
+    });
+    expect(pagina.textContent).toContain('Ana Souza');
+  });
+
+  describe('horário livre', () => {
     function calendarioLivre(): DadosCalendario {
-      const blocos = () => [
-        bloco('14:00', '14:30', { situacao: 'ENCERRADO', motivo: 'Reservas para hoje…' }),
-        bloco('14:30', '15:00'),
-        bloco('15:00', '15:30', { situacao: 'RESERVADO', reserva: reservaDaAna }),
-        bloco('15:30', '16:00', { situacao: 'RESERVADO', reserva: reservaDaAna }),
-        bloco('16:00', '16:30'),
+      const ocupados = [
+        {
+          inicio: '14:00',
+          fim: '15:30',
+          situacao: 'RESERVADO',
+          motivo: null,
+          reserva: {
+            id: 7,
+            tipo: 'ALUNO' as const,
+            descricao: null,
+            reservado_por: { tipo: 'ALUNO' as const, nome: 'Ana Souza', curso: 'Direito' },
+          },
+        },
       ];
+      const diaLivre = (data: string, dados: Partial<DiaNoCalendario> = {}): DiaNoCalendario => ({
+        data,
+        reservavel: true,
+        motivo: null,
+        fim_minimo: null,
+        ocupados,
+        ...dados,
+      });
       return calendario({
-        espaco: { ...laboratorio, bloco_minutos: 30 },
+        espaco: {
+          ...laboratorio,
+          abre_as: '07:00',
+          fecha_as: '22:00',
+          duracao_maxima_minutos: 180,
+          bloco_minutos: 15,
+        },
         dias: [
-          dia('2026-11-09', { reservavel: false, motivo: 'Data passada.', horarios: blocos() }),
-          dia('2026-11-10', { horarios: blocos() }),
-          dia('2026-11-11', { horarios: blocos() }),
-          dia('2026-11-12', { horarios: blocos() }),
-          dia('2026-11-13', { horarios: blocos() }),
+          diaLivre('2026-11-09', { reservavel: false, motivo: 'Data passada.', ocupados: [] }),
+          diaLivre('2026-11-10'),
+          diaLivre('2026-11-11', { ocupados: [] }),
+          diaLivre('2026-11-12'),
+          diaLivre('2026-11-13'),
         ],
       });
     }
 
-    it('mostra os dias para escolher e só os blocos do dia escolhido', async () => {
+    function digitar(id: string, valor: string) {
+      const campo = fixture.nativeElement.querySelector(`#${id}`) as HTMLInputElement;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    }
+
+    it('mostra a janela, os ocupados e os horários livres do dia escolhido', async () => {
       const pagina = await abrir(laboratorio, calendarioLivre());
 
       const dias = pagina.querySelectorAll<HTMLButtonElement>(
@@ -311,24 +364,49 @@ describe('Calendario', () => {
       );
       expect(dias.length).toBe(5);
       expect(dias[0].textContent).toContain('Fechado');
-      expect(dias[1].textContent).toContain('2 livres');
+      expect(dias[1].textContent).toContain('13h30 livres');
+      expect(dias[2].textContent).toContain('15h livres');
       expect(dias[1].getAttribute('aria-pressed')).toBe('true');
 
-      expect(pagina.querySelector('#dia-escolhido')?.textContent).toContain('Terça-feira, 10/11');
-      const links = [...pagina.querySelectorAll<HTMLAnchorElement>('article a')];
-      expect(links.map((link) => link.getAttribute('href'))).toEqual([
-        '/espacos/4/reservar?data=2026-11-10&inicio=14:30&fim=15:00',
-        '/espacos/4/reservar?data=2026-11-10&inicio=16:00&fim=16:30',
-      ]);
-      expect(pagina.querySelector('article')?.textContent).toContain(
-        '15:00–16:00 · Ana Souza (Direito)',
-      );
+      const painel = pagina.querySelector('article')!;
+      expect(painel.textContent).toContain('Aberto das 07:00 às 22:00 · até 3h por reserva');
+      expect(painel.textContent).toContain('14:00–15:30 · Ana Souza (Direito)');
+      expect(painel.textContent).toContain('07:00–14:00');
+      expect(painel.textContent).toContain('15:30–22:00');
       expect(pagina.querySelectorAll('article').length).toBe(1);
     });
 
-    it('troca de dia pela URL', async () => {
+    it('arredonda o horário digitado, explica os erros e leva para a reserva', async () => {
+      const pagina = await abrir(laboratorio, calendarioLivre());
+      const continuar = () =>
+        [...pagina.querySelectorAll<HTMLButtonElement>('button')].find(
+          (botao) => botao.textContent?.trim() === 'Continuar',
+        )!;
+      expect(continuar().disabled).toBe(true);
+
+      digitar('inicio', '13:07');
+      digitar('fim', '14:38');
+      expect(pagina.textContent).toContain(
+        'Esse horário bate com 14:00–15:30 (Ana Souza (Direito)).',
+      );
+      expect(continuar().disabled).toBe(true);
+
+      digitar('inicio', '15:37');
+      digitar('fim', '17:52');
+      expect(pagina.textContent).toContain('Sua reserva ficará das 15:30 às 17:45.');
+      expect(continuar().disabled).toBe(false);
+
+      const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      pagina.querySelector('article form')!.dispatchEvent(new Event('submit'));
+      expect(navegar).toHaveBeenCalledWith(['/espacos', 4, 'reservar'], {
+        queryParams: { data: '2026-11-10', inicio: '15:30', fim: '17:45' },
+      });
+    });
+
+    it('troca de dia pela URL e limpa o horário digitado', async () => {
       const pagina = await abrir(laboratorio, calendarioLivre());
       const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      digitar('inicio', '08:00');
 
       pagina.querySelectorAll<HTMLButtonElement>('[aria-label="Escolha o dia"] button')[2].click();
       expect(navegar).toHaveBeenCalledWith(
@@ -340,6 +418,8 @@ describe('Calendario', () => {
       fixture.detectChanges();
       await fixture.whenStable();
       expect(pagina.querySelector('#dia-escolhido')?.textContent).toContain('Quarta-feira, 11/11');
+      expect(pagina.querySelector<HTMLInputElement>('#inicio')!.value).toBe('');
+      expect(pagina.textContent).toContain('Nenhum. O dia está todo livre.');
     });
   });
 });

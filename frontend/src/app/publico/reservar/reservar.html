@@ -58,13 +58,12 @@
     <div class="mt-6"><app-aviso-erro [mensagem]="erroDia()" /></div>
   } @else if (horarioIndisponivel()) {
     <div class="mt-6">
-      <app-aviso-erro
-        [mensagem]="
-          erro()?.mensagem ?? 'Este horário não está mais livre. Escolha outro no calendário.'
-        "
-      >
-        <a [routerLink]="['/espacos', id()]" class="font-semibold underline"
-          >Voltar ao calendário</a
+      <app-aviso-erro [mensagem]="motivoIndisponivel()">
+        <a
+          [routerLink]="['/espacos', id()]"
+          [queryParams]="voltarAoCalendario()"
+          class="font-semibold underline"
+          >Escolher outro horário</a
         >
       </app-aviso-erro>
     </div>
@@ -118,26 +117,6 @@
             >
           </p>
         </section>
-
-        @if (opcoesDeFim().length) {
-          <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 class="font-semibold text-slate-900">Até que horas?</h2>
-            <label for="fim" class="mt-1 block text-sm text-slate-600">
-              Começa às {{ escolha.inicio }}. Escolha quando termina.
-            </label>
-            <select
-              id="fim"
-              name="fim"
-              class="mt-2 rounded-lg border border-slate-300 px-3 py-2"
-              [ngModel]="escolha.fim"
-              (ngModelChange)="mudarFim($event)"
-            >
-              @for (fim of opcoesDeFim(); track fim) {
-                <option [value]="fim">{{ fim }}</option>
-              }
-            </select>
-          </section>
-        }
 
         <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
           <h2 class="flex items-center gap-2 font-semibold text-slate-900">
@@ -217,6 +196,16 @@
           <div>
             <dt class="text-slate-300">Horário</dt>
             <dd class="font-semibold">{{ faixaDeHorario() }}</dd>
+            @if (!escolha.horario) {
+              <dd>
+                <a
+                  [routerLink]="['/espacos', id()]"
+                  [queryParams]="voltarAoCalendario()"
+                  class="text-sm text-amarelo underline hover:text-white"
+                  >Alterar horário</a
+                >
+              </dd>
+            }
           </div>
           <div>
             <dt class="text-slate-300">Equipamentos</dt>

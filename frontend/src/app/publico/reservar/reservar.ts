@@ -1,4 +1,13 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -9,10 +18,20 @@ import {
   LucidePackage,
   LucidePlus,
 } from '@lucide/angular';
-import { Observable, catchError, map, of, startWith, switchMap } from 'rxjs';
+import {
+  EMPTY,
+  Observable,
+  catchError,
+  distinctUntilChanged,
+  map,
+  of,
+  startWith,
+  switchMap,
+} from 'rxjs';
 import { AvisoErro } from '../../compartilhado/aviso-erro/aviso-erro';
 import { ErroApi } from '../../nucleo/erro-api';
 import { ApiPublicaService } from '../api-publica.service';
+import { AtualizacaoDisponibilidadeService } from '../atualizacao-disponibilidade.service';
 import {
   deIso,
   ehDataIso,
@@ -22,6 +41,7 @@ import {
   segundaDaSemana,
   somarDias,
 } from '../datas';
+import { avaliarIntervalo } from '../intervalo';
 import {
   DiaNoCalendario,
   EquipamentoDisponivel,
@@ -44,12 +64,12 @@ interface Escolha {
   fim: string;
 }
 
-const HORARIOS: Horario[] = ['PRIMEIRO_HORARIO', 'SEGUNDO_HORARIO'];
-
-function minutos(hora: string): number {
-  const [h, m] = hora.split(':').map(Number);
-  return h * 60 + m;
+interface DiaCarregado {
+  dia: DiaNoCalendario;
+  bloco: number;
 }
+
+const HORARIOS: Horario[] = ['PRIMEIRO_HORARIO', 'SEGUNDO_HORARIO'];
 
 @Component({
   selector: 'app-reservar',
@@ -69,6 +89,7 @@ export class Reservar {
   private readonly api = inject(ApiPublicaService);
   private readonly router = inject(Router);
   private readonly raEmMemoria = inject(RaEmMemoriaService);
+  private readonly atualizacao = inject(AtualizacaoDisponibilidadeService);
 
   readonly id = input.required<string>();
   readonly data = input<string>();
@@ -136,19 +157,45 @@ export class Reservar {
     return dia?.tipo === 'erro' ? dia.mensagem : null;
   });
 
+  private readonly avaliacaoLivre = computed(() => {
+    const escolha = this.escolha();
+    const dia = this.dia();
+    if (!escolha || escolha.horario || dia?.tipo !== 'pronto') {
+      return null;
+    }
+    return avaliarIntervalo(
+      dia.valor.dia,
+      {
+        abre: escolha.espaco.abre_as ?? '00:00',
+        fecha: escolha.espaco.fecha_as ?? '23:59',
+        duracaoMaxima: escolha.espaco.duracao_maxima_minutos ?? 0,
+        bloco: dia.valor.bloco,
+      },
+      escolha.inicio,
+      escolha.fim,
+    );
+  });
+
   protected readonly horarioEscolhido = computed<HorarioNoCalendario | null>(() => {
     const escolha = this.escolha();
     const dia = this.dia();
-    if (!escolha || dia?.tipo !== 'pronto' || !dia.valor.reservavel) {
+    if (!escolha || dia?.tipo !== 'pronto' || !dia.valor.dia.reservavel) {
       return null;
     }
     if (escolha.horario) {
-      const horario = dia.valor.horarios.find((item) => item.horario === escolha.horario);
+      const horario = dia.valor.dia.horarios?.find((item) => item.horario === escolha.horario);
       return horario?.situacao === 'LIVRE' ? horario : null;
     }
-    const blocos = this.blocosLivresAPartirDoInicio(dia.valor, escolha);
-    return blocos.length && blocos[blocos.length - 1].fim >= escolha.fim
-      ? { ...blocos[0], fim: escolha.fim }
+    const avaliacao = this.avaliacaoLivre();
+    return avaliacao && !avaliacao.erro
+      ? {
+          horario: null,
+          inicio: avaliacao.inicio,
+          fim: avaliacao.fim,
+          situacao: 'LIVRE',
+          motivo: null,
+          reserva: null,
+        }
       : null;
   });
 
@@ -156,32 +203,41 @@ export class Reservar {
     () => this.dia()?.tipo === 'pronto' && !this.horarioEscolhido(),
   );
 
-  protected readonly opcoesDeFim = computed(() => {
-    const escolha = this.escolha();
-    const dia = this.dia();
-    if (!escolha || escolha.horario || dia?.tipo !== 'pronto') {
-      return [];
+  protected readonly motivoIndisponivel = computed(
+    () =>
+      this.erro()?.mensagem ??
+      this.avaliacaoLivre()?.erro ??
+      'Este horário não está mais livre. Escolha outro no calendário.',
+  );
+
+  protected readonly voltarAoCalendario = computed(() => {
+    const data = this.data();
+    if (!ehDataIso(data)) {
+      return {};
     }
-    const maximo = escolha.espaco.duracao_maxima_minutos ?? 0;
-    return this.blocosLivresAPartirDoInicio(dia.valor, escolha)
-      .map((bloco) => bloco.fim)
-      .filter((fim) => minutos(fim) - minutos(escolha.inicio) <= maximo);
+    return { semana: paraIso(segundaDaSemana(deIso(data))), dia: data };
   });
 
   private readonly equipamentosDoIntervalo = toSignal(
     toObservable(
       computed(() => {
         const escolha = this.escolha();
-        return escolha && !escolha.horario && this.horarioEscolhido() ? escolha : null;
+        const horario = this.horarioEscolhido();
+        return escolha && !escolha.horario && horario
+          ? `${escolha.espaco.id}|${escolha.data}|${horario.inicio}|${horario.fim}|${this.recarregar()}`
+          : null;
       }),
     ).pipe(
-      switchMap((escolha) =>
-        escolha
-          ? this.api
-              .consultarEquipamentos(escolha.espaco.id, escolha.data, escolha.inicio, escolha.fim)
-              .pipe(catchError(() => of([] as EquipamentoDisponivel[])))
-          : of(null),
-      ),
+      distinctUntilChanged(),
+      switchMap((chave) => {
+        if (!chave) {
+          return of(null);
+        }
+        const [espacoId, data, inicio, fim] = chave.split('|');
+        return this.api
+          .consultarEquipamentos(Number(espacoId), data, inicio, fim)
+          .pipe(catchError(() => of([] as EquipamentoDisponivel[])));
+      }),
     ),
     { initialValue: null },
   );
@@ -207,12 +263,22 @@ export class Reservar {
 
   protected readonly caminhoAtual = computed(() => this.router.url);
 
-  protected mudarFim(fim: string): void {
-    this.quantidades.set({});
-    this.router.navigate([], {
-      queryParams: { fim },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
+  constructor() {
+    this.atualizacao.observar(inject(DestroyRef));
+    let mudancasVistas = 0;
+    effect(() => {
+      const mudancas = this.atualizacao.versao();
+      if (mudancas === mudancasVistas) {
+        return;
+      }
+      mudancasVistas = mudancas;
+      untracked(() => {
+        const escolha = this.escolha();
+        if (escolha && !this.reservaCriada()) {
+          this.api.esquecerCalendarios(escolha.espaco.id);
+          this.recarregar.update((valor) => valor + 1);
+        }
+      });
     });
   }
 
@@ -285,40 +351,27 @@ export class Reservar {
     return Array.isArray(lista) ? lista : [];
   }
 
-  private blocosLivresAPartirDoInicio(
-    dia: DiaNoCalendario,
-    escolha: Escolha,
-  ): HorarioNoCalendario[] {
-    const blocos: HorarioNoCalendario[] = [];
-    let esperado = escolha.inicio;
-    for (const bloco of dia.horarios) {
-      if (bloco.inicio < escolha.inicio) {
-        continue;
-      }
-      if (bloco.inicio !== esperado || bloco.situacao !== 'LIVRE') {
-        break;
-      }
-      blocos.push(bloco);
-      esperado = bloco.fim;
-    }
-    return blocos;
-  }
-
-  private carregarDia(escolha: Escolha): Observable<Situacao<DiaNoCalendario>> {
+  private carregarDia(escolha: Escolha): Observable<Situacao<DiaCarregado>> {
     const segunda = segundaDaSemana(deIso(escolha.data));
-    return this.api
+    const atual = untracked(() => this.dia());
+    const silencioso = atual?.tipo === 'pronto' && atual.valor.dia.data === escolha.data;
+    const resultado = this.api
       .consultarCalendario(escolha.espaco.id, paraIso(segunda), paraIso(somarDias(segunda, 4)))
       .pipe(
-        map((calendario): Situacao<DiaNoCalendario> => {
+        map((calendario): Situacao<DiaCarregado> => {
           const dia = calendario.dias.find((item) => item.data === escolha.data);
           return dia
-            ? { tipo: 'pronto', valor: dia }
+            ? { tipo: 'pronto', valor: { dia, bloco: calendario.espaco.bloco_minutos ?? 15 } }
             : { tipo: 'erro', mensagem: 'Essa data não aceita reservas.' };
         }),
         catchError((erro: ErroApi) =>
-          of<Situacao<DiaNoCalendario>>({ tipo: 'erro', mensagem: erro.mensagem }),
+          silencioso
+            ? EMPTY
+            : of<Situacao<DiaCarregado>>({ tipo: 'erro', mensagem: erro.mensagem }),
         ),
-        startWith<Situacao<DiaNoCalendario>>({ tipo: 'carregando' }),
       );
+    return silencioso
+      ? resultado
+      : resultado.pipe(startWith<Situacao<DiaCarregado>>({ tipo: 'carregando' }));
   }
 }
