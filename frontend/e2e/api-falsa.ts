@@ -22,6 +22,7 @@ export const datas = {
   tercaSeguinte: paraIso(somarDias(segundaSeguinte, 1)),
   quartaSeguinte: paraIso(somarDias(segundaSeguinte, 2)),
   reservasAte: paraIso(somarDias(hoje, 14)),
+  calendarioAte: paraIso(somarDias(hoje, 60)),
 };
 
 export function tituloDaSemana(segunda: string): string {
@@ -61,8 +62,8 @@ function horarioFixo(data: string, horario: string, inicio: string, fim: string)
     horario,
     inicio,
     fim,
-    situacao: ocupado ? 'RESERVADO' : 'LIVRE',
-    motivo: null,
+    situacao: ocupado ? 'RESERVADO' : data > datas.reservasAte ? 'INDISPONIVEL' : 'LIVRE',
+    motivo: data > datas.reservasAte ? 'Ainda não abriu.' : null,
     reserva: ocupado
       ? {
           id: 9,
@@ -82,13 +83,20 @@ function calendarioFixo(de: string) {
     de,
     ate: dias[4],
     reservas_ate: datas.reservasAte,
+    calendario_ate: datas.calendarioAte,
     curso: null,
     dias: dias.map((data) => {
       const reservavel = data > datas.hoje && data <= datas.reservasAte && ehDiaUtil(data);
+      const abreEm = data > datas.reservasAte ? paraIso(somarDias(deIso(data), -14)) : null;
       return {
         data,
         reservavel,
-        motivo: reservavel ? null : 'Fora do período de reservas.',
+        motivo: reservavel
+          ? null
+          : abreEm
+            ? `Abre para reserva em ${formatarDiaCurto(abreEm)}.`
+            : 'Fora do período de reservas.',
+        abre_em: abreEm,
         horarios: [
           horarioFixo(data, 'PRIMEIRO_HORARIO', '19:00', '20:30'),
           horarioFixo(data, 'SEGUNDO_HORARIO', '20:30', '22:00'),
@@ -105,13 +113,20 @@ function calendarioLivre(de: string) {
     de,
     ate: dias[4],
     reservas_ate: datas.reservasAte,
+    calendario_ate: datas.calendarioAte,
     curso: null,
     dias: dias.map((data) => {
       const reservavel = data > datas.hoje && data <= datas.reservasAte && ehDiaUtil(data);
+      const abreEm = data > datas.reservasAte ? paraIso(somarDias(deIso(data), -14)) : null;
       return {
         data,
         reservavel,
-        motivo: reservavel ? null : 'Fora do período de reservas.',
+        motivo: reservavel
+          ? null
+          : abreEm
+            ? `Abre para reserva em ${formatarDiaCurto(abreEm)}.`
+            : 'Fora do período de reservas.',
+        abre_em: abreEm,
         fim_minimo: null,
         ocupados:
           data === datas.tercaSeguinte

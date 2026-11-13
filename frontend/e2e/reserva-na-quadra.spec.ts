@@ -79,3 +79,20 @@ test('o aluno sem cadastro se cadastra e volta para a reserva com o RA preenchid
   await expect(page).toHaveURL(endereco);
   await expect(page.locator('#ra')).toHaveValue('2024000002');
 });
+
+test('o aluno navega até semanas que ainda não abriram e vê o que já está marcado', async ({
+  page,
+}) => {
+  await prepararApi(page);
+  await page.goto('/espacos/1');
+
+  const seletor = page.getByLabel('Ir para a semana');
+  const ultima = await seletor.locator('option').last().getAttribute('value');
+  await seletor.selectOption(ultima!);
+
+  await expect(page.getByRole('heading', { name: tituloDaSemana(ultima!) })).toBeVisible();
+  await expect(page.getByText(/Abre para reserva em/).first()).toBeVisible();
+  await expect(page.getByText('Livre · ainda não abriu').first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Reservar / })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Próxima semana' })).toBeDisabled();
+});
