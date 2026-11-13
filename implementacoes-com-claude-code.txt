@@ -2338,3 +2338,37 @@ README.md: frase antiga ("até o front existir, o link do email não abre págin
   descrição das páginas do 11.3.
 DATABASE.md: "Mudanças planejadas" com grade de aulas (12), origem da reserva (12b), situação do
   item para a solicitação (11.2f) e responsável do cliente de API (13); saíram as já feitas.
+
+
+========================================================================
+56. CALENDÁRIO PÚBLICO SEM QUEM RESERVOU (LGPD) E PASSO 12 APROVADO (13/11/2026)
+========================================================================
+Pedido do usuário: com uma captura do calendário mostrando "Eric · TI", pediu que nome e curso
+de quem reservou só fossem visíveis para os admins. Também aprovou o passo 12 com ajustes, pediu
+para discutir a reimportação, perguntou como enviar emails de verdade e pediu que o admin
+diferencie reserva e reserva confirmada (11.5).
+
+app/Services/DisponibilidadeService.php
+  - montarReserva devolve só id, tipo e descricao (a descricao só nos eventos; reservas de aluno
+    vêm com descricao null). O reservado_por (nome e curso do aluno, ou nome do admin) saiu.
+  - reservasDoPeriodo carrega só aluno:id,curso_id (usado no "do_curso" da consulta pelo RA), em
+    vez de aluno.curso e criador: menos dados lidos e duas consultas a menos por semana.
+
+tests/Feature/DisponibilidadeTest.php e HorarioLivreTest.php
+  - conferem que a resposta não traz reservado_por nem o nome, o curso, o RA e o email do aluno, e
+    que o evento traz a descrição sem o nome do admin.
+
+frontend/src/app/publico/modelos.ts: ReservaNoCalendario sem reservado_por.
+frontend/src/app/publico/intervalo.ts: descreverOcupacao devolve "Reservado" para reservas de aluno.
+frontend/src/app/publico/calendario/calendario.html: o cartão do horário mostra só a situação e,
+  nos eventos, a descrição.
+frontend specs e e2e (api-falsa.ts, reserva-na-quadra, reserva-no-laboratorio): sem nomes; a
+  quadra confere que "Ana Souza" não aparece.
+
+Contagem dos testes do front corrigida nos guias: 115 (o "124" anotado antes estava errado).
+
+Documentação: CLAUDE.md (regra de LGPD das rotas públicas ampliada), CHECKLIST (passo 12
+aprovado com ajustes, recomendação da reimportação, pedidos para o 11.5, Trilha e Onde paramos),
+README (decisão substituída, endpoints, testes, ideias para depois, "Enviar emails de verdade
+(teste local)"), DATABASE (mudança planejada da grade detalhada).
+

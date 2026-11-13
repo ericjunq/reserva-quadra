@@ -94,7 +94,7 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - Respostas enxutas: não devolver relações nem listas que o front não precisa (ex.: calendário LIVRE sem equipamentos por bloco).
 
 ### LGPD (ver "Prioridades permanentes"; vale para o sistema todo)
-- Coletar e expor só o necessário. **Rotas públicas nunca mostram RA nem email.**
+- Coletar e expor só o necessário. **Rotas públicas nunca mostram RA, email, nem nome e curso de quem reservou** (decisão de 13/11/2026: quem reservou só aparece para os admins; o público vê "Reservado" e, nos eventos, a descrição).
 - Consultar dados pessoais exige mais de um identificador: **RA + email**.
 - Dados pessoais nunca vão em URL (usar POST) nem em log.
 - Os dados do aluno podem ser **anonimizados** a pedido, inclusive no histórico de auditoria.

@@ -242,7 +242,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/nucleo/` | Peças usadas pelo app inteiro: `SessaoService` (token do admin no `sessionStorage`), `interceptorApi` (cabeçalhos e erros) e `erro-api.ts` (formato único de erro) |
 | `app/publico/` | Área do aluno: `LayoutPublico` (identidade esportiva), páginas e `publico.routes.ts`; `ApiPublicaService` (chamadas da área pública), `RaEmMemoriaService`, `modelos.ts` (formato das respostas), `datas.ts` e `textos.ts` |
 | `app/publico/inicio/` | `/`: espaços ativos em cartões, com filtro por tipo, horário e limite por curso |
-| `app/publico/calendario/` | `/espacos/:id?semana=&dia=`: horário fixo em 5 colunas (dias empilhados no celular); horário livre com a escolha do dia (botões com "N livres") e a grade compacta do dia escolhido, mais as reservas do dia; quem reservou, motivo dos dias fechados e, na quadra, o limite do curso pelo RA |
+| `app/publico/calendario/` | `/espacos/:id?semana=&dia=`: horário fixo em 5 colunas (dias empilhados no celular); horário livre com a escolha do dia (botões com "N livres") e a grade compacta do dia escolhido, mais as reservas do dia; "Reservado" sem identificar quem (LGPD, 13/11), motivo dos dias fechados e, na quadra, o limite do curso pelo RA |
 | `app/publico/reservar/` | `/espacos/:id/reservar?data=&horario=` (fixo) ou `?data=&inicio=&fim=` (livre): RA, fim do intervalo (livre), equipamentos, resumo lateral e a tela de sucesso com o próximo email |
 | `app/publico/minhas-reservas/` | `/minhas-reservas?pagina=`: RA + email no corpo do POST, só na memória da tela; reservas futuras ou todas, com status, confirmação, revogação e devolução; páginas anterior/próxima repetem o POST |
 | `app/publico/link-reserva/` | `/reservas/confirmar/:token` e `/reservas/cancelar/:token` (um componente, modo pela rota): lê o token e o tira da barra de endereço; confirmar mostra os termos e exige "Li e aceito" na primeira confirmação; cancelar faz o POST |
@@ -265,7 +265,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
   - **Data e horário na URL** (*query params*), para voltar ou recarregar sem perder a escolha. RA e email nunca vão na URL.
   - **RA só na memória da aba** (`RaEmMemoriaService`): digitado no calendário, já vem preenchido na reserva; some ao recarregar a página e depois de reservar. Campos de RA, nome e email com `autocomplete="off"` (computadores compartilhados).
   - **Limite do curso só na quadra** (espaços com `limite_semanal_por_curso`), pela rota `POST .../disponibilidade/curso`. Em salas e laboratórios o RA só é pedido na reserva.
-  - **Horário livre (11.2b):** o aluno escolhe o dia e vê a janela do espaço, os **horários ocupados** (com nome e curso, eventos e bloqueios) e os **horários livres**; digita **início e fim** e a tela mostra na hora como vai ficar com o arredondamento de 15 min (mesmo cálculo da API, em `intervalo.ts`) ou o motivo da recusa (fora da janela, mais que a duração máxima, conflito com um ocupado, hoje antes do mínimo). "Continuar" leva à reserva com o intervalo já arredondado; lá, "Alterar horário" volta ao dia. Os equipamentos do intervalo vêm de `/equipamentos/disponibilidade`.
+  - **Horário livre (11.2b):** o aluno escolhe o dia e vê a janela do espaço, os **horários ocupados** ("Reservado", eventos e bloqueios; sem nome e curso desde 13/11) e os **horários livres**; digita **início e fim** e a tela mostra na hora como vai ficar com o arredondamento de 15 min (mesmo cálculo da API, em `intervalo.ts`) ou o motivo da recusa (fora da janela, mais que a duração máxima, conflito com um ocupado, hoje antes do mínimo). "Continuar" leva à reserva com o intervalo já arredondado; lá, "Alterar horário" volta ao dia. Os equipamentos do intervalo vêm de `/equipamentos/disponibilidade`.
   - **Dados sempre atualizados sem pesar:** enquanto o calendário ou a reserva estão abertos e visíveis, o front consulta `GET /api/disponibilidade/versao` a cada 15 s (resposta de poucos bytes, uma leitura de cache na API) e também na hora em que o aluno volta para a aba; só quando a versão muda ele baixa a semana de novo, em segundo plano, sem piscar a tela. Com a aba escondida, para de consultar.
   - **Situações novas** da API (ex.: "aula", do passo 12) aparecem como "Indisponível", com o motivo, sem precisar mudar o front.
   - **Cadastro:** o `voltar` só aceita caminhos do próprio site (começando com `/`, sem `//` nem `\`), para o link não poder mandar o aluno para outro site.
@@ -359,8 +359,8 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 - `reservas_ate`: último dia que aceita reservas de alunos (10 dias úteis à frente).
 - `calendario_ate` (11.2e): último dia que o calendário mostra — o **fim do semestre letivo** (jan–jun, jul–dez), com no mínimo 4 semanas a partir de hoje. Consultas que começam depois dele recebem 422 ("O calendário mostra os dias até dd/mm/aaaa (fim do semestre)."); um `ate` depois dele é cortado nele.
 - Cada dia tem `reservavel`, `motivo` (data passada, fim de semana, bloqueio do dia inteiro ou "Abre para reserva em dd/mm/aaaa.") e **`abre_em`**: a data em que o dia passa a aceitar reservas (dia − 10 dias úteis), só quando ele está fechado **apenas** porque ainda não abriu (com bloqueio do dia inteiro, vem `null` e o motivo é o do bloqueio). Os ocupados (reservas, eventos, bloqueios) aparecem normalmente nesses dias; depois dos 10 dias úteis não existem reservas de alunos, então só aparecem eventos e bloqueios.
-- Cada horário tem `situacao`: `LIVRE`, `RESERVADO`, `EVENTO`, `BLOQUEADO`, `INDISPONIVEL` (o dia não aceita reservas) ou `ENCERRADO` (horário de hoje passou do limite). Também traz `motivo`, `reserva` (com `reservado_por`: nome e curso do aluno, ou nome do admin; RA e email nunca aparecem) e `equipamentos` (`total` e `disponivel` naquele horário, incluindo os compartilhados com o espaço).
-- **Espaços LIVRE:** `espaco` traz `modo_horario`, `abre_as`, `fecha_as`, `duracao_maxima_minutos` e `bloco_minutos` (o passo do arredondamento, 15). Cada dia traz `reservavel`, `motivo`, **`ocupados`** (lista de `inicio`, `fim`, `situacao` = `RESERVADO`, `EVENTO` ou `BLOQUEADO`, `motivo` e `reserva` com quem reservou) e, só para hoje, **`fim_minimo`** (o primeiro fim aceito hoje, já arredondado; se passar do fechamento, o dia vem fechado com "Os horários de hoje já foram encerrados."). Não há mais blocos nem `horarios` no horário livre: a resposta fica pequena e o front monta o resto. Equipamentos do intervalo escolhido: `/equipamentos/disponibilidade`.
+- Cada horário tem `situacao`: `LIVRE`, `RESERVADO`, `EVENTO`, `BLOQUEADO`, `INDISPONIVEL` (o dia não aceita reservas) ou `ENCERRADO` (horário de hoje passou do limite). Também traz `motivo`, `reserva` (`id`, `tipo` e, só nos eventos, `descricao`; desde 13/11/2026 **não identifica quem reservou**: nome, curso, RA e email ficam só para os admins) e `equipamentos` (`total` e `disponivel` naquele horário, incluindo os compartilhados com o espaço).
+- **Espaços LIVRE:** `espaco` traz `modo_horario`, `abre_as`, `fecha_as`, `duracao_maxima_minutos` e `bloco_minutos` (o passo do arredondamento, 15). Cada dia traz `reservavel`, `motivo`, **`ocupados`** (lista de `inicio`, `fim`, `situacao` = `RESERVADO`, `EVENTO` ou `BLOQUEADO`, `motivo` e `reserva`, sem quem reservou) e, só para hoje, **`fim_minimo`** (o primeiro fim aceito hoje, já arredondado; se passar do fechamento, o dia vem fechado com "Os horários de hoje já foram encerrados."). Não há mais blocos nem `horarios` no horário livre: a resposta fica pequena e o front monta o resto. Equipamentos do intervalo escolhido: `/equipamentos/disponibilidade`.
 
 
 **Exemplo de reserva:**
@@ -577,7 +577,7 @@ POST /api/admin/reservas/15/devolucao
 
 ### LGPD
 
-- **Rotas públicas** nunca mostram RA nem email; o calendário mostra só nome e curso de quem reservou.
+- **Rotas públicas** nunca mostram RA, email, nem nome e curso de quem reservou (decisão de 13/11/2026; antes mostravam nome e curso). O público vê "Reservado"; quem reservou, só os admins.
 - **RA nunca na URL:** a consulta do limite do curso pelo RA é um `POST` com o RA no corpo (`/disponibilidade/curso`), com 20 por minuto, só em espaços com limite por curso, e sem o nome do curso na resposta.
 - **Consulta das próprias reservas** (`POST /api/minhas-reservas`): exige RA **e** email do mesmo aluno (email sem diferenciar maiúsculas), enviados no **corpo** da requisição, nunca na URL. Dados errados recebem sempre `404` com a mesma mensagem ("Não encontramos reservas para esses dados."), sem revelar se o RA existe. Aluno inativo consulta o próprio histórico; aluno anonimizado não aparece. A resposta não traz RA, email nem auditoria.
   - `periodo`: `FUTURAS` (padrão; de hoje em diante, ordem crescente, todos os status) ou `TODAS` (ordem decrescente). Paginada (`per_page` na URL).
@@ -651,7 +651,8 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Números do negócio em `config/reservas.php` | Mudar 10 dias úteis, 20 minutos ou 2 dias sem mexer no código |
 | Antecedência em **dias úteis** | Com dias corridos, quem reservava na sexta só alcançava 5 dias úteis; contando dias úteis, a janela é a mesma qualquer dia da semana. Feriados contam como dia útil na contagem e aparecem no calendário como bloqueados: a janela fica previsível e não muda quando um bloqueio é cadastrado. Prazo de 10 dias úteis |
 | Disponibilidade como **calendário** (até 31 dias) | O front navega por semanas/meses; reservas continuam limitadas a 10 dias úteis, e os dias fora da janela vêm com o motivo |
-| Consulta mostra **quem reservou** (nome e curso) | Facilita o mapeamento do uso. Por ser pública, não mostra RA nem email (LGPD) |
+| ~~Consulta mostra **quem reservou** (nome e curso)~~ (substituída em 13/11/2026) | Facilitava o mapeamento do uso |
+| Calendário público **não identifica quem reservou**; só os admins veem nome e curso | Pedido do usuário (13/11): mínima exposição (LGPD); para o aluno basta saber que o horário está ocupado |
 | Consulta com RA ou curso **não filtra** as reservas | Mostra o espaço inteiro e apenas aponta o limite e a disponibilidade do curso |
 | Mensagem do limite semanal sem o nome do curso | Quem digitasse um RA alheio descobria o curso dele quando o limite estourava (achado no 11.2, aprovado pelo usuário em 10/11/2026) |
 | Orçamento do front: aviso 350 kB, erro 500 kB | A base do Angular (núcleo, router, rxjs) já ocupa ~275 kB do pacote inicial; o limite de 300 kB seria ultrapassado sem código nosso (aprovado em 10/11/2026) |
@@ -773,7 +774,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `AuditoriaTest` | Colunas e histórico na criação, alteração, desativação e exclusão; ações públicas sem admin; revogação; alteração sem mudança; auditoria só nas rotas do admin; histórico após remover o admin |
 | `ExportacaoReservasTest` | Login, colunas obrigatórias, opcionais e todas, responsável em eventos, período e atalhos, filtros, mais de um lote, proteção contra fórmulas, validações |
 | `ListagemReservasTest` | Login obrigatório, padrão de hoje em diante, ordem, cada filtro e combinações, dados do aluno/espaço/equipamentos/revogação, totais por status, paginação, consultas sem N+1, validações |
-| `DisponibilidadeTest` | Situações dos horários, quem reservou sem RA/email, bloqueios, motivos do calendário, equipamentos por horário, dados do curso por `curso_id`, consulta com RA só por POST (sem id/nome do curso, só em espaço com limite, RA inexistente ou inativo com a mesma mensagem, espaço inativo), `GET` ignorando o RA, validações |
+| `DisponibilidadeTest` | Situações dos horários, reserva sem identificar quem reservou (sem nome, curso, RA e email), bloqueios, motivos do calendário, equipamentos por horário, dados do curso por `curso_id`, consulta com RA só por POST (sem id/nome do curso, só em espaço com limite, RA inexistente ou inativo com a mesma mensagem, espaço inativo), `GET` ignorando o RA, validações |
 | `TraducaoTest` | Mensagens de validação em português com o nome do campo |
 | `SegurancaHttpTest` | CORS só para o front, cabeçalhos de segurança, HSTS só por HTTPS |
 | `AlertaTest` | Destinatários (admins ativos e `ALERTAS_EMAIL`), sem dados pessoais, limite de 1 por hora, toda tarefa agendada com alerta |
@@ -804,7 +805,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `publico/inicio/inicio.spec.ts` | Cartões com horário, limite e link; filtro por tipo; erro com "tentar de novo" |
 | `publico/intervalo.spec.ts` | Arredondamento igual ao da API, intervalo aceito com os horários finais, cada motivo de recusa, horários livres do dia, duração legível |
 | `publico/atualizacao-disponibilidade.service.spec.ts` | Consulta da versão ao abrir e a cada 15 s, aviso só quando muda, para ao sair da tela, sem acumular consultas |
-| `publico/calendario/calendario.spec.ts` | Recarga em segundo plano quando a versão muda. Horário livre: botões dos dias com as horas livres, janela, ocupados e livres do dia, arredondamento ao digitar com o erro de conflito, "Continuar" para a reserva, troca de dia limpando o horário, início pela lista de livres e duração em botões (o fim é apagado quando não cabe no novo início), toque na barra do dia, hora digitada de outros jeitos e início ocupado. Semana de segunda a sexta com links de reserva, quem reservou, dias fechados, situação desconhecida, RA só em espaço com limite, consulta do limite por POST e RA só na memória, RA inexistente, formato do RA, sem voltar para semanas passadas |
+| `publico/calendario/calendario.spec.ts` | Recarga em segundo plano quando a versão muda. Horário livre: botões dos dias com as horas livres, janela, ocupados e livres do dia, arredondamento ao digitar com o erro de conflito, "Continuar" para a reserva, troca de dia limpando o horário, início pela lista de livres e duração em botões (o fim é apagado quando não cabe no novo início), toque na barra do dia, hora digitada de outros jeitos e início ocupado. Semana de segunda a sexta com links de reserva, "Reservado" sem nome e curso, dias fechados, situação desconhecida, RA só em espaço com limite, consulta do limite por POST e RA só na memória, RA inexistente, formato do RA, sem voltar para semanas passadas |
 | `admin/acesso/acesso.spec.ts`, `regras-senha.spec.ts` | Guardas (volta com o caminho, passa com login, quem já entrou não vê o login), service (sessão no login, `/me` uma vez, sair apaga mesmo com erro), entrar (volta só para caminho interno, erro genérico, aviso de sessão), esqueci (resposta genérica), convite (token fora do endereço, regras, corpo enviado), sem token, minha conta (troca de senha e sair de todos), layout (sessão acabou x sair) |
 | `e2e/acesso-admin.spec.ts` | No navegador: login com erro e certo voltando à página pedida, painel, sair e rota protegida; senha nova pelo link do email (token fora da URL, corpo enviado) |
 | `publico/minhas-reservas/minhas-reservas.spec.ts` | POST com RA e email no corpo, situação de cada reserva (confirmação, revogação, devolução, aviso de cancelar pelo email), mensagem genérica, formato sem chamar a API, paginação repetindo o POST, limpar |
@@ -901,6 +902,8 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 
 - **Solicitação de equipamento pelo aluno (11.2f, aprovada em 13/11/2026):** por padrão um equipamento só aparece no próprio espaço; o admin escolhe com quais espaços ele é compartilhado (11.2c); para os outros, o aluno pode pedir o item na reserva, o admin aprova ou recusa e o aluno recebe email. Perguntas em aberto (itens que aceitam pedido, se o pedido segura a quantidade, prazo de resposta) e recomendações no passo 11 do CHECKLIST.
 - **Registro de uso posterior pelo admin (12b, aprovado em 13/11/2026):** só o admin registra uma reserva que está acontecendo ou já aconteceu (até 30 dias), sem confirmação e sem as regras de antecedência, conferindo conflitos; email ao aluno; **marcação e cor próprias de "registro posterior"** nas telas do admin e coluna "Origem" na exportação.
+- **Grade de aulas (passo 12, aprovado em 13/11/2026 com ajustes):** importação CSV/XLSX com prévia; aula como ocupação semanal com vigência; aula tem prioridade (reserva de aluno no horário é revogada com email); erro na linha que tenta usar horário já ocupado; **reimportação em discussão** (recomendação: grade com nome, substituir só a escolhida, cortando a vigência dela no dia anterior ao início da nova, sem apagar). Detalhes no passo 12 do CHECKLIST.
+- **Admin: reserva x reserva confirmada (para o 11.5, pedido de 13/11/2026):** selo com cor por situação da confirmação e filtro; calendário do admin com quem reservou.
 - **Calendário até o fim do semestre (11.2e, aprovado em 13/11/2026):** semestres jan–jun e jul–dez, mínimo de 4 semanas, seletor de semana, limite também na API e "Abre para reserva em dd/mm"; a reserva continua limitada a 10 dias úteis.
 
 - **Monitor externo da API:** um serviço gratuito (UptimeRobot ou Healthchecks.io) consulta `GET /up` a cada poucos minutos e avisa por outro canal (app, SMS, Telegram) quando a API não responde. Cobre o caso em que o próprio serviço de email cai e os alertas por email não saem. É configurado fora do código, na hora do deploy.
@@ -922,6 +925,27 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 | Alerta do sistema | Admins ativos e `ALERTAS_EMAIL` | Tarefa agendada ou job que falhou (máx. 1 por hora por problema) | ✅ Pronto (enviado na hora, sem fila) |
 
 Todos, menos o alerta, vão pela fila (`php artisan queue:work`). Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
+
+#### Enviar emails de verdade (teste local)
+
+Para testar a confirmação recebendo o email numa caixa real (explicado ao usuário em 13/11/2026):
+
+1. **Gmail com senha de app** (entrega de verdade): na conta Google, ativar a verificação em duas etapas e criar uma **senha de app** (Conta Google → Segurança → Senhas de app). No `.env`:
+   ```env
+   MAIL_MAILER=smtp
+   MAIL_SCHEME=null
+   MAIL_HOST=smtp.gmail.com
+   MAIL_PORT=587
+   MAIL_USERNAME=sua.conta@gmail.com
+   MAIL_PASSWORD="senha de app de 16 letras"
+   MAIL_FROM_ADDRESS=sua.conta@gmail.com
+   FRONTEND_URL=http://localhost:4200
+   ```
+   Alternativa sem entregar a ninguém: **Mailtrap** (caixa de teste que captura tudo), com o host, a porta, o usuário e a senha que o painel dele mostra.
+2. `php artisan config:clear` e **reiniciar** o `php artisan queue:work` (o worker guarda a configuração antiga enquanto roda). Sem o worker rodando, os emails ficam parados na fila.
+3. Cadastrar um aluno com um email seu, reservar pelo front e abrir o link do email (o link aponta para `FRONTEND_URL`).
+
+LGPD e segurança: a senha fica só no `.env` (fora do git); testar só com emails próprios; voltar a `MAIL_MAILER=log` quando terminar, se quiser. Limite do Gmail: cerca de 500 emails por dia, suficiente para teste e insuficiente para produção (lá, SMTP da faculdade ou serviço transacional com SPF e DKIM, ver `DEPLOY.md`).
 
 ### Melhorias anotadas para quando o volume justificar
 

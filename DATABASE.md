@@ -303,6 +303,6 @@ O token puro (64 caracteres aleatórios) só existe no email. O banco guarda o S
 | Mudança | Para quê |
 |---|---|
 | Clientes de API (passo 13) | Terceiros autorizados, com permissões por cliente e um **responsável** cadastrado (organização, pessoa, email) que aceita os termos de uso da API (versão guardada) |
-| Grade de aulas (passo 12) | Ocupação semanal recorrente por espaço (dia da semana, início, fim, vigência, descrição curta), sem professores nem alunos; código do espaço para a importação; índice por espaço e dia da semana |
+| Grade de aulas (passo 12, aprovado em 13/11/2026; reimportação em discussão) | `aulas` (espaço, dia da semana, início, fim, descrição curta, importação), sem professores nem alunos, índice `(espaco_id, dia_semana)`; `grade_importacoes` (nome, vigência, totais, quem importou, substituída por); `espacos.codigo` para reconhecer o espaço na importação. Recomendação: vigência guardada só na importação; reimportar corta a vigência da grade substituída, sem apagar |
 | Registro de uso posterior (12b) | Origem da reserva gravada na criação (ex.: `origem` = SITE, ADMIN, REGISTRO_POSTERIOR), para a marcação e a cor próprias nas telas do admin e a coluna na exportação |
 | Solicitação de equipamento (11.2f) | Situação do item da reserva (ex.: aguardando aprovação, aprovado, recusado) e, talvez, a marca "aceita solicitação" no equipamento; detalhes em aberto |
