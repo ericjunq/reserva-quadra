@@ -2092,3 +2092,22 @@ Testes
 Guias: decisões do 11.2c (admins habilitam o compartilhamento), resposta do 11.2e (fim do
 semestre), passo 12b novo (registro de uso pelo admin), responsável por sistema no passo 13 e a
 ordem recomendada dos passos.
+
+========================================================================
+50. DECISÕES DE 13/11: SOLICITAÇÃO DE EQUIPAMENTO, SEMESTRE E REGISTRO POSTERIOR (documentação)
+========================================================================
+
+Nenhum código. Decisões do usuário registradas para os próximos chats:
+1. Equipamentos: por padrão só no próprio espaço; o admin habilita compartilhamento e
+   visualização com os espaços escolhidos (11.2c); o aluno também pode SOLICITAR itens não
+   compartilhados (novo 11.2f: pedido aguardando aprovação do admin, email com o resultado;
+   perguntas em aberto e recomendações no CHECKLIST).
+2. Calendário até o fim do semestre letivo (jan–jun, jul–dez), mínimo de 4 semanas, seletor de
+   semana, limite também na API (calendario_ate) e "Abre para reserva em dd/mm" (abre_em); a
+   reserva continua limitada a 10 dias úteis (11.2e).
+3. Registro de uso posterior pelo admin (12b) aprovado, com email ao aluno e com marcação/cor
+   própria de "registro posterior" (origem gravada na reserva; selo nas telas do admin; coluna
+   na exportação; no calendário público aparece como ocupado normal).
+Arquivos: CHECKLIST.md (11.2c, 11.2e, 11.2f novo, 12b, Onde paramos, Trilha), README.md (Próximos
+passos com a ordem recomendada, Ideias registradas para depois, decisões), CLAUDE.md (regra de
+registros descritivos).
