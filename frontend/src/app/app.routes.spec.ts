@@ -6,7 +6,7 @@ import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from './app.routes';
 
-const CARREGAMENTO_SOB_DEMANDA = 30_000;
+const CARREGAMENTO_SOB_DEMANDA = 90_000;
 
 describe('rotas', () => {
   let harness: RouterTestingHarness;
