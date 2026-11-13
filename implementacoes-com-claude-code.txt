@@ -2060,3 +2060,35 @@ Testes
     barra com a escolha desenhada, hora digitada de outros jeitos e início ocupado.
   - e2e/reserva-no-laboratorio.spec.ts: fluxo novo no computador e no celular (lista, duração,
     barra, reserva com 07:00 às 08:30).
+
+========================================================================
+49. CORREÇÃO DA LISTA DE HORÁRIOS (11.2d) E DISCUSSÕES DE 13/11
+========================================================================
+
+Defeito relatado pelo usuário: ao clicar na setinha do início, só aparecia o horário já escolhido.
+Causa: o <datalist> do navegador filtra as sugestões pelo texto que está no campo.
+
+frontend/src/app/compartilhado/campo-horario/campo-horario.ts (novo)
+  - Combobox próprio: input type="text" (role="combobox", aria-expanded, aria-controls,
+    aria-activedescendant) + botão com seta (tabindex -1; mousedown sem tirar o foco do campo) +
+    <ul role="listbox"> com todas as opções.
+  - Ao abrir, destaca a opção igual ou logo depois do valor digitado e rola até ela
+    (afterNextRender + scrollIntoView). Setas movem, Enter escolhe (sem enviar o formulário),
+    Esc fecha; sair do campo fecha (focusout com relatedTarget fora do componente).
+  - valor é um model() (digitar atualiza o pai); escolher uma opção emite "escolhido", que o
+    calendário usa para apagar o fim quando ele não cabe no novo início.
+frontend/src/app/publico/calendario/calendario.html/ts
+  - Início e fim usam <app-campo-horario> no lugar de input + datalist. Legenda da barra:
+    "Ocupado ou encerrado" (o cinza também marca os horários já passados de hoje).
+Testes
+  - campo-horario.spec.ts: lista completa com valor escolhido, clique, teclado, digitação, vazio.
+  - calendario.spec.ts: contagem das opções pela lista aberta.
+  - e2e: novo teste da lista (54 inícios, 10:45 marcado, clique em 16:00, fim pelo teclado);
+    campos buscados pelo papel combobox (o nome do botão "Mostrar os horários de início" também
+    casava com getByLabel('Início')).
+  - app.routes.spec.ts: tempo limite do carregamento sob demanda de 30 para 90 s; neste PC o teste
+    falhava no conjunto mesmo sem a mudança (lentidão do import das telas, não defeito).
+
+Guias: decisões do 11.2c (admins habilitam o compartilhamento), resposta do 11.2e (fim do
+semestre), passo 12b novo (registro de uso pelo admin), responsável por sistema no passo 13 e a
+ordem recomendada dos passos.
