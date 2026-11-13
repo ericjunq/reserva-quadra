@@ -247,7 +247,7 @@ class HorarioLivreTest extends TestCase
             [['09:00', '10:00', 'BLOQUEADO', 'Manutenção'], ['14:00', '15:30', 'RESERVADO', null]],
             collect($resposta->json('data.dias.0.ocupados'))->map(fn ($o) => [$o['inicio'], $o['fim'], $o['situacao'], $o['motivo']])->all(),
         );
-        $this->assertArrayHasKey('nome', $resposta->json('data.dias.0.ocupados.1.reserva.reservado_por'));
+        $this->assertArrayNotHasKey('reservado_por', $resposta->json('data.dias.0.ocupados.1.reserva'));
         $this->assertStringNotContainsString('registro_academico', $resposta->getContent());
     }
 

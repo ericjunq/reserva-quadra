@@ -206,12 +206,9 @@ class DisponibilidadeService
     private function montarReserva(Reserva $reserva, ?Curso $curso): array
     {
         $dados = [
-            'id'            => $reserva->id,
-            'tipo'          => $reserva->tipo,
-            'descricao'     => $reserva->descricao,
-            'reservado_por' => $reserva->aluno
-                ? ['tipo' => 'ALUNO', 'nome' => $reserva->aluno->nome_completo, 'curso' => $reserva->aluno->curso?->nome]
-                : ['tipo' => 'ADMIN', 'nome' => $reserva->criador?->name, 'curso' => null],
+            'id'        => $reserva->id,
+            'tipo'      => $reserva->tipo,
+            'descricao' => $reserva->tipo === TipoReservaConstant::EVENTO ? $reserva->descricao : null,
         ];
 
         if ($curso) {
@@ -236,7 +233,7 @@ class DisponibilidadeService
 
     private function reservasDoPeriodo(Espaco $espaco, string $de, string $ate): Collection
     {
-        return Reserva::with(['aluno.curso', 'criador'])
+        return Reserva::with('aluno:id,curso_id')
             ->where('espaco_id', $espaco->id)
             ->where('status', StatusConstant::RESERVADO)
             ->whereBetween('data_reserva', [$de, $ate])

@@ -46,7 +46,7 @@ class DisponibilidadeTest extends TestCase
         ]);
     }
 
-    public function test_mostra_horario_livre_e_reservado_com_quem_reservou(): void
+    public function test_mostra_horario_livre_e_reservado_sem_identificar_quem_reservou(): void
     {
         $aluno = Aluno::factory()->create(['nome_completo' => 'Maria Souza']);
         $this->reservar('2026-11-10', $aluno);
@@ -55,17 +55,18 @@ class DisponibilidadeTest extends TestCase
             ->assertJsonCount(1, 'data.dias')
             ->assertJsonPath('data.dias.0.reservavel', true)
             ->assertJsonPath('data.dias.0.horarios.0.situacao', 'RESERVADO')
-            ->assertJsonPath('data.dias.0.horarios.0.reserva.reservado_por.tipo', 'ALUNO')
-            ->assertJsonPath('data.dias.0.horarios.0.reserva.reservado_por.nome', 'Maria Souza')
-            ->assertJsonPath('data.dias.0.horarios.0.reserva.reservado_por.curso', $aluno->curso->nome)
+            ->assertJsonPath('data.dias.0.horarios.0.reserva.tipo', 'ALUNO')
+            ->assertJsonMissingPath('data.dias.0.horarios.0.reserva.reservado_por')
             ->assertJsonPath('data.dias.0.horarios.1.situacao', 'LIVRE')
             ->assertJsonPath('data.dias.0.horarios.1.reserva', null);
 
         $this->assertStringNotContainsString($aluno->registro_academico, $resposta->getContent());
         $this->assertStringNotContainsString($aluno->email, $resposta->getContent());
+        $this->assertStringNotContainsString('Maria Souza', $resposta->getContent());
+        $this->assertStringNotContainsString($aluno->curso->nome, $resposta->getContent());
     }
 
-    public function test_evento_mostra_admin_e_descricao(): void
+    public function test_evento_mostra_a_descricao_sem_o_nome_do_admin(): void
     {
         $admin = User::factory()->create(['name' => 'Coordenação']);
         Reserva::factory()->evento()->create([
@@ -78,8 +79,7 @@ class DisponibilidadeTest extends TestCase
         $this->consultar(['de' => '2026-11-10'])->assertOk()
             ->assertJsonPath('data.dias.0.horarios.0.situacao', 'EVENTO')
             ->assertJsonPath('data.dias.0.horarios.0.reserva.descricao', 'Palestra de Enfermagem')
-            ->assertJsonPath('data.dias.0.horarios.0.reserva.reservado_por.tipo', 'ADMIN')
-            ->assertJsonPath('data.dias.0.horarios.0.reserva.reservado_por.nome', 'Coordenação');
+            ->assertJsonMissingPath('data.dias.0.horarios.0.reserva.reservado_por');
     }
 
     public function test_reservas_revogadas_nao_ocupam_horario(): void
