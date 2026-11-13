@@ -2319,3 +2319,22 @@ Testes: admin/acesso/acesso.spec.ts, regras-senha.spec.ts, app.routes.spec.ts (r
   painel com sessão), e2e/acesso-admin.spec.ts; api-falsa com login, /me, logout e redefinição.
   Nos specs de formulário, esperar whenStable antes de digitar (o ngModel registra os campos num
   ciclo assíncrono).
+
+========================================================================
+55. REGRA DE DOCUMENTAR TUDO NA HORA E REVISÃO DOS GUIAS (documentação)
+========================================================================
+
+13/11/2026. Pedido do usuário: toda alteração, implementação, ideia discutida, correção necessária
+e tudo o que foi decidido fazer ou mudar (o quê e como) deve ser documentado assim que surge ou é
+implementado; revisar os guias e completar o que faltar.
+
+CLAUDE.md: "REGRA PRINCIPAL" no topo de "Continuidade entre conversas"; gatilhos novos (ideia sem
+  decisão, defeito/correção, mudança de algo já decidido); reescrever as linhas velhas do
+  "Onde paramos" e relê-lo antes de dizer que a documentação está pronta.
+CHECKLIST.md: "Onde paramos" reescrito com o estado atual (último subpasso 11.4, próximo passo 12,
+  pendências do usuário e da faculdade, mudanças de 13/11 para rever, lições, roteiro para outro
+  PC); conceitos explicados em 13/11; Trilha com a revisão e a regra.
+README.md: frase antiga ("até o front existir, o link do email não abre página") trocada pela
+  descrição das páginas do 11.3.
+DATABASE.md: "Mudanças planejadas" com grade de aulas (12), origem da reserva (12b), situação do
+  item para a solicitação (11.2f) e responsável do cliente de API (13); saíram as já feitas.
