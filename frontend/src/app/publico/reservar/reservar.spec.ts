@@ -172,7 +172,7 @@ describe('Reservar', () => {
           data_reserva: '2026-11-12',
           hora_inicio: '19:00',
           hora_fim: '20:30',
-          confirmacao_enviada_em: '2026-11-10T13:00:00Z',
+          confirmar_ate: '2026-11-11T13:00:00.000000Z',
           confirmada_em: null,
         },
       },
@@ -187,7 +187,9 @@ describe('Reservar', () => {
       equipamentos: [{ id: 1, quantidade: 2 }],
     });
     expect(pagina.textContent).toContain('Reserva feita!');
-    expect(pagina.textContent).toContain('confirmação');
+    expect(pagina.textContent).toContain('Falta confirmar pelo email');
+    expect(pagina.textContent).toContain('confirmar a reserva até 11/11 às 10:00');
+    expect(pagina.textContent).toContain('termos de uso');
     expect(pagina.querySelector('#ra')).toBeNull();
   });
 
@@ -208,14 +210,14 @@ describe('Reservar', () => {
           data_reserva: '2026-11-10',
           hora_inicio: '19:00',
           hora_fim: '20:30',
-          confirmacao_enviada_em: null,
-          confirmada_em: '2026-11-10T13:00:00Z',
+          confirmar_ate: '2026-11-10T14:00:00.000000Z',
+          confirmada_em: null,
         },
       },
       201,
     );
 
-    expect(pagina.textContent).toContain('já está confirmada');
+    expect(pagina.textContent).toContain('confirmar a reserva até 10/11 às 11:00');
     expect(memoria.ra()).toBeNull();
   });
 
@@ -258,7 +260,7 @@ describe('Reservar', () => {
           data_reserva: '2026-11-12',
           hora_inicio: '14:00',
           hora_fim: '15:30',
-          confirmacao_enviada_em: null,
+          confirmar_ate: null,
           confirmada_em: null,
         },
       },
@@ -272,7 +274,7 @@ describe('Reservar', () => {
       hora_inicio: '14:00',
       hora_fim: '15:30',
     });
-    expect(pagina.textContent).toContain('Dois dias úteis antes');
+    expect(pagina.textContent).toContain('Falta confirmar pelo email');
   });
 
   it('em horário livre, avisa quando o intervalo já foi ocupado', async () => {

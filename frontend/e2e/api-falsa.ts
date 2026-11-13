@@ -198,7 +198,7 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
             data_reserva: corpo.data_reserva,
             hora_inicio: corpo.hora_inicio ?? '20:30',
             hora_fim: corpo.hora_fim ?? '22:00',
-            confirmacao_enviada_em: null,
+            confirmar_ate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             confirmada_em: null,
           },
         },

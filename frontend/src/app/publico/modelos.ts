@@ -103,7 +103,7 @@ export interface ReservaCriada {
   data_reserva: string;
   hora_inicio: string;
   hora_fim: string;
-  confirmacao_enviada_em: string | null;
+  confirmar_ate: string | null;
   confirmada_em: string | null;
 }
 

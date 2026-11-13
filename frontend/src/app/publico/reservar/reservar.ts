@@ -36,6 +36,7 @@ import {
   deIso,
   ehDataIso,
   ehHora,
+  formatarDataHora,
   formatarDia,
   paraIso,
   segundaDaSemana,
@@ -98,6 +99,7 @@ export class Reservar {
   readonly fim = input<string>();
 
   protected readonly formatarDia = formatarDia;
+  protected readonly formatarDataHora = formatarDataHora;
 
   protected readonly ra = signal(this.raEmMemoria.ra() ?? '');
   protected readonly quantidades = signal<Record<number, number>>({});

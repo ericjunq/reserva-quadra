@@ -3,6 +3,7 @@ import {
   ehDataIso,
   ehDiaUtil,
   ehHora,
+  formatarDataHora,
   formatarDia,
   formatarDiaCurto,
   formatarDiaDaSemanaCurto,
@@ -47,5 +48,10 @@ describe('datas', () => {
     expect(formatarDia('2026-11-10')).toBe('Terça-feira, 10/11');
     expect(formatarDiaCurto('2026-11-10')).toBe('10/11');
     expect(formatarDiaDaSemanaCurto('2026-11-10')).toBe('ter');
+  });
+
+  it('mostra data e hora no horário de Brasília', () => {
+    expect(formatarDataHora('2026-11-10T13:00:00.000000Z')).toBe('10/11 às 10:00');
+    expect(formatarDataHora('2026-11-11T02:30:00.000000Z')).toBe('10/11 às 23:30');
   });
 });

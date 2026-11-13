@@ -56,3 +56,18 @@ const FORMATO_DIA_DA_SEMANA = new Intl.DateTimeFormat('pt-BR', { weekday: 'short
 export function formatarDiaDaSemanaCurto(iso: string): string {
   return FORMATO_DIA_DA_SEMANA.format(deIso(iso)).replace('.', '');
 }
+
+const FORMATO_DATA_HORA = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: 'America/Sao_Paulo',
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+export function formatarDataHora(isoComHora: string): string {
+  const partes = Object.fromEntries(
+    FORMATO_DATA_HORA.formatToParts(new Date(isoComHora)).map((parte) => [parte.type, parte.value]),
+  );
+  return `${partes['day']}/${partes['month']} às ${partes['hour']}:${partes['minute']}`;
+}

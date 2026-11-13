@@ -19,21 +19,20 @@
         {{ criada.hora_inicio }} às {{ criada.hora_fim }}
       </p>
 
-      @if (criada.confirmada_em) {
-        <p class="mt-4 text-slate-700">
-          Como a reserva é para hoje, ela já está confirmada. Enviamos os detalhes para o seu email.
+      <div class="mt-4 rounded-xl bg-amarelo/15 p-4 text-left text-slate-800">
+        <p class="font-semibold text-azul">Falta confirmar pelo email</p>
+        <p class="mt-1">
+          Enviamos um email para você
+          @if (criada.confirmar_ate) {
+            <strong>confirmar a reserva até {{ formatarDataHora(criada.confirmar_ate) }}</strong
+            >.
+          } @else {
+            <strong>confirmar a reserva</strong>.
+          }
+          Na confirmação, você lê e aceita os termos de uso e o aviso de privacidade. Sem ela, a
+          reserva é cancelada e o horário fica livre.
         </p>
-      } @else if (criada.confirmacao_enviada_em) {
-        <p class="mt-4 text-slate-700">
-          Enviamos um email pedindo a <strong>confirmação</strong>. Confirme até as 23:59 da
-          véspera; sem a confirmação, a reserva é cancelada automaticamente.
-        </p>
-      } @else {
-        <p class="mt-4 text-slate-700">
-          Enviamos um email com os detalhes. Dois dias úteis antes, você recebe outro email para
-          <strong>confirmar</strong> a reserva.
-        </p>
-      }
+      </div>
       <p class="mt-2 text-sm text-slate-600">
         Não vai mais usar? Cancele pelo link do email, até o horário de início.
       </p>
