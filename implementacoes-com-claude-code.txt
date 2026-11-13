@@ -2276,3 +2276,46 @@ Testes: specs de minhas-reservas, link-reserva, situacao-reserva e privacidade; 
   minhas-reservas, confirmação e cancelamento.
 
 Proposta do 11.4 (acesso do admin) registrada no CHECKLIST, aguardando aprovação.
+
+========================================================================
+54. PASSO 11.4 — ACESSO DO ADMIN NO FRONT
+========================================================================
+
+13/11/2026. 124 testes do front, 26 no navegador (API sem mudança: 263). Proposta aprovada com as
+6 decisões recomendadas (login em /admin/entrar; guarda com ?voltar=; token fora da barra e email
+digitado; sessão só na aba; regras da senha na tela; mensagens genéricas).
+
+frontend/src/app/compartilhado/caminho-interno.ts (movido de publico/cadastro): aceita só caminhos
+  do próprio site (começa com "/", não com "//", sem "\").
+frontend/src/app/nucleo/sessao.service.ts: signal "ativa" (há sessão guardada).
+frontend/src/app/admin/acesso/acesso.service.ts
+  - entrar (POST /login; grava token e expires_at na sessão), eu (GET /me com shareReplay, zerado
+    ao entrar e ao sair), sair e sairDeTodos (POST /logout e /logout-geral; finalize apaga a
+    sessão mesmo se a API falhar), esqueciASenha, redefinirSenha, aceitarConvite, trocarSenha
+    (PATCH /me/senha).
+frontend/src/app/admin/acesso/admin.guard.ts: exigirLogin (sem token válido, UrlTree para
+  /admin/entrar com voltar = URL pedida) e somenteSemLogin (quem já entrou vai para /admin).
+frontend/src/app/admin/acesso/regras-senha.ts + regras-da-senha.ts: 8+ caracteres, uma letra
+  (\p{L}, aceita acentos), um número, confirmação igual; lista com ✓/○ e texto para leitor de tela.
+frontend/src/app/admin/acesso/layout-acesso.ts: cabeçalho azul e conteúdo estreito.
+frontend/src/app/admin/acesso/entrar.ts: email + senha; inputs voltar e motivo (query params);
+  sucesso navega para caminhoInterno(voltar) ou /admin; erro limpa a senha e mostra a mensagem da
+  API ("Credenciais inválidas"); motivo=sessao mostra "Sua sessão terminou".
+frontend/src/app/admin/acesso/esqueci-senha.ts: mostra a mensagem genérica da API.
+frontend/src/app/admin/acesso/definir-senha.ts: modo redefinir/convite (data da rota) e token;
+  lê o token depois dos inputs e faz Location.replaceState(/redefinir-senha ou /aceitar-convite);
+  sem token, pede para abrir pelo email; envia token, email, password e password_confirmation.
+frontend/src/app/admin/acesso/minha-conta.ts: dados de /me, troca de senha com erros por campo
+  (senha_atual, password), "Sair de todos os dispositivos".
+frontend/src/app/admin/acesso/acesso.routes.ts: rotasDeRedefinicao e rotasDeConvite (LayoutAcesso
+  com :token e sem token).
+frontend/src/app/admin/admin.routes.ts: "entrar" e "esqueci-senha" com caminho próprio (antes, num
+  grupo de caminho vazio, faziam /admin abrir o layout de acesso vazio) e o grupo do LayoutAdmin
+  com exigirLogin (painel e minha-conta).
+frontend/src/app/app.routes.ts: prefixos redefinir-senha e aceitar-convite antes da área pública.
+frontend/src/app/admin/layout-admin (ts, html): Painel, nome do admin, Sair; effect que leva ao
+  login com voltar e motivo=sessao quando a sessão acaba (não depois de "Sair").
+Testes: admin/acesso/acesso.spec.ts, regras-senha.spec.ts, app.routes.spec.ts (rota protegida e
+  painel com sessão), e2e/acesso-admin.spec.ts; api-falsa com login, /me, logout e redefinição.
+  Nos specs de formulário, esperar whenStable antes de digitar (o ngModel registra os campos num
+  ciclo assíncrono).
