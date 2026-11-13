@@ -349,6 +349,11 @@ describe('Calendario', () => {
       });
     }
 
+    async function atualizar() {
+      fixture.detectChanges();
+      await fixture.whenStable();
+    }
+
     function digitar(id: string, valor: string) {
       const campo = fixture.nativeElement.querySelector(`#${id}`) as HTMLInputElement;
       campo.value = valor;
@@ -401,6 +406,75 @@ describe('Calendario', () => {
       expect(navegar).toHaveBeenCalledWith(['/espacos', 4, 'reservar'], {
         queryParams: { data: '2026-11-10', inicio: '15:30', fim: '17:45' },
       });
+    });
+
+    it('escolhe o início pela lista de livres e a duração por botões', async () => {
+      const pagina = await abrir(laboratorio, calendarioLivre());
+      const botao = (texto: string) =>
+        [...pagina.querySelectorAll<HTMLButtonElement>('button')].find(
+          (item) => item.textContent?.trim() === texto,
+        )!;
+
+      expect(pagina.querySelectorAll('#inicios-livres option').length).toBe(54);
+      expect(pagina.querySelector('fieldset')).toBeNull();
+
+      pagina
+        .querySelector<HTMLButtonElement>('[aria-label="Começar às 15:30, livre até 22:00"]')!
+        .click();
+      await atualizar();
+      expect(pagina.querySelector<HTMLInputElement>('#inicio')!.value).toBe('15:30');
+      expect(pagina.textContent).toContain('Agora escolha a duração ou digite o fim.');
+      const duracoes = [...pagina.querySelectorAll('fieldset button')].map((item) =>
+        item.textContent?.trim(),
+      );
+      expect(duracoes).toEqual(['30 min', '1h', '1h30', '2h', '2h30', '3h']);
+
+      botao('1h30').click();
+      await atualizar();
+      expect(pagina.querySelector<HTMLInputElement>('#fim')!.value).toBe('17:00');
+      expect(botao('1h30').getAttribute('aria-pressed')).toBe('true');
+      expect(pagina.textContent).toContain('Sua reserva ficará das 15:30 às 17:00.');
+      expect(pagina.querySelectorAll('#fins-possiveis option').length).toBe(12);
+
+      pagina
+        .querySelector<HTMLButtonElement>('[aria-label="Começar às 07:00, livre até 14:00"]')!
+        .click();
+      await atualizar();
+      expect(pagina.querySelector<HTMLInputElement>('#fim')!.value).toBe('');
+    });
+
+    it('começa no trecho livre tocado na barra do dia e mostra a escolha nela', async () => {
+      const pagina = await abrir(laboratorio, calendarioLivre());
+      const barra = pagina.querySelector<HTMLElement>('[data-testid="barra-do-dia"]')!;
+      vi.spyOn(barra, 'getBoundingClientRect').mockReturnValue(
+        DOMRect.fromRect({ x: 0, y: 0, width: 900, height: 40 }),
+      );
+      expect(barra.querySelectorAll('div').length).toBe(1);
+
+      barra.dispatchEvent(new MouseEvent('click', { clientX: 450 }));
+      await atualizar();
+      expect(pagina.querySelector<HTMLInputElement>('#inicio')!.value).toBe('');
+
+      barra.dispatchEvent(new MouseEvent('click', { clientX: 607 }));
+      await atualizar();
+      expect(pagina.querySelector<HTMLInputElement>('#inicio')!.value).toBe('17:00');
+
+      digitar('fim', '18h');
+      const escolha = barra.querySelectorAll<HTMLElement>('div')[1];
+      expect(escolha.className).toContain('bg-amarelo');
+      expect(escolha.style.left).toBe('66.66666666666666%');
+    });
+
+    it('aceita a hora digitada de outros jeitos e avisa quando o início está ocupado', async () => {
+      const pagina = await abrir(laboratorio, calendarioLivre());
+
+      digitar('inicio', '14h30');
+      expect(pagina.textContent).toContain('Esse início não está livre.');
+      expect(pagina.querySelector('fieldset')).toBeNull();
+
+      digitar('inicio', '1600');
+      digitar('fim', '18');
+      expect(pagina.textContent).toContain('Sua reserva ficará das 16:00 às 18:00.');
     });
 
     it('troca de dia pela URL e limpa o horário digitado', async () => {

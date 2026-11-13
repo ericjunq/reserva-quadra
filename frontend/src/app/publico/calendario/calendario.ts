@@ -36,11 +36,20 @@ import {
 import {
   Avaliacao,
   Janela,
+  arredondar,
   avaliarIntervalo,
   descreverOcupacao,
   duracaoLegivel,
+  duracoesPossiveis,
+  finsPossiveis,
+  hora,
   horariosLivres,
+  inicioNaPosicao,
+  iniciosLivres,
+  marcasDaBarra,
   minutos,
+  normalizarHora,
+  trechosDaBarra,
 } from '../intervalo';
 import {
   Calendario as DadosCalendario,
@@ -201,6 +210,65 @@ export class Calendario {
     return dia?.reservavel && janela ? horariosLivres(dia, janela) : [];
   });
 
+  protected readonly iniciosDoDia = computed(() => {
+    const dia = this.diaEscolhido();
+    const janela = this.janela();
+    return dia && janela ? iniciosLivres(dia, janela) : [];
+  });
+
+  private readonly inicioArredondado = computed(() => {
+    const janela = this.janela();
+    return janela ? arredondar(normalizarHora(this.inicioDigitado()), janela.bloco) : null;
+  });
+
+  protected readonly finsDoInicio = computed(() => {
+    const dia = this.diaEscolhido();
+    const janela = this.janela();
+    const inicio = this.inicioArredondado();
+    return dia && janela && inicio ? finsPossiveis(dia, janela, inicio) : [];
+  });
+
+  protected readonly duracoes = computed(() => {
+    const dia = this.diaEscolhido();
+    const janela = this.janela();
+    const inicio = this.inicioArredondado();
+    return dia && janela && inicio ? duracoesPossiveis(dia, janela, inicio) : [];
+  });
+
+  protected readonly duracaoEscolhida = computed(() => {
+    const avaliacao = this.avaliacao();
+    return avaliacao?.inicio && avaliacao.fim
+      ? minutos(avaliacao.fim) - minutos(avaliacao.inicio)
+      : null;
+  });
+
+  protected readonly trechosOcupados = computed(() => {
+    const dia = this.diaEscolhido();
+    const janela = this.janela();
+    if (!dia || !janela) {
+      return [];
+    }
+    const encerrados = dia.fim_minimo
+      ? [{ inicio: janela.abre, fim: hora(minutos(dia.fim_minimo) - janela.bloco) }]
+      : [];
+    return trechosDaBarra([...encerrados, ...(dia.ocupados ?? [])], janela);
+  });
+
+  protected readonly trechoEscolhido = computed(() => {
+    const avaliacao = this.avaliacao();
+    const janela = this.janela();
+    if (!avaliacao || !janela || !avaliacao.inicio || !avaliacao.fim) {
+      return null;
+    }
+    const [trecho] = trechosDaBarra([avaliacao], janela);
+    return trecho ? { ...trecho, valido: !avaliacao.erro } : null;
+  });
+
+  protected readonly marcas = computed(() => {
+    const janela = this.janela();
+    return janela ? marcasDaBarra(janela) : [];
+  });
+
   protected readonly avaliacao = computed<Avaliacao | null>(() => {
     const dia = this.diaEscolhido();
     const janela = this.janela();
@@ -263,6 +331,40 @@ export class Calendario {
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
+  }
+
+  protected escolherInicio(inicio: string): void {
+    const fimAtual = arredondar(normalizarHora(this.fimDigitado()), this.janela()?.bloco ?? 15);
+    this.inicioDigitado.set(inicio);
+    if (fimAtual && !this.finsDoInicio().includes(fimAtual)) {
+      this.fimDigitado.set('');
+    }
+  }
+
+  protected escolherDuracao(duracao: number): void {
+    const inicio = this.inicioArredondado();
+    if (inicio) {
+      this.inicioDigitado.set(inicio);
+      this.fimDigitado.set(hora(minutos(inicio) + duracao));
+    }
+  }
+
+  protected tocarBarra(evento: MouseEvent): void {
+    const dia = this.diaEscolhido();
+    const janela = this.janela();
+    const barra = evento.currentTarget as HTMLElement;
+    const largura = barra.getBoundingClientRect().width;
+    if (!dia || !janela || !largura) {
+      return;
+    }
+    const inicio = inicioNaPosicao(
+      dia,
+      janela,
+      (evento.clientX - barra.getBoundingClientRect().left) / largura,
+    );
+    if (inicio) {
+      this.escolherInicio(inicio);
+    }
   }
 
   protected minutosLivres(dia: DiaNoCalendario): number {

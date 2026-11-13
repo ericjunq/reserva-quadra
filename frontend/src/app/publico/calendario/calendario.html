@@ -161,6 +161,65 @@
                     }
                   </p>
 
+                  <div class="mt-4" aria-hidden="true">
+                    <div
+                      class="relative h-10 cursor-pointer overflow-hidden rounded-lg bg-emerald-100 ring-1 ring-emerald-300"
+                      data-testid="barra-do-dia"
+                      (click)="tocarBarra($event)"
+                    >
+                      @for (trecho of trechosOcupados(); track trecho.inicio + trecho.fim) {
+                        <div
+                          class="absolute inset-y-0 border-x border-white bg-slate-300"
+                          [style.left.%]="trecho.esquerda"
+                          [style.width.%]="trecho.largura"
+                        ></div>
+                      }
+                      @if (trechoEscolhido(); as trecho) {
+                        <div
+                          class="absolute inset-y-1 rounded"
+                          [class]="
+                            trecho.valido
+                              ? 'bg-amarelo ring-2 ring-azul'
+                              : 'bg-red-200 ring-2 ring-red-600'
+                          "
+                          [style.left.%]="trecho.esquerda"
+                          [style.width.%]="trecho.largura"
+                        ></div>
+                      }
+                    </div>
+                    <div class="relative mt-1 h-4 text-xs text-slate-600">
+                      @for (
+                        marca of marcas();
+                        track marca.hora;
+                        let primeira = $first;
+                        let ultima = $last
+                      ) {
+                        <span
+                          class="absolute"
+                          [class]="
+                            primeira ? '' : ultima ? '-translate-x-full' : '-translate-x-1/2'
+                          "
+                          [style.left.%]="marca.posicao"
+                          >{{ marca.hora }}</span
+                        >
+                      }
+                    </div>
+                    <p class="mt-2 flex flex-wrap gap-4 text-xs text-slate-600">
+                      <span class="flex items-center gap-1"
+                        ><span
+                          class="size-3 rounded-sm bg-emerald-100 ring-1 ring-emerald-300"
+                        ></span>
+                        Livre (toque para começar ali)</span
+                      >
+                      <span class="flex items-center gap-1"
+                        ><span class="size-3 rounded-sm bg-slate-300"></span> Ocupado</span
+                      >
+                      <span class="flex items-center gap-1"
+                        ><span class="size-3 rounded-sm bg-amarelo"></span> Sua escolha</span
+                      >
+                    </p>
+                  </div>
+
                   <div class="mt-4 grid gap-6 md:grid-cols-2">
                     <section aria-labelledby="titulo-ocupados">
                       <h4 id="titulo-ocupados" class="font-semibold text-slate-900">
@@ -188,10 +247,17 @@
                         <h4 class="mt-4 font-semibold text-slate-900">Horários livres</h4>
                         <ul class="mt-2 flex flex-wrap gap-2 text-sm">
                           @for (livre of livresDoDia(); track livre.inicio) {
-                            <li
-                              class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-900"
-                            >
-                              {{ livre.inicio }}–{{ livre.fim }}
+                            <li>
+                              <button
+                                type="button"
+                                class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-900 hover:border-amarelo hover:bg-amarelo/20"
+                                [attr.aria-label]="
+                                  'Começar às ' + livre.inicio + ', livre até ' + livre.fim
+                                "
+                                (click)="escolherInicio(livre.inicio)"
+                              >
+                                {{ livre.inicio }}–{{ livre.fim }}
+                              </button>
                             </li>
                           }
                         </ul>
@@ -206,37 +272,91 @@
                       <h4 id="titulo-montar" class="font-semibold text-slate-900">
                         Monte o seu horário
                       </h4>
-                      <div class="mt-3 flex flex-wrap gap-4">
-                        <div>
-                          <label for="inicio" class="block text-sm font-semibold text-slate-700"
-                            >Início</label
-                          >
-                          <input
-                            id="inicio"
-                            name="inicio"
-                            type="time"
-                            class="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2"
-                            [ngModel]="inicioDigitado()"
-                            (ngModelChange)="inicioDigitado.set($event ?? '')"
-                          />
-                        </div>
-                        <div>
-                          <label for="fim" class="block text-sm font-semibold text-slate-700"
-                            >Fim</label
-                          >
-                          <input
-                            id="fim"
-                            name="fim"
-                            type="time"
-                            class="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2"
-                            [ngModel]="fimDigitado()"
-                            (ngModelChange)="fimDigitado.set($event ?? '')"
-                          />
-                        </div>
+                      <div class="mt-3">
+                        <label for="inicio" class="block text-sm font-semibold text-slate-700"
+                          >Início</label
+                        >
+                        <input
+                          id="inicio"
+                          name="inicio"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          placeholder="ex.: 14:00"
+                          list="inicios-livres"
+                          aria-describedby="ajuda-horario"
+                          class="mt-1 w-32 rounded-lg border border-slate-300 bg-white px-3 py-2"
+                          [ngModel]="inicioDigitado()"
+                          (ngModelChange)="inicioDigitado.set($event ?? '')"
+                        />
+                        <datalist id="inicios-livres">
+                          @for (inicio of iniciosDoDia(); track inicio) {
+                            <option [value]="inicio"></option>
+                          }
+                        </datalist>
+                      </div>
+
+                      @if (duracoes().length) {
+                        <fieldset class="mt-3">
+                          <legend class="text-sm font-semibold text-slate-700">Duração</legend>
+                          <div class="mt-1 flex flex-wrap gap-2">
+                            @for (duracao of duracoes(); track duracao) {
+                              <button
+                                type="button"
+                                class="rounded-full px-3 py-1 text-sm font-semibold ring-1"
+                                [class]="
+                                  duracao === duracaoEscolhida()
+                                    ? 'bg-amarelo text-azul ring-azul'
+                                    : 'bg-white text-slate-800 ring-slate-300 hover:ring-azul'
+                                "
+                                [attr.aria-pressed]="duracao === duracaoEscolhida()"
+                                (click)="escolherDuracao(duracao)"
+                              >
+                                {{ duracaoLegivel(duracao) }}
+                              </button>
+                            }
+                          </div>
+                        </fieldset>
+                      }
+
+                      <div class="mt-3">
+                        <label for="fim" class="block text-sm font-semibold text-slate-700"
+                          >Fim
+                          <span class="font-normal text-slate-600"
+                            >(ou escolha a duração)</span
+                          ></label
+                        >
+                        <input
+                          id="fim"
+                          name="fim"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          placeholder="ex.: 15:30"
+                          list="fins-possiveis"
+                          aria-describedby="ajuda-horario"
+                          class="mt-1 w-32 rounded-lg border border-slate-300 bg-white px-3 py-2"
+                          [ngModel]="fimDigitado()"
+                          (ngModelChange)="fimDigitado.set($event ?? '')"
+                        />
+                        <datalist id="fins-possiveis">
+                          @for (fim of finsDoInicio(); track fim) {
+                            <option [value]="fim"></option>
+                          }
+                        </datalist>
                       </div>
 
                       <div class="mt-3 min-h-10 text-sm" aria-live="polite">
-                        @if (avaliacao(); as avaliacao) {
+                        @if (inicioDigitado() && !fimDigitado()) {
+                          <p id="ajuda-horario" class="text-slate-600">
+                            @if (duracoes().length) {
+                              Agora escolha a duração ou digite o fim.
+                            } @else {
+                              Esse início não está livre. Escolha um horário da lista ou toque num
+                              trecho livre da barra.
+                            }
+                          </p>
+                        } @else if (avaliacao(); as avaliacao) {
                           @if (avaliacao.erro) {
                             <p class="text-red-700">{{ avaliacao.erro }}</p>
                           } @else {
@@ -247,9 +367,9 @@
                             </p>
                           }
                         } @else {
-                          <p class="text-slate-600">
-                            Os horários são arredondados para múltiplos de
-                            {{ janela.bloco }} minutos.
+                          <p id="ajuda-horario" class="text-slate-600">
+                            Digite a hora (ex.: 14:00, 14h ou 1400) ou escolha na lista. Os horários
+                            são arredondados para múltiplos de {{ janela.bloco }} minutos.
                           </p>
                         }
                       </div>
