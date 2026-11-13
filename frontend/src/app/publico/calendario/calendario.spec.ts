@@ -89,6 +89,7 @@ function calendario(dados: Partial<DadosCalendario> = {}): DadosCalendario {
     de: '2026-11-09',
     ate: '2026-11-13',
     reservas_ate: '2026-11-24',
+    calendario_ate: '2026-12-31',
     curso: null,
     dias: ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'].map((data) =>
       dia(data),
@@ -280,6 +281,77 @@ describe('Calendario', () => {
     ];
     expect(anterior.disabled).toBe(true);
     expect(proxima.disabled).toBe(false);
+  });
+
+  it('navega até o fim do semestre pelas setas e pelo seletor de semana', async () => {
+    const pagina = await abrir(quadra, calendario({ calendario_ate: '2026-11-25' }));
+    const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    const opcoes = [...pagina.querySelectorAll<HTMLOptionElement>('#escolher-semana option')];
+    expect(opcoes.map((opcao) => opcao.textContent?.trim())).toEqual([
+      '09/11 a 13/11',
+      '16/11 a 20/11',
+      '23/11 a 27/11',
+    ]);
+
+    const seletor = pagina.querySelector<HTMLSelectElement>('#escolher-semana')!;
+    seletor.value = '2026-11-23';
+    seletor.dispatchEvent(new Event('change'));
+    expect(navegar).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({ queryParams: { semana: '2026-11-23', dia: null } }),
+    );
+
+    fixture.componentRef.setInput('semana', '2026-11-23');
+    await responder(`${url}/espacos/1/disponibilidade?de=2026-11-23&ate=2026-11-27`, {
+      data: calendario({ de: '2026-11-23', ate: '2026-11-25', calendario_ate: '2026-11-25' }),
+    });
+    expect(pagina.querySelector<HTMLButtonElement>('[aria-label="Próxima semana"]')!.disabled).toBe(
+      true,
+    );
+  });
+
+  it('mostra o que já está marcado nos dias que ainda não abriram para reserva', async () => {
+    const naoAbriu = 'Abre para reserva em 13/11/2026.';
+    const pagina = await abrir(
+      quadra,
+      calendario({
+        dias: [
+          dia('2026-11-09'),
+          dia('2026-11-10'),
+          dia('2026-11-11'),
+          dia('2026-11-12'),
+          dia('2026-11-13', {
+            reservavel: false,
+            motivo: naoAbriu,
+            abre_em: '2026-11-13',
+            horarios: [
+              bloco('19:00', '20:30', {
+                horario: 'PRIMEIRO_HORARIO',
+                situacao: 'EVENTO',
+                reserva: {
+                  id: 3,
+                  tipo: 'EVENTO',
+                  descricao: 'Jogos internos',
+                  reservado_por: { tipo: 'ADMIN', nome: 'Admin', curso: null },
+                },
+              }),
+              bloco('20:30', '22:00', {
+                horario: 'SEGUNDO_HORARIO',
+                situacao: 'INDISPONIVEL',
+                motivo: naoAbriu,
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    const sexta = [...pagina.querySelectorAll('article')].at(-1)!;
+    expect(sexta.textContent).toContain(naoAbriu);
+    expect(sexta.textContent).toContain('Jogos internos');
+    expect(sexta.textContent).toContain('Livre · ainda não abriu');
+    expect(sexta.querySelectorAll('a').length).toBe(0);
   });
 
   it('recarrega a semana sem piscar a tela quando a disponibilidade muda', async () => {
@@ -487,6 +559,31 @@ describe('Calendario', () => {
       digitar('inicio', '1600');
       digitar('fim', '18');
       expect(pagina.textContent).toContain('Sua reserva ficará das 16:00 às 18:00.');
+    });
+
+    it('no dia que ainda não abriu, mostra a data de abertura e os ocupados, sem montar horário', async () => {
+      const dados = calendarioLivre();
+      dados.dias[4] = {
+        ...dados.dias[4],
+        reservavel: false,
+        motivo: 'Abre para reserva em 10/11/2026.',
+        abre_em: '2026-11-10',
+      };
+      const pagina = await abrir(laboratorio, dados);
+      const dias = pagina.querySelectorAll<HTMLButtonElement>(
+        '[aria-label="Escolha o dia"] button',
+      );
+      expect(dias[4].textContent).toContain('Abre 10/11');
+
+      dias[4].click();
+      fixture.componentRef.setInput('dia', '2026-11-13');
+      await atualizar();
+      const painel = pagina.querySelector('article')!;
+      expect(painel.textContent).toContain(
+        'Abre para reserva em 10/11/2026. Até lá, dá para ver o que já está marcado.',
+      );
+      expect(painel.textContent).toContain('14:00–15:30 · Ana Souza (Direito)');
+      expect(painel.querySelector('form')).toBeNull();
     });
 
     it('troca de dia pela URL e limpa o horário digitado', async () => {

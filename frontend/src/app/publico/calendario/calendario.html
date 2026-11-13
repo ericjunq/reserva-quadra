@@ -90,9 +90,26 @@
         >
           <svg lucideChevronLeft [size]="20" aria-hidden="true"></svg>
         </button>
-        <h2 id="titulo-semana" class="text-center font-semibold text-slate-900">
-          Semana de {{ formatarDiaCurto(segunda()) }} a {{ formatarDiaCurto(sexta()) }}
-        </h2>
+        <div class="flex flex-col items-center gap-1">
+          <h2 id="titulo-semana" class="text-center font-semibold text-slate-900">
+            Semana de {{ formatarDiaCurto(segunda()) }} a {{ formatarDiaCurto(sexta()) }}
+          </h2>
+          @if (semanasDoCalendario().length > 1) {
+            <label for="escolher-semana" class="sr-only">Ir para a semana</label>
+            <select
+              id="escolher-semana"
+              class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm"
+              [value]="segunda()"
+              (change)="irParaSegunda($any($event.target).value)"
+            >
+              @for (semana of semanasDoCalendario(); track semana.segunda) {
+                <option [value]="semana.segunda" [selected]="semana.segunda === segunda()">
+                  {{ semana.rotulo }}
+                </option>
+              }
+            </select>
+          }
+        </div>
         <button
           type="button"
           class="flex size-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 enabled:hover:ring-azul disabled:opacity-40"
@@ -148,11 +165,16 @@
                   {{ formatarDia(dia.data) }}
                 </h3>
 
-                @if (!dia.reservavel) {
+                @if (!dia.reservavel && !dia.abre_em) {
                   <p class="mt-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
                     {{ dia.motivo }}
                   </p>
                 } @else if (janela(); as janela) {
+                  @if (dia.abre_em) {
+                    <p class="mt-2 rounded-lg bg-amarelo/15 px-3 py-2 text-sm text-slate-800">
+                      {{ dia.motivo }} Até lá, dá para ver o que já está marcado.
+                    </p>
+                  }
                   <p class="mt-1 text-sm text-slate-600">
                     Aberto das {{ janela.abre }} às {{ janela.fecha }} · até
                     {{ duracaoLegivel(janela.duracaoMaxima) }} por reserva
@@ -163,7 +185,8 @@
 
                   <div class="mt-4" aria-hidden="true">
                     <div
-                      class="relative h-10 cursor-pointer overflow-hidden rounded-lg bg-emerald-100 ring-1 ring-emerald-300"
+                      class="relative h-10 overflow-hidden rounded-lg bg-emerald-100 ring-1 ring-emerald-300"
+                      [class.cursor-pointer]="dia.reservavel"
                       data-testid="barra-do-dia"
                       (click)="tocarBarra($event)"
                     >
@@ -209,7 +232,7 @@
                         ><span
                           class="size-3 rounded-sm bg-emerald-100 ring-1 ring-emerald-300"
                         ></span>
-                        Livre (toque para começar ali)</span
+                        {{ dia.reservavel ? 'Livre (toque para começar ali)' : 'Livre' }}</span
                       >
                       <span class="flex items-center gap-1"
                         ><span class="size-3 rounded-sm bg-slate-300"></span> Ocupado ou
@@ -265,109 +288,112 @@
                       }
                     </section>
 
-                    <form
-                      class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200"
-                      aria-labelledby="titulo-montar"
-                      (ngSubmit)="continuar()"
-                    >
-                      <h4 id="titulo-montar" class="font-semibold text-slate-900">
-                        Monte o seu horário
-                      </h4>
-                      <div class="mt-3">
-                        <label for="inicio" class="block text-sm font-semibold text-slate-700"
-                          >Início</label
-                        >
-                        <app-campo-horario
-                          idCampo="inicio"
-                          rotulo="início"
-                          exemplo="ex.: 14:00"
-                          descricao="ajuda-horario"
-                          semOpcoes="Nenhum horário livre neste dia."
-                          [opcoes]="iniciosDoDia()"
-                          [valor]="inicioDigitado()"
-                          (valorChange)="inicioDigitado.set($event)"
-                          (escolhido)="escolherInicio($event)"
-                        />
-                      </div>
+                    @if (dia.reservavel) {
+                      <form
+                        class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200"
+                        aria-labelledby="titulo-montar"
+                        (ngSubmit)="continuar()"
+                      >
+                        <h4 id="titulo-montar" class="font-semibold text-slate-900">
+                          Monte o seu horário
+                        </h4>
+                        <div class="mt-3">
+                          <label for="inicio" class="block text-sm font-semibold text-slate-700"
+                            >Início</label
+                          >
+                          <app-campo-horario
+                            idCampo="inicio"
+                            rotulo="início"
+                            exemplo="ex.: 14:00"
+                            descricao="ajuda-horario"
+                            semOpcoes="Nenhum horário livre neste dia."
+                            [opcoes]="iniciosDoDia()"
+                            [valor]="inicioDigitado()"
+                            (valorChange)="inicioDigitado.set($event)"
+                            (escolhido)="escolherInicio($event)"
+                          />
+                        </div>
 
-                      @if (duracoes().length) {
-                        <fieldset class="mt-3">
-                          <legend class="text-sm font-semibold text-slate-700">Duração</legend>
-                          <div class="mt-1 flex flex-wrap gap-2">
-                            @for (duracao of duracoes(); track duracao) {
-                              <button
-                                type="button"
-                                class="rounded-full px-3 py-1 text-sm font-semibold ring-1"
-                                [class]="
-                                  duracao === duracaoEscolhida()
-                                    ? 'bg-amarelo text-azul ring-azul'
-                                    : 'bg-white text-slate-800 ring-slate-300 hover:ring-azul'
-                                "
-                                [attr.aria-pressed]="duracao === duracaoEscolhida()"
-                                (click)="escolherDuracao(duracao)"
-                              >
-                                {{ duracaoLegivel(duracao) }}
-                              </button>
-                            }
-                          </div>
-                        </fieldset>
-                      }
+                        @if (duracoes().length) {
+                          <fieldset class="mt-3">
+                            <legend class="text-sm font-semibold text-slate-700">Duração</legend>
+                            <div class="mt-1 flex flex-wrap gap-2">
+                              @for (duracao of duracoes(); track duracao) {
+                                <button
+                                  type="button"
+                                  class="rounded-full px-3 py-1 text-sm font-semibold ring-1"
+                                  [class]="
+                                    duracao === duracaoEscolhida()
+                                      ? 'bg-amarelo text-azul ring-azul'
+                                      : 'bg-white text-slate-800 ring-slate-300 hover:ring-azul'
+                                  "
+                                  [attr.aria-pressed]="duracao === duracaoEscolhida()"
+                                  (click)="escolherDuracao(duracao)"
+                                >
+                                  {{ duracaoLegivel(duracao) }}
+                                </button>
+                              }
+                            </div>
+                          </fieldset>
+                        }
 
-                      <div class="mt-3">
-                        <label for="fim" class="block text-sm font-semibold text-slate-700"
-                          >Fim
-                          <span class="font-normal text-slate-600"
-                            >(ou escolha a duração)</span
-                          ></label
-                        >
-                        <app-campo-horario
-                          idCampo="fim"
-                          rotulo="fim"
-                          exemplo="ex.: 15:30"
-                          descricao="ajuda-horario"
-                          semOpcoes="Escolha um início livre primeiro."
-                          [opcoes]="finsDoInicio()"
-                          [valor]="fimDigitado()"
-                          (valorChange)="fimDigitado.set($event)"
-                        />
-                      </div>
+                        <div class="mt-3">
+                          <label for="fim" class="block text-sm font-semibold text-slate-700"
+                            >Fim
+                            <span class="font-normal text-slate-600"
+                              >(ou escolha a duração)</span
+                            ></label
+                          >
+                          <app-campo-horario
+                            idCampo="fim"
+                            rotulo="fim"
+                            exemplo="ex.: 15:30"
+                            descricao="ajuda-horario"
+                            semOpcoes="Escolha um início livre primeiro."
+                            [opcoes]="finsDoInicio()"
+                            [valor]="fimDigitado()"
+                            (valorChange)="fimDigitado.set($event)"
+                          />
+                        </div>
 
-                      <div class="mt-3 min-h-10 text-sm" aria-live="polite">
-                        @if (inicioDigitado() && !fimDigitado()) {
-                          <p id="ajuda-horario" class="text-slate-600">
-                            @if (duracoes().length) {
-                              Agora escolha a duração ou digite o fim.
+                        <div class="mt-3 min-h-10 text-sm" aria-live="polite">
+                          @if (inicioDigitado() && !fimDigitado()) {
+                            <p id="ajuda-horario" class="text-slate-600">
+                              @if (duracoes().length) {
+                                Agora escolha a duração ou digite o fim.
+                              } @else {
+                                Esse início não está livre. Escolha um horário da lista ou toque num
+                                trecho livre da barra.
+                              }
+                            </p>
+                          } @else if (avaliacao(); as avaliacao) {
+                            @if (avaliacao.erro) {
+                              <p class="text-red-700">{{ avaliacao.erro }}</p>
                             } @else {
-                              Esse início não está livre. Escolha um horário da lista ou toque num
-                              trecho livre da barra.
+                              <p class="text-emerald-800">
+                                Sua reserva ficará das <strong>{{ avaliacao.inicio }}</strong> às
+                                <strong>{{ avaliacao.fim }}</strong
+                                >.
+                              </p>
                             }
-                          </p>
-                        } @else if (avaliacao(); as avaliacao) {
-                          @if (avaliacao.erro) {
-                            <p class="text-red-700">{{ avaliacao.erro }}</p>
                           } @else {
-                            <p class="text-emerald-800">
-                              Sua reserva ficará das <strong>{{ avaliacao.inicio }}</strong> às
-                              <strong>{{ avaliacao.fim }}</strong
-                              >.
+                            <p id="ajuda-horario" class="text-slate-600">
+                              Digite a hora (ex.: 14:00, 14h ou 1400) ou escolha na lista. Os
+                              horários são arredondados para múltiplos de
+                              {{ janela.bloco }} minutos.
                             </p>
                           }
-                        } @else {
-                          <p id="ajuda-horario" class="text-slate-600">
-                            Digite a hora (ex.: 14:00, 14h ou 1400) ou escolha na lista. Os horários
-                            são arredondados para múltiplos de {{ janela.bloco }} minutos.
-                          </p>
-                        }
-                      </div>
+                        </div>
 
-                      <button
-                        type="submit"
-                        class="mt-2 rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio disabled:opacity-50"
-                        [disabled]="!avaliacao() || !!avaliacao()?.erro"
-                      >
-                        Continuar
-                      </button>
-                    </form>
+                        <button
+                          type="submit"
+                          class="mt-2 rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio disabled:opacity-50"
+                          [disabled]="!avaliacao() || !!avaliacao()?.erro"
+                        >
+                          Continuar
+                        </button>
+                      </form>
+                    }
                   </div>
                 }
               </article>
@@ -383,11 +409,16 @@
                     {{ formatarDia(dia.data) }}
                   </h3>
 
-                  @if (!dia.reservavel) {
+                  @if (!dia.reservavel && !dia.abre_em) {
                     <p class="mt-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
                       {{ dia.motivo }}
                     </p>
                   } @else {
+                    @if (dia.abre_em) {
+                      <p class="mt-2 rounded-lg bg-amarelo/15 px-3 py-2 text-xs text-slate-800">
+                        {{ dia.motivo }}
+                      </p>
+                    }
                     <ul class="mt-2 space-y-2">
                       @for (horario of dia.horarios; track horario.inicio) {
                         <li>
@@ -428,7 +459,7 @@
                                 >
                               } @else {
                                 <span class="block text-slate-700">{{
-                                  nomeDaSituacao(horario)
+                                  nomeDaSituacao(dia, horario)
                                 }}</span>
                               }
                               @if (horario.reserva; as reserva) {
@@ -447,7 +478,11 @@
                                     >Do seu curso</span
                                   >
                                 }
-                              } @else if (horario.motivo && horario.situacao !== 'ENCERRADO') {
+                              } @else if (
+                                horario.motivo &&
+                                horario.situacao !== 'ENCERRADO' &&
+                                !(dia.abre_em && horario.situacao === 'INDISPONIVEL')
+                              ) {
                                 <span class="block text-xs text-slate-600">{{
                                   horario.motivo
                                 }}</span>

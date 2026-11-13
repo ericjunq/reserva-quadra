@@ -63,6 +63,7 @@ function calendario(espaco: Espaco, horarios: HorarioNoCalendario[]): Calendario
     de: '2026-11-09',
     ate: '2026-11-13',
     reservas_ate: '2026-11-24',
+    calendario_ate: '2026-12-31',
     curso: null,
     dias: ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'].map(dia),
   };

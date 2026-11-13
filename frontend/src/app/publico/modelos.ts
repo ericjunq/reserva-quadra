@@ -59,6 +59,7 @@ export interface DiaNoCalendario {
   horarios?: HorarioNoCalendario[];
   ocupados?: Ocupacao[];
   fim_minimo?: string | null;
+  abre_em?: string | null;
 }
 
 export interface SemanaDoCurso {
@@ -82,6 +83,7 @@ export interface Calendario {
   de: string;
   ate: string;
   reservas_ate: string;
+  calendario_ate: string;
   curso: { limite_semanal: number; semanas: SemanaDoCurso[] } | null;
   dias: DiaNoCalendario[];
 }

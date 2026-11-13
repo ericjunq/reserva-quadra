@@ -284,7 +284,29 @@ export class Calendario {
 
   protected readonly podeAvancar = computed(() => {
     const calendario = this.calendario();
-    return !!calendario && paraIso(somarDias(deIso(this.segunda()), 7)) <= calendario.reservas_ate;
+    return (
+      !!calendario && paraIso(somarDias(deIso(this.segunda()), 7)) <= calendario.calendario_ate
+    );
+  });
+
+  protected readonly semanasDoCalendario = computed(() => {
+    const calendario = this.calendario();
+    if (!calendario) {
+      return [];
+    }
+    const semanas: { segunda: string; rotulo: string }[] = [];
+    for (
+      let segunda = deIso(this.segundaAtual);
+      paraIso(segunda) <= calendario.calendario_ate;
+      segunda = somarDias(segunda, 7)
+    ) {
+      const inicio = paraIso(segunda);
+      semanas.push({
+        segunda: inicio,
+        rotulo: `${formatarDiaCurto(inicio)} a ${formatarDiaCurto(paraIso(somarDias(segunda, 4)))}`,
+      });
+    }
+    return semanas;
   });
 
   constructor() {
@@ -318,7 +340,10 @@ export class Calendario {
   }
 
   protected irParaSemana(deslocamento: number): void {
-    const segunda = paraIso(somarDias(deIso(this.segunda()), deslocamento * 7));
+    this.irParaSegunda(paraIso(somarDias(deIso(this.segunda()), deslocamento * 7)));
+  }
+
+  protected irParaSegunda(segunda: string): void {
     this.router.navigate([], {
       queryParams: { semana: segunda, dia: null },
       queryParamsHandling: 'merge',
@@ -381,6 +406,9 @@ export class Calendario {
   }
 
   protected resumoDoDia(dia: DiaNoCalendario): string {
+    if (dia.abre_em) {
+      return `Abre ${formatarDiaCurto(dia.abre_em)}`;
+    }
     if (!dia.reservavel) {
       return 'Fechado';
     }
@@ -420,7 +448,10 @@ export class Calendario {
     this.recarregar.update((valor) => valor + 1);
   }
 
-  protected nomeDaSituacao(horario: HorarioNoCalendario): string {
+  protected nomeDaSituacao(dia: DiaNoCalendario, horario: HorarioNoCalendario): string {
+    if (dia.abre_em && horario.situacao === 'INDISPONIVEL') {
+      return 'Livre · ainda não abriu';
+    }
     return NOMES_DAS_SITUACOES[horario.situacao] ?? 'Indisponível';
   }
 
