@@ -519,7 +519,7 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 - O token tem 64 caracteres aleatórios; no banco fica só o **hash SHA-256**. Vale **até o início da reserva** e só pode ser usado **uma vez**. Token inválido, vencido ou usado: `404` com "Link inválido ou expirado.".
 - Cancelar: só reservas `RESERVADO` (409) que não começaram (422). Grava `CANCELADO` e `cancelada_em`, libera horário e equipamentos e envia **"Reserva cancelada"**. Na auditoria fica sem admin (foi o aluno).
 - Eventos não recebem esses emails nem token.
-- Até o front existir, o link do email não abre página nenhuma; em desenvolvimento os emails ficam em `storage/logs/laravel.log`, e o fluxo é testado pela API (Postman/curl) e pelos testes automáticos.
+- O link do email abre a página do front (`/reservas/cancelar/{token}` ou `/reservas/confirmar/{token}`, passo 11.3), que tira o token da barra de endereço e chama a API. Em desenvolvimento os emails ficam em `storage/logs/laravel.log`; copie o link de lá com o front rodando (`npm start`).
 
 ### Confirmação da reserva (item 9, refeito no passo 11.3a em 13/11/2026)
 
