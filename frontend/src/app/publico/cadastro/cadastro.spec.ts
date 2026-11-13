@@ -6,7 +6,8 @@ import { Router, provideRouter } from '@angular/router';
 import { ambiente } from '../../../ambientes/ambiente';
 import { interceptorApi } from '../../nucleo/api.interceptor';
 import { RaEmMemoriaService } from '../ra-em-memoria.service';
-import { Cadastro, caminhoInterno } from './cadastro';
+import { caminhoInterno } from '../../compartilhado/caminho-interno';
+import { Cadastro } from './cadastro';
 
 const url = ambiente.urlApi;
 

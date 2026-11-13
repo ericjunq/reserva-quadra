@@ -5,16 +5,11 @@ import { Router, RouterLink } from '@angular/router';
 import { LucideCircleCheck, LucideInfo } from '@lucide/angular';
 import { catchError, map, of } from 'rxjs';
 import { AvisoErro } from '../../compartilhado/aviso-erro/aviso-erro';
+import { caminhoInterno } from '../../compartilhado/caminho-interno';
 import { ErroApi } from '../../nucleo/erro-api';
 import { ApiPublicaService } from '../api-publica.service';
 import { Curso } from '../modelos';
 import { RaEmMemoriaService } from '../ra-em-memoria.service';
-
-export function caminhoInterno(valor: string | null | undefined): string | null {
-  return valor && valor.startsWith('/') && !valor.startsWith('//') && !valor.includes('\\')
-    ? valor
-    : null;
-}
 
 @Component({
   selector: 'app-cadastro',
