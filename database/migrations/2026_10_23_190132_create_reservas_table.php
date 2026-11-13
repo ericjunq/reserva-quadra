@@ -20,8 +20,13 @@ return new class extends Migration
             $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->string('status', 20)->default('RESERVADO');
             $table->string('tipo', 30)->default('ALUNO');
-            $table->timestamp('confirmacao_enviada_em')->nullable();
+            $table->timestamp('confirmar_ate')->nullable();
             $table->timestamp('confirmada_em')->nullable();
+            $table->timestamp('termos_aceitos_em')->nullable();
+            $table->string('termos_versao', 20)->nullable();
+            $table->timestamp('reconfirmacao_pedida_em')->nullable();
+            $table->timestamp('reconfirmar_ate')->nullable();
+            $table->timestamp('reconfirmada_em')->nullable();
             $table->string('descricao', 255)->nullable();
             $table->text('justificativa_revogacao')->nullable();
             $table->timestamp('revogada_em')->nullable();
@@ -32,6 +37,8 @@ return new class extends Migration
             $table->index(['espaco_id', 'data_reserva']);
             $table->index(['data_reserva', 'status']);
             $table->index(['aluno_id', 'data_reserva']);
+            $table->index(['status', 'confirmar_ate']);
+            $table->index(['status', 'reconfirmar_ate']);
         });
     }
 

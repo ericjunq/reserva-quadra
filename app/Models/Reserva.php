@@ -35,8 +35,13 @@ class Reserva extends Model
         'revogada_em',
         'revogada_por',
         'cancelada_em',
-        'confirmacao_enviada_em',
+        'confirmar_ate',
         'confirmada_em',
+        'termos_aceitos_em',
+        'termos_versao',
+        'reconfirmacao_pedida_em',
+        'reconfirmar_ate',
+        'reconfirmada_em',
     ];
 
     protected $attributes = [
@@ -47,14 +52,18 @@ class Reserva extends Model
     protected function casts(): array
     {
         return [
-            'data_reserva'           => 'date',
-            'horario'                => HorarioReservaConstant::class,
-            'status'                 => StatusConstant::class,
-            'tipo'                   => TipoReservaConstant::class,
-            'revogada_em'            => 'datetime',
-            'cancelada_em'           => 'datetime',
-            'confirmacao_enviada_em' => 'datetime',
-            'confirmada_em'          => 'datetime',
+            'data_reserva'            => 'date',
+            'horario'                 => HorarioReservaConstant::class,
+            'status'                  => StatusConstant::class,
+            'tipo'                    => TipoReservaConstant::class,
+            'revogada_em'             => 'datetime',
+            'cancelada_em'            => 'datetime',
+            'confirmar_ate'           => 'datetime',
+            'confirmada_em'           => 'datetime',
+            'termos_aceitos_em'       => 'datetime',
+            'reconfirmacao_pedida_em' => 'datetime',
+            'reconfirmar_ate'         => 'datetime',
+            'reconfirmada_em'         => 'datetime',
         ];
     }
 
@@ -100,6 +109,11 @@ class Reserva extends Model
     public function inicio(): Carbon
     {
         return Carbon::parse($this->data_reserva->toDateString().' '.$this->hora_inicio);
+    }
+
+    public function fim(): Carbon
+    {
+        return Carbon::parse($this->data_reserva->toDateString().' '.$this->hora_fim);
     }
 
     public function aluno(): BelongsTo

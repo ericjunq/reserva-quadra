@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Constants\EtapaConfirmacaoConstant;
 use App\Models\Reserva;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -21,12 +22,15 @@ class PedidoConfirmacaoMail extends Mailable implements ShouldQueue
         public string $linkConfirmacao,
         public string $linkCancelamento,
         public Carbon $prazo,
-        public bool $recemCriada = false,
+        public EtapaConfirmacaoConstant $etapa,
+        public bool $avisarReconfirmacao = false,
     ) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Confirme sua reserva');
+        return new Envelope(subject: $this->etapa === EtapaConfirmacaoConstant::CONFIRMACAO
+            ? 'Confirme sua reserva'
+            : 'Sua reserva está chegando: confirme de novo');
     }
 
     public function content(): Content

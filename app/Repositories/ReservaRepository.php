@@ -27,18 +27,23 @@ class ReservaRepository
                 ->where('status', StatusConstant::RESERVADO)
                 ->jaIniciadas()
                 ->whereHas('equipamentos', fn ($e) => $e->where('item_reservas.situacao_devolucao', $situacao)))
-            ->when($filtros['confirmacao'] ?? null, fn ($q, $situacao) => $q
-                ->where('tipo', TipoReservaConstant::ALUNO)
-                ->when($situacao === SituacaoConfirmacaoConstant::CONFIRMADA->value, fn ($q) => $q->whereNotNull('confirmada_em'))
-                ->when($situacao === SituacaoConfirmacaoConstant::AGUARDANDO->value, fn ($q) => $q
-                    ->whereNotNull('confirmacao_enviada_em')
-                    ->whereNull('confirmada_em'))
-                ->when($situacao === SituacaoConfirmacaoConstant::NAO_SOLICITADA->value, fn ($q) => $q
-                    ->whereNull('confirmacao_enviada_em')
-                    ->whereNull('confirmada_em')))
+            ->when($filtros['confirmacao'] ?? null, fn ($q, $situacao) => $this->filtrarConfirmacao(
+                $q->where('tipo', TipoReservaConstant::ALUNO),
+                SituacaoConfirmacaoConstant::from($situacao),
+            ))
             ->when($filtros['busca'] ?? null, fn ($q, $busca) => $q->whereHas('aluno', fn ($a) => $a->where(fn ($w) => $w
                 ->whereLike('nome_completo', "%{$busca}%", caseSensitive: false)
                 ->orWhereLike('registro_academico', "%{$busca}%", caseSensitive: false))));
+    }
+
+    private function filtrarConfirmacao(Builder $query, SituacaoConfirmacaoConstant $situacao): Builder
+    {
+        return match ($situacao) {
+            SituacaoConfirmacaoConstant::AGUARDANDO_CONFIRMACAO   => $query->whereNull('confirmada_em'),
+            SituacaoConfirmacaoConstant::CONFIRMADA               => $query->whereNotNull('confirmada_em')->whereNull('reconfirmacao_pedida_em'),
+            SituacaoConfirmacaoConstant::AGUARDANDO_RECONFIRMACAO => $query->whereNotNull('reconfirmacao_pedida_em')->whereNull('reconfirmada_em'),
+            SituacaoConfirmacaoConstant::RECONFIRMADA             => $query->whereNotNull('reconfirmada_em'),
+        };
     }
 
     public function totaisPorStatus(array $filtros): array

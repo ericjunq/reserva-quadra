@@ -5,13 +5,13 @@ use Illuminate\Support\Facades\Schedule;
 
 $alertarSeFalhar = fn (string $tarefa) => fn (AlertaService $alertas) => $alertas->tarefaFalhou($tarefa);
 
-Schedule::command('reservas:pedir-confirmacao')
-    ->dailyAt(config('reservas.horario_pedido_confirmacao'))
+Schedule::command('reservas:pedir-reconfirmacao')
+    ->dailyAt(config('reservas.horario_pedido_reconfirmacao'))
     ->withoutOverlapping()
-    ->onFailure($alertarSeFalhar('Pedido de confirmação das reservas'));
+    ->onFailure($alertarSeFalhar('Pedido de reconfirmação das reservas'));
 
 Schedule::command('reservas:revogar-nao-confirmadas')
-    ->dailyAt(config('reservas.horario_revogacao_nao_confirmadas'))
+    ->everyFifteenMinutes()
     ->withoutOverlapping()
     ->onFailure($alertarSeFalhar('Revogação das reservas não confirmadas'));
 

@@ -12,11 +12,17 @@ return [
 
     'calendario_minimo_semanas' => (int) env('RESERVA_CALENDARIO_MINIMO_SEMANAS', 4),
 
-    'confirmacao_dias_uteis_antes' => (int) env('RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES', 2),
+    'confirmacao_horas' => (int) env('RESERVA_CONFIRMACAO_HORAS', 24),
 
-    'horario_pedido_confirmacao' => env('RESERVA_HORARIO_PEDIDO_CONFIRMACAO', '08:00'),
+    'confirmacao_minutos_mesmo_dia' => (int) env('RESERVA_CONFIRMACAO_MINUTOS_MESMO_DIA', 60),
 
-    'horario_revogacao_nao_confirmadas' => env('RESERVA_HORARIO_REVOGACAO_NAO_CONFIRMADAS', '00:05'),
+    'reconfirmacao_dias_uteis_antes' => (int) env('RESERVA_RECONFIRMACAO_DIAS_UTEIS_ANTES', 3),
+
+    'reconfirmacao_dispensada_dias_uteis' => (int) env('RESERVA_RECONFIRMACAO_DISPENSADA_DIAS_UTEIS', 2),
+
+    'horario_pedido_reconfirmacao' => env('RESERVA_HORARIO_PEDIDO_RECONFIRMACAO', '08:00'),
+
+    'termos_versao' => env('RESERVA_TERMOS_VERSAO', '2026-11'),
 
     'feriados_facultativos' => (bool) env('RESERVA_FERIADOS_FACULTATIVOS', false),
 

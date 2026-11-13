@@ -9,7 +9,7 @@ class RevogarNaoConfirmadas extends Command
 {
     protected $signature = 'reservas:revogar-nao-confirmadas';
 
-    protected $description = 'Revoga as reservas de hoje que não foram confirmadas no prazo';
+    protected $description = 'Revoga as reservas que não foram confirmadas ou reconfirmadas no prazo';
 
     public function handle(ReservaService $reservaService): int
     {

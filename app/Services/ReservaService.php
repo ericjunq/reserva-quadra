@@ -2,11 +2,9 @@
 
 namespace App\Services;
 
-use App\Constants\FinalidadeTokenConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Exceptions\RegraNegocioException;
-use App\Mail\ReservaCriadaMail;
 use App\Mail\ReservaRevogadaMail;
 use App\Models\Aluno;
 use App\Models\Equipamento;
@@ -26,7 +24,6 @@ class ReservaService
     public function __construct(
         private DisponibilidadeEquipamentoRepository $disponibilidade,
         private ReservaRepository $reservas,
-        private TokenReservaService $tokens,
         private ConfirmacaoService $confirmacao,
     ) {}
 
@@ -67,7 +64,7 @@ class ReservaService
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
-            $this->notificarCriacao($reserva, $aluno);
+            $this->confirmacao->pedirNaCriacao($reserva, $aluno);
 
             return $reserva->load('equipamentos');
         });
@@ -145,49 +142,32 @@ class ReservaService
 
     public function revogarNaoConfirmadas(): int
     {
-        $reservas = Reserva::query()
-            ->where('tipo', TipoReservaConstant::ALUNO)
-            ->where('data_reserva', today()->toDateString())
-            ->whereNotNull('confirmacao_enviada_em')
+        $agora = now();
+
+        $semConfirmacao = Reserva::query()
+            ->where('status', StatusConstant::RESERVADO)
+            ->where('confirmar_ate', '<=', $agora)
             ->whereNull('confirmada_em')
-            ->ativasFuturas()
             ->get();
 
-        foreach ($reservas as $reserva) {
-            $this->revogar($reserva, null, self::JUSTIFICATIVA_NAO_CONFIRMADA);
+        $semReconfirmacao = Reserva::query()
+            ->where('status', StatusConstant::RESERVADO)
+            ->where('reconfirmar_ate', '<=', $agora)
+            ->whereNull('reconfirmada_em')
+            ->get();
+
+        $revogadas = 0;
+
+        foreach ($semConfirmacao->concat($semReconfirmacao)->unique('id') as $reserva) {
+            try {
+                $this->revogar($reserva, null, self::JUSTIFICATIVA_NAO_CONFIRMADA);
+                $revogadas++;
+            } catch (RegraNegocioException) {
+                continue;
+            }
         }
 
-        return $reservas->count();
-    }
-
-    private function notificarCriacao(Reserva $reserva, Aluno $aluno): void
-    {
-        if ($reserva->data_reserva->isToday()) {
-            $reserva->update(['confirmada_em' => now()]);
-            $this->enviarReservaRegistrada($reserva, $aluno, null);
-
-            return;
-        }
-
-        if ($this->confirmacao->dentroDaJanela($reserva)) {
-            $this->confirmacao->enviarPedido($reserva, $aluno, recemCriada: true);
-
-            return;
-        }
-
-        $this->enviarReservaRegistrada($reserva, $aluno, $this->confirmacao->dataDoPedido($reserva));
-    }
-
-    private function enviarReservaRegistrada(Reserva $reserva, Aluno $aluno, ?Carbon $pedidoConfirmacaoEm): void
-    {
-        $token = $this->tokens->gerar($reserva, FinalidadeTokenConstant::CANCELAR, $reserva->inicio());
-
-        Mail::to($aluno->email)->queue((new ReservaCriadaMail(
-            $reserva->load('espaco', 'equipamentos'),
-            $aluno->nome_completo,
-            $this->tokens->link(FinalidadeTokenConstant::CANCELAR, $token),
-            $pedidoConfirmacaoEm,
-        ))->afterCommit());
+        return $revogadas;
     }
 
     private function resolverIntervalo(array $data): array
