@@ -158,6 +158,8 @@ export interface Chamada {
 
 export const tokenDoEmail = 'b'.repeat(64);
 
+const adminFalso = { id: 1, nome: 'Eric', email: 'eric@fac.edu', principal: true };
+
 const reservaDoAluno = {
   id: 77,
   data_reserva: datas.tercaSeguinte,
@@ -231,6 +233,26 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         },
         201,
       );
+    }
+    if (caminho === '/login') {
+      const corpo = requisicao.postDataJSON();
+      if (corpo.email !== 'eric@fac.edu' || corpo.password !== 'Senha1234') {
+        return json({ message: 'Credenciais inválidas' }, 401);
+      }
+      return json({
+        token: 'token-admin',
+        expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+        user: adminFalso,
+      });
+    }
+    if (caminho === '/me') {
+      return json({ data: adminFalso });
+    }
+    if (caminho === '/logout' || caminho === '/logout-geral') {
+      return json({ message: 'Até logo.' });
+    }
+    if (caminho === '/redefinir-senha') {
+      return json({ message: 'Senha redefinida. Faça login com a nova senha.' });
     }
     if (caminho === '/termos') {
       return json({ data: termos });
