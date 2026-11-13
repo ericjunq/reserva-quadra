@@ -2176,3 +2176,68 @@ Testes: DisponibilidadeTest (horizonte, mínimo de 4 semanas perto do fim de jun
 calendario.spec (seletor, última semana, dia que não abriu no FIXO e no LIVRE), e2e da quadra
 (seletor até a última semana). e2e/api-falsa.ts: calendario_ate, abre_em e INDISPONIVEL nos dias
 que ainda não abriram, como a API.
+
+========================================================================
+52. PASSO 11.3a — CONFIRMAÇÃO PELO EMAIL COM ACEITE DOS TERMOS E RECONFIRMAÇÃO
+========================================================================
+
+13/11/2026. 263 testes da API, 89 do front, 14 no navegador. Substitui o fluxo do item 9 (seção
+correspondente mais acima): pedido 2 dias úteis antes, prazo até a véspera, reserva de hoje já
+confirmada e email "Reserva registrada".
+
+database/migrations/2026_10_23_190132_create_reservas_table.php (editada no lugar)
+  - Sai confirmacao_enviada_em. Entram confirmar_ate, termos_aceitos_em, termos_versao (20),
+    reconfirmacao_pedida_em, reconfirmar_ate, reconfirmada_em; índices (status, confirmar_ate) e
+    (status, reconfirmar_ate) para o comando de 15 em 15 minutos.
+app/Models/Reserva.php: fillable e casts novos; fim() (data + hora_fim), ao lado de inicio().
+config/reservas.php: confirmacao_horas (24), confirmacao_minutos_mesmo_dia (60),
+  reconfirmacao_dias_uteis_antes (3), reconfirmacao_dispensada_dias_uteis (2),
+  horario_pedido_reconfirmacao (08:00), termos_versao (2026-11). Saem confirmacao_dias_uteis_antes,
+  horario_pedido_confirmacao e horario_revogacao_nao_confirmadas.
+app/Constants/EtapaConfirmacaoConstant.php (novo): CONFIRMACAO, RECONFIRMACAO.
+app/Constants/SituacaoConfirmacaoConstant.php: AGUARDANDO_CONFIRMACAO, CONFIRMADA,
+  AGUARDANDO_RECONFIRMACAO, RECONFIRMADA (filtro "confirmacao" do admin).
+app/Repositories/ReservaRepository.php: filtrarConfirmacao() com match por situação.
+app/Services/ConfirmacaoService.php (reescrito)
+  - prazoDaConfirmacao: agora + 24 h (mesmo dia: + 60 min), no máximo até o início; se o início já
+    passou (reserva de hoje em andamento), até o fim.
+  - prazoDaReconfirmacao: 00:00 da véspera. dataDoPedidoDeReconfirmacao: data − 3 dias úteis.
+  - pedirNaCriacao: grava confirmar_ate e envia o email da etapa CONFIRMACAO.
+  - pedirReconfirmacoes: RESERVADO, ALUNO, confirmada, sem pedido, data > amanhã e ≤ hoje + 3 dias
+    úteis; rejeita as dispensadas (confirmada_em ≥ data do pedido − 2 dias úteis); grava
+    reconfirmacao_pedida_em e reconfirmar_ate e envia o email da etapa RECONFIRMACAO. Como a data do
+    pedido é fixa por reserva, a dispensa vale todos os dias (não pede depois).
+  - etapa(): CONFIRMACAO enquanto confirmada_em é nulo. podeConfirmar() e prazo() por etapa.
+  - confirmar(token, aceite): trava token e reserva; primeira vez exige aceite (ValidationException
+    em aceite_termos) e grava confirmada_em, termos_aceitos_em e termos_versao; reconfirmação grava
+    reconfirmada_em (409 se não foi pedida ou já feita). Token de uso único.
+  - enviar(): tokens CONFIRMAR (vence no prazo) e CANCELAR (até o início; se já começou, até o fim);
+    no email da reconfirmação o prazo exibido é 1 minuto antes (23:59); avisarReconfirmacao quando a
+    reserva é depois de hoje + 3 dias úteis.
+app/Services/ReservaService.php
+  - create chama confirmacao->pedirNaCriacao (sai notificarCriacao e enviarReservaRegistrada; sai a
+    dependência TokenReservaService, que não era mais usada).
+  - revogarNaoConfirmadas: duas consultas (confirmar_ate vencido sem confirmada_em; reconfirmar_ate
+    vencido sem reconfirmada_em), sem repetir ids; RegraNegocioException de corrida é ignorada.
+app/Mail/PedidoConfirmacaoMail.php + resources/views/emails/pedido-confirmacao.blade.php
+  - Recebem etapa e avisarReconfirmacao; assunto e texto por etapa; o texto da primeira explica o
+    aceite dos termos. ReservaCriadaMail e reserva-criada.blade.php removidos.
+app/Console/Commands/PedirReconfirmacao.php (antes PedirConfirmacao, git mv):
+  reservas:pedir-reconfirmacao. RevogarNaoConfirmadas: descrição nova.
+routes/console.php: reconfirmação às 08:00; revogação everyFifteenMinutes (ambas com alerta).
+app/Http/Requests/ConfirmarReservaRequest.php (novo): aceite_termos booleano opcional (a
+  obrigatoriedade depende da etapa e fica no service).
+app/Http/Controllers/ConfirmacaoController.php: show com etapa, pode_confirmar,
+  prazo_confirmacao, exige_aceite_termos e termos_versao; confirmar com o aceite.
+app/Support/Termos.php (novo) + app/Http/Controllers/TermosController.php (novo) + GET /api/termos
+  - Rascunho dos termos de uso e do aviso de privacidade em seções (título + parágrafos), com os
+    prazos lidos da configuração (antecedência, prazos de confirmação, retenções de tokens, jobs e
+    logs). Pontos da instituição como "[a confirmar com a instituição]"; rascunho: true. Resposta
+    pública com cache de 1 hora.
+app/Http/Resources/ReservaResource.php: campos novos no lugar de confirmacao_enviada_em.
+frontend: modelos.ts (confirmar_ate), datas.ts (formatarDataHora no horário de Brasília),
+  reservar.html (quadro "Falta confirmar pelo email" com o prazo), specs e simulador da API.
+Testes: ConfirmacaoTest refeito; CancelamentoTest pega o link do PedidoConfirmacaoMail;
+  AgendadorTest e AlertaTest com os nomes novos.
+Achado: nos testes, o cache de views compiladas manteve o email antigo e deu erro de variável
+  ($recemCriada); php artisan view:clear resolveu (não é defeito do código).

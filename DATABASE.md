@@ -102,8 +102,13 @@ erDiagram
         timestamp revogada_em
         bigint revogada_por FK
         timestamp cancelada_em "pelo aluno"
-        timestamp confirmacao_enviada_em "item 9"
-        timestamp confirmada_em "item 9"
+        timestamp confirmar_ate "prazo da 1a confirmação"
+        timestamp confirmada_em "1a confirmação"
+        timestamp termos_aceitos_em
+        string termos_versao
+        timestamp reconfirmacao_pedida_em
+        timestamp reconfirmar_ate "00:00 da véspera"
+        timestamp reconfirmada_em
     }
 
     item_reservas {
@@ -200,8 +205,8 @@ Uma reserva pode pedir vários equipamentos e um equipamento aparece em várias 
 **11b. A devolução fica na própria `item_reservas`.**
 Cada linha já é "este equipamento, nesta reserva", então a devolução de cada item (situação, quantidade devolvida, observação, quem registrou e quando) mora nela, sem tabela extra. O model `ItemReserva` (um *pivot* do Laravel) dá regras e auditoria à linha sem mudar as relações. O índice `(situacao_devolucao, reserva_id)` atende a busca de pendências.
 
-**12. Colunas de confirmação já existem (`confirmacao_enviada_em`, `confirmada_em`).**
-Elas foram criadas para o item 9, para o agendador saber a quem já pediu confirmação e quem já confirmou.
+**12. Colunas de confirmação na própria reserva.**
+Criadas no item 9 (`confirmacao_enviada_em`, `confirmada_em`) e refeitas no passo 11.3a (13/11/2026) para as duas etapas: `confirmar_ate`, `confirmada_em`, `termos_aceitos_em`, `termos_versao`, `reconfirmacao_pedida_em`, `reconfirmar_ate`, `reconfirmada_em` (ver decisão 36).
 
 ### Bloqueios
 
@@ -278,6 +283,9 @@ A consulta mais usada é "quais equipamentos o espaço X pode usar": os do espa�
 
 **35. Horizonte do calendário calculado, sem coluna nova.**
 O fim do semestre vem da configuração (`RESERVA_FIM_DOS_SEMESTRES`, padrão `06-30,12-31`) e o mínimo de semanas também (`RESERVA_CALENDARIO_MINIMO_SEMANAS`, 4). A data em que cada dia abre para reserva (`abre_em`) é a inversa da antecedência (`dia − 10 dias úteis`), calculada em PHP. Nada é gravado; quando a grade de aulas (passo 12) existir, a vigência dela pode passar a definir o fim do semestre.
+
+**36. Confirmação em duas etapas com o prazo gravado na reserva.**
+`confirmar_ate` (prazo da primeira confirmação, com o aceite dos termos) e `reconfirmar_ate` (prazo da reconfirmação, 00:00 da véspera) ficam gravados, em vez de calculados na hora, porque o comando que revoga roda a cada 15 minutos: com o prazo na coluna e os índices `(status, confirmar_ate)` e `(status, reconfirmar_ate)`, cada execução são duas consultas por índice, sem calcular datas por reserva. `termos_aceitos_em` e `termos_versao` registram o aceite (prova do que foi informado ao aluno, LGPD); a versão vem da configuração e muda quando o texto muda. Substituiu `confirmacao_enviada_em` (o pedido único de 2 dias úteis antes), passo 11.3a, 13/11/2026.
 
 **31. `auditavel_type` guarda nomes curtos (morph map).**
 Em vez de `App\Models\Reserva`, a coluna guarda `reserva` (e `aluno`, `espaco`, `equipamento`, `curso`, `data_bloqueada`, `item_reserva`, `admin`). O mapa fica em `TipoAuditavelConstant` e é registrado com `enforceMorphMap` no `AppServiceProvider`: renomear ou mover uma classe não quebra o histórico, e um model polimórfico fora do mapa dá erro em vez de gravar um nome inesperado. Vale também para `personal_access_tokens.tokenable_type` (admins aparecem como `admin`).

@@ -6,7 +6,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 13/11/2026 · 258 testes da API + 88 do front + 14 no navegador passando
+Última atualização: 13/11/2026 · 263 testes da API + 89 do front + 14 no navegador passando
 
 ---
 
@@ -15,8 +15,8 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - **Último passo concluído:** **passo 10, preparação para produção** (09/11/2026, 239 testes passando). Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS e proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` (recomendações de plataforma para o usuário negociar com a TI da faculdade).
 - **Último subpasso concluído:** **11.2, área pública de reserva** (10/11/2026, 56 testes do front + 244 da API). Início com os espaços, calendário semanal (limite do curso pelo RA só na quadra), reserva (fixo e livre, com equipamentos e resumo), cadastro com volta para a reserva. Antes dele, o 11.1 (base do front, 09/11).
 - **Plano:** há também o **passo 12 novo, importação da grade de aulas** (respostas do usuário registradas; a proposta completa vem quando chegar a vez dele).
-- **Últimos subpassos feitos:** **11.2c** e **11.2e** (13/11/2026: 258 testes da API, 88 do front, 14 no navegador). Antes deles, o 11.2d com a correção da lista de horários: barra do dia, horários livres como botões, início e fim com sugestões, duração em botões. **Em andamento:** nada implementando. 11.3a: decisão 2.2 fechada (pedido **3 dias úteis antes**, revogação às 00:05 da véspera). **11.2c aguardando**: o usuário pediu uma forma performática; explicação do custo enviada.
-- **Próximo passo:** **11.3a** (API: confirmação pelo email com aceite dos termos; decisões fechadas, ver o passo 11 do plano) e depois **11.3** (telas pós-reserva). Mandar um resumo curto antes, porque as decisões já estão tomadas. Depois, 11.3a (API: confirmação com aceite dos termos) e 11.3 (telas pós-reserva). **O usuário precisa rodar `php artisan migrate:fresh --seed`**: o banco local dele ainda tem Química, Biologia e as salas com horário fixo. **O usuário precisa rodar `php artisan migrate:fresh --seed`** (laboratórios e salas de horário livre).
+- **Últimos subpassos feitos:** **11.3a** (13/11/2026: 263 testes da API, 89 do front, 14 no navegador), e antes dele **11.2c** e **11.2e** e o 11.2d com a correção da lista de horários: barra do dia, horários livres como botões, início e fim com sugestões, duração em botões. **Em andamento:** nada implementando. 11.3a: decisão 2.2 fechada (pedido **3 dias úteis antes**, revogação às 00:05 da véspera). **11.2c aguardando**: o usuário pediu uma forma performática; explicação do custo enviada.
+- **Próximo passo:** **11.3** (telas pós-reserva: minhas reservas, cancelar e confirmar pelo link — a confirmação mostra os termos de `GET /api/termos` e exige a caixa "Li e aceito" —, página de privacidade). Decisões já aprovadas (ver o passo 11.3 do plano); a 5 (controlador e contato) continua "a confirmar". Mandar um resumo curto antes. Depois, 11.3a (API: confirmação com aceite dos termos) e 11.3 (telas pós-reserva). **O usuário precisa rodar `php artisan migrate:fresh --seed`**: o banco local dele ainda tem Química, Biologia e as salas com horário fixo. **O usuário precisa rodar `php artisan migrate:fresh --seed`** (laboratórios e salas de horário livre).
 - **Lição de 10/11 (para o Claude):** **não deixar servidores (`artisan serve`, `ng serve`) rodando nas portas 8000/4200 do usuário.** Para capturas e testes no navegador, usar portas próprias (ex.: 8123 e 4300, com `--port`) e desligar ao terminar. Ver a Trilha de ideias.
 - **📝 Para o usuário rever com calma (alterações e achados de 10/11/2026):**
   1. **API, consulta com RA:** nova rota `POST /api/espacos/{id}/disponibilidade/curso` (RA no corpo, nunca na URL). Só funciona em espaços com limite semanal por curso (hoje, a quadra); a resposta traz quantas reservas o curso ainda tem na semana, **sem o nome nem o id do curso**; 20 consultas por minuto; RA inexistente e aluno inativo recebem a mesma mensagem.
@@ -109,7 +109,8 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Ordem recomendada ao usuário (13/11):** terminar a área pública (11.2c, 11.2e, 11.3a, 11.3) → 11.4 (login do admin) → **passo 12 (grade de aulas)**, antes das outras telas do admin, porque sem ela o sistema não pode entrar em uso → 11.5 (com o registro de uso e, se aprovada, a solicitação de equipamento) → 11.6 → 11.7 → 11.8 → 13.
 - **Decisões do usuário (13/11, depois da correção da lista):** (1) o admin habilita compartilhamento e visualização **e** o aluno pode **solicitar** equipamentos (virou o 11.2f, detalhes a propor); (2) calendário **até o fim do semestre** (jan–jun, jul–dez), com o resto da avaliação aprovado (mínimo 4 semanas, seletor de semana, limite na API, "Abre para reserva em"); (3) registro de uso pelo admin aprovado, com email, e com **marcação/cor própria de "registrada depois"**. A ordem dos passos recomendada não foi comentada: seguir a recomendação até ele dizer o contrário. Ele pediu de novo que os guias fiquem o mais descritivos possível para outro chat, e deu push dos commits até `a269c8c`.
 - **11.2c e 11.2e implementados (13/11, o usuário disse "pode começar"):** compartilhamento por tabela de ligação (escolha do admin, histórico, 409 ao tirar espaço com reserva futura) e calendário até o fim do semestre (`calendario_ate`, `abre_em`, seletor de semana). Decisões de implementação: a lista de compartilhamento só aparece nas respostas do admin; o compartilhamento definido na criação entra no histórico como uma primeira alteração (de [] para a lista); o `ate` depois do horizonte é cortado em vez de recusado (a última semana pode terminar no meio); bloqueio do dia inteiro tem prioridade sobre "Abre para reserva em" e zera o `abre_em` (o front não compara textos). O simulador da API dos testes no navegador passou a devolver `INDISPONIVEL` nos dias que ainda não abriram, como a API real.
-- **Agora:** próximo: **11.3a** (confirmação pelo email com aceite dos termos) e depois **11.3**; o 11.2f (solicitação) e o 12b (registro posterior) entram com o 11.5. O usuário precisa rodar `migrate:fresh --seed` (tabela nova de compartilhamento e laboratórios/salas com horário livre).
+- **11.3a implementado (13/11, "pode fazer"):** toda reserva confirmada pelo email em 24 h (mesmo dia 1 h) com aceite dos termos e versão gravada; reconfirmação 3 dias úteis antes com prazo às 00:00 da véspera e dispensa para quem confirmou há pouco; revogação a cada 15 min; `GET /api/termos` com rascunho; filtros novos; email "Reserva registrada" removido. Achado: o cache de views compiladas guardou o email antigo nos testes (`php artisan view:clear` resolveu). O texto dos termos é rascunho do Claude e precisa ser validado pela instituição.
+- **Agora:** próximo: **11.3** (telas de minhas reservas, cancelar e confirmar pelo link com os termos, privacidade); o 11.2f (solicitação) e o 12b (registro posterior) entram com o 11.5. O usuário precisa rodar `migrate:fresh --seed` (colunas novas em `reservas`, tabela de compartilhamento, laboratórios e salas com horário livre) e rever o rascunho dos termos (`GET /api/termos` ou `app/Support/Termos.php`).
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -149,8 +150,8 @@ Estão no [`CLAUDE.md`](CLAUDE.md#regras-de-desenvolvimento-combinadas-com-o-usu
 - [x] Reservar um espaço em um horário, com ou sem equipamentos
 - [x] Em espaços com horário livre, escolher início e fim (blocos de 30 min, dentro da janela e até a duração máxima)
 - [x] Consultar as próprias reservas informando RA + email (futuras ou todas)
-- [x] Receber email "Reserva registrada" e cancelar pelo link (até o início da reserva)
-- [x] Confirmar a reserva pelo link do email (pedido 2 dias úteis antes; prazo até o dia anterior)
+- [x] Receber "Confirme sua reserva" ao reservar e cancelar pelo link (até o início da reserva)
+- [x] Confirmar a reserva pelo link do email aceitando os termos (24 h; mesmo dia 1 h) e reconfirmar 3 dias úteis antes (passo 11.3a)
 - [x] Receber email quando a reserva é criada, cancelada ou revogada, e quando a devolução tem pendência
 
 ### Regras da reserva do aluno
@@ -221,7 +222,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - Arquivos: `ConsultarMinhasReservasRequest`, um método novo no `ReservaRepository`, `MinhasReservasController`, `MinhasReservasTest`.
 
 ### 2. ✅ Item 8 — Email na criação com link de cancelamento — *concluído em 09/11/2026*
-- Ao reservar, o aluno recebe "Reserva registrada" (antes "Reserva confirmada") com um link para cancelar. Isso também protege contra o uso do RA por outra pessoa.
+- Ao reservar, o aluno recebia "Reserva registrada" (antes "Reserva confirmada") com um link para cancelar (desde o 11.3a, 13/11, a criação manda "Confirme sua reserva", que também tem o link de cancelar). Isso também protege contra o uso do RA por outra pessoa.
 - **Token aleatório:** só o hash dele fica no banco, e o token puro vai só no email.
 - **Link no front:** `FRONTEND_URL/reservas/cancelar/{token}`. O front chama:
   - `GET /api/reservas/cancelamento/{token}`: resumo da reserva;
@@ -231,7 +232,7 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 - Eventos não recebem esses emails.
 - Decisões tomadas: cancelar **até o início**; link para o **front Angular** (`FRONTEND_URL`, opção A, sem Blade); **token genérico** em `tokens_reserva` (`CANCELAR`/`CONFIRMAR`); resumo do GET **sem o nome** do aluno.
 
-### 3. ✅ Item 9 — Confirmação e revogação automática — *concluído em 09/11/2026*
+### 3. ✅ Item 9 — Confirmação e revogação automática — *concluído em 09/11/2026; **refeito no passo 11.3a (13/11/2026)**: o texto abaixo é o histórico do fluxo antigo; o atual está no 11.3a e no README*
 - Pedido de confirmação **2 dias úteis antes** (comando `reservas:pedir-confirmacao`, 08:00); prazo até as **23:59 do dia anterior** (dia corrido); revogação das não confirmadas no dia da reserva (comando `reservas:revogar-nao-confirmadas`, 00:05).
 - Na criação: reserva **para hoje** nasce confirmada; reserva **dentro da janela** já recebe "Confirme sua reserva" (um email só); fora da janela recebe "Reserva registrada" com a data do pedido.
 - Email de confirmação com **Confirmar** e **Cancelar**; `GET`/`POST /api/reservas/confirmacao/{token}`; filtro `confirmacao` na listagem do admin. Eventos não precisam de confirmação.
@@ -325,7 +326,9 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
       4. **escolha de início e fim por listas** (selects só com os horários possíveis) em vez de digitar a hora: evita erro de digitação e funciona bem no celular.
     - **Desempenho:** uma consulta por semana, como hoje; resposta menor; validação do intervalo feita na tela, sem ida à API; a API continua conferindo tudo na reserva (travas de linha).
     - **LGPD:** a lista de ocupados mostra só nome e curso (como hoje), nunca RA ou email.
-  - 11.3a Confirmação pelo email com aceite dos termos (API) — *aprovado em 10/11/2026, com ajustes do usuário; a leitura das decisões 2.1 e 2.2 será confirmada antes de implementar*:
+  - ✅ 11.3a Confirmação pelo email com aceite dos termos (API) — *concluído em 13/11/2026 (263 testes da API, 89 do front, 14 no navegador)*; *aprovado em 10/11/2026, com ajustes do usuário (2.1 = 24 h, mesmo dia 1 h; 2.2 = reconfirmação 3 dias úteis antes e revogação às 00:00 da véspera)*:
+    - **Como ficou (implementado em 13/11, depois do "pode fazer"):** colunas `confirmar_ate`, `termos_aceitos_em`, `termos_versao`, `reconfirmacao_pedida_em`, `reconfirmar_ate`, `reconfirmada_em` (saiu `confirmacao_enviada_em`; migration editada no lugar) e índices `(status, confirmar_ate)` e `(status, reconfirmar_ate)`. `ConfirmacaoService` reescrito: `pedirNaCriacao` (prazo 24 h, mesmo dia 60 min, nunca depois do início; se já começou, até o fim), `pedirReconfirmacoes` (3 dias úteis antes, depois de amanhã, só confirmadas, dispensa de quem confirmou há menos de 2 dias úteis antes da data do pedido), `confirmar(token, aceite)` com `etapa` (primeira exige `aceite_termos`, 422 sem ele; reconfirmação não exige). `reservas:revogar-nao-confirmadas` a cada 15 min (duas consultas por índice); `reservas:pedir-confirmacao` virou `reservas:pedir-reconfirmacao` (08:00). Email único `PedidoConfirmacaoMail` com `etapa` (assuntos "Confirme sua reserva" e "Sua reserva está chegando: confirme de novo"); `ReservaCriadaMail` removido. `GET /api/termos` com o rascunho dos termos de uso e do aviso de privacidade (`App\Support\Termos`, pontos da instituição como "[a confirmar com a instituição]", cache de 1 h). Filtro do admin: `AGUARDANDO_CONFIRMACAO`, `CONFIRMADA`, `AGUARDANDO_RECONFIRMACAO`, `RECONFIRMADA`. Front: tela de sucesso "Falta confirmar pelo email" com o prazo (`formatarDataHora`, horário de Brasília).
+    - **Decisões de implementação:** o email da reconfirmação mostra o prazo como 23:59 do dia anterior à véspera (o prazo real é 00:00 da véspera); o token de cancelar de reserva de hoje que já começou vale até o fim; um erro de corrida na revogação automática (reserva cancelada no meio) é ignorado e o comando segue; config `confirmacao_dias_uteis_antes`, `horario_pedido_confirmacao` e `horario_revogacao_nao_confirmadas` substituídas pelas novas (`RESERVA_CONFIRMACAO_HORAS`, `RESERVA_CONFIRMACAO_MINUTOS_MESMO_DIA`, `RESERVA_RECONFIRMACAO_DIAS_UTEIS_ANTES`, `RESERVA_RECONFIRMACAO_DISPENSADA_DIAS_UTEIS`, `RESERVA_HORARIO_PEDIDO_RECONFIRMACAO`, `RESERVA_TERMOS_VERSAO`).
     - **Respostas do usuário:** ideia ótima; 2.1: reserva **para o mesmo dia** tem **1 hora** para confirmar; para outros dias, "mantém o outro padrão"; 2.2: "manter o cancelamento caso não haja confirmação"; 2.3: mesmo dia, 1 hora após a criação para confirmar ou cancelar, senão é cancelada; 2.4: a cada 15 min, **sem consulta pesada**; 2.5 e 2.6: aprovadas.
     - **Decisão final da 2.2 (11/11):** pedido de confirmação **3 dias úteis antes** e revogação das não confirmadas às **00:05 da véspera** (ideia do usuário de revogar 1 dia antes + recomendação do Claude de antecipar o pedido para não encurtar o prazo). Quem confirmou a primeira (com os termos) há menos de 2 dias úteis não recebe o segundo pedido.
     - **Confirmações do usuário (11/11):** 2.1: **24 h** para confirmar (mesmo dia: 1 h). 2.2: o pedido de confirmação continua **2 dias úteis antes**, e a reserva não confirmada é revogada **1 dia antes** (ideia dele). Avaliação enviada: revogar no começo da véspera (00:05) libera o horário um dia antes, mas encurta o prazo do aluno (reserva de quarta: pedido na segunda 08:00, prazo até segunda 23:59, ~16 h). Recomendação: **pedido 3 dias úteis antes** e revogação às 00:05 da véspera, para manter ~1 dia e meio de prazo; e não pedir a segunda confirmação de quem confirmou a primeira há menos de 2 dias úteis. Aguardando escolha.
@@ -471,9 +474,9 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
 
 - [x] Reserva revogada (pelo admin, por evento, por data bloqueada ou por aluno desativado)
 - [x] Pendência na devolução de equipamentos (avaria ou não devolvido)
-- [x] Reserva registrada, com link de cancelamento
 - [x] Reserva cancelada pelo aluno
-- [x] Confirme sua reserva (2 dias úteis antes, ou já na criação dentro da janela)
+- [x] Confirme sua reserva (na criação, prazo de 24 h ou 1 h no mesmo dia, com aceite dos termos)
+- [x] Sua reserva está chegando: confirme de novo (3 dias úteis antes)
 - [x] Reserva revogada por falta de confirmação
 - [x] Convite para acessar o sistema (admin novo)
 - [x] Redefinição de senha do admin
