@@ -6,7 +6,7 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - Modelo de dados e decisões de modelagem: [`DATABASE.md`](DATABASE.md)
 - Registro arquivo por arquivo de cada implementação: [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt)
 
-Última atualização: 11/11/2026 · 251 testes da API + 69 do front + 8 no navegador passando
+Última atualização: 13/11/2026 · 251 testes da API + 81 do front + 10 no navegador passando
 
 ---
 
@@ -15,8 +15,8 @@ Estado do sistema, plano completo até a finalização e as regras de trabalho c
 - **Último passo concluído:** **passo 10, preparação para produção** (09/11/2026, 239 testes passando). Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS e proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` (recomendações de plataforma para o usuário negociar com a TI da faculdade).
 - **Último subpasso concluído:** **11.2, área pública de reserva** (10/11/2026, 56 testes do front + 244 da API). Início com os espaços, calendário semanal (limite do curso pelo RA só na quadra), reserva (fixo e livre, com equipamentos e resumo), cadastro com volta para a reserva. Antes dele, o 11.1 (base do front, 09/11).
 - **Plano:** há também o **passo 12 novo, importação da grade de aulas** (respostas do usuário registradas; a proposta completa vem quando chegar a vez dele).
-- **Em andamento:** **11.2d em implementação** (aprovado em 11/11). 11.3a: decisão 2.2 fechada (pedido **3 dias úteis antes**, revogação às 00:05 da véspera). **11.2c aguardando**: o usuário pediu uma forma performática; explicação do custo enviada.
-- **Próximo passo:** com as aprovações, implementar na ordem 11.2c → 11.2d → 11.3a → 11.3. **O usuário precisa rodar `php artisan migrate:fresh --seed`** (laboratórios e salas de horário livre).
+- **Último subpasso feito:** **11.2d** (13/11/2026, 81 testes do front e 10 no navegador): barra do dia, horários livres como botões, início e fim com sugestões, duração em botões. **Em andamento:** nada implementando. 11.3a: decisão 2.2 fechada (pedido **3 dias úteis antes**, revogação às 00:05 da véspera). **11.2c aguardando**: o usuário pediu uma forma performática; explicação do custo enviada.
+- **Próximo passo:** **11.2c aguarda o ok do usuário** (lista de espaços por equipamento, explicação de desempenho já enviada). Depois, 11.3a (API: confirmação com aceite dos termos) e 11.3 (telas pós-reserva). **O usuário precisa rodar `php artisan migrate:fresh --seed`** (laboratórios e salas de horário livre).
 - **Lição de 10/11 (para o Claude):** **não deixar servidores (`artisan serve`, `ng serve`) rodando nas portas 8000/4200 do usuário.** Para capturas e testes no navegador, usar portas próprias (ex.: 8123 e 4300, com `--port`) e desligar ao terminar. Ver a Trilha de ideias.
 - **📝 Para o usuário rever com calma (alterações e achados de 10/11/2026):**
   1. **API, consulta com RA:** nova rota `POST /api/espacos/{id}/disponibilidade/curso` (RA no corpo, nunca na URL). Só funciona em espaços com limite semanal por curso (hoje, a quadra); a resposta traz quantas reservas o curso ainda tem na semana, **sem o nome nem o id do curso**; 20 consultas por minuto; RA inexistente e aluno inativo recebem a mesma mensagem.
@@ -99,7 +99,9 @@ Registrar aqui cada nova ideia, decisão ou mudança de rumo, com o porquê, em 
 - **Respostas do usuário (11/11):** 2.1 = 24 h; 2.2 = pedido 2 dias úteis antes e revogação 1 dia antes (contraproposta do Claude: pedido 3 dias úteis antes, para não encurtar o prazo do aluno). Achado: o **microscópio aparece na quadra** (o `compartilhavel` libera para todos os espaços; proposta 11.2c: lista de espaços por equipamento). Pedido: horário **digitável e selecionável**, mais amigável (proposta 11.2d). Página de privacidade: nome do controlador e contato só depois do alinhamento com a faculdade.
 - **Ideia do usuário (11/11): cada sistema que consumir a API tem o seu responsável pelos emails/dados, para diminuir o risco jurídico dele como desenvolvedor.** Opinião dada (não é parecer jurídico; validar com o jurídico/encarregado da faculdade): a ideia é boa e se encaixa na LGPD — a **faculdade é a controladora** dos dados do sistema; o desenvolvedor não deve aparecer como controlador nem como contato dos titulares; cada **sistema parceiro** (passo 13) é cadastrado com um **responsável** (organização, pessoa e email) e **aceita termos de uso da API** (versão guardada), respondendo pelos dados que envia e pelos avisos aos seus usuários; a auditoria registra qual cliente fez cada ação. Para reduzir o risco do desenvolvedor: contrato ou termo com a faculdade definindo papéis (quem hospeda, quem é o operador, quem responde aos titulares), hospedagem e envio de email em contas da faculdade, e textos (termos, privacidade, emails) em nome da faculdade.
 - **Decisões do usuário (11/11):** 2.2 do 11.3a: aceitou a recomendação (pedido **3 dias úteis antes**, revogação às 00:05 da véspera; sem segunda confirmação para quem confirmou a primeira há menos de 2 dias úteis). 11.2d (campo com sugestões, botões de duração e barra do dia): aprovado. 11.2c: "temos que ver uma forma performática" — explicado o custo da lista de espaços por equipamento (tabela pequena, chave primária composta começando pelo espaço, uma subconsulta indexada, nenhuma consulta a mais por equipamento) e a alternativa por tipos de espaço (sem tabela nova, porém menos precisa).
-- **Agora:** implementando o 11.2d; 11.2c aguardando o ok depois da explicação de desempenho.
+- **Retomada no PC do trabalho (13/11):** o usuário fez alterações no outro PC e pediu para continuar. O `node_modules` não existia neste PC (`npm ci` resolveu; o registro padrão do npm respondeu, sem precisar do espelho). Continuado o 11.2d, que estava aprovado.
+- **11.2d implementado (13/11):** funções puras em `intervalo.ts` (`iniciosLivres`, `finsPossiveis`, `duracoesPossiveis`, `trechosDaBarra`, `inicioNaPosicao`, `marcasDaBarra`, `normalizarHora`) e o painel do dia com a barra, os livres como botões, início/fim com `<datalist>` e a duração em botões. Trocado o CDK pelo `<datalist>` (sem dependência nova; pacote inicial igual, 301 kB). Achado durante a implementação: ligar o campo de início à função que apaga o fim apagaria o fim a cada tecla; ficou só nos cliques. Capturas no computador e no celular conferidas.
+- **Agora:** 11.2d concluído; aguardando o ok do 11.2c. Depois, 11.3a e 11.3.
 
 ## 🧭 Como continuar (para uma nova conversa com o Claude)
 
@@ -337,7 +339,8 @@ Cada passo abaixo já tem a ideia da proposta. Antes de implementar, enviar a pr
     - **Desempenho:** a consulta de equipamentos do espaço passa a ser "do espaço OU na lista dele" (um `whereIn` por subconsulta indexada); a disponibilidade continua numa consulta agrupada.
     - **LGPD:** não envolve dados pessoais.
     - **Arquivos (previstos):** migration nova da tabela (e a coluna `compartilhavel` sai da migration de equipamentos, editada no lugar), model `Equipamento`, `EquipamentoService`, requests e resource do equipamento, regras de validação da reserva, `DemoSeeder` (microscópio com os laboratórios e salas; bolas só na quadra), testes, README, DATABASE.
-  - 11.2d Escolha do horário mais amigável (horário livre) — *aprovado em 11/11/2026, em implementação*:
+  - ✅ 11.2d Escolha do horário mais amigável (horário livre) — *concluído em 13/11/2026 (81 testes do front, 10 no navegador)*:
+    - **Decisão de implementação:** as sugestões de início e fim usam o `<datalist>` do navegador em vez do Angular CDK (mesmo comportamento aprovado, acessível, sem aumentar o pacote). Também aceita digitar a hora de vários jeitos (14:00, 14h, 1400, 9). Escolher um início pela barra ou pela lista apaga o fim se ele não couber mais; digitar não apaga nada.
     - **Pedido:** continuar digitável, mas também selecionável, de um jeito mais fácil no computador e no celular.
     - **Recomendação:**
       - **barra do dia** (07:00 → 22:00) com os trechos ocupados em cinza e o horário escolhido em amarelo; tocar num trecho livre preenche o início;

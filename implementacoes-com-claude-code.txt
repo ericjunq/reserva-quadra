@@ -2016,3 +2016,47 @@ frontend/e2e/api-falsa.ts e reserva-no-laboratorio.spec.ts
   - Calendário livre simulado (um ocupado na terça seguinte), versão e equipamentos do intervalo;
     teste do laboratório do começo ao fim. O teste da semana reaproveitada filtra só as consultas
     do calendário (a rota de versão também tem "disponibilidade" no caminho).
+
+========================================================================
+48. PASSO 11.2d — ESCOLHA DO HORÁRIO MAIS AMIGÁVEL (HORÁRIO LIVRE)
+========================================================================
+
+Aprovado em 11/11/2026, implementado em 13/11/2026. 81 testes do front, 10 no navegador.
+Nenhuma mudança na API.
+
+frontend/src/app/publico/intervalo.ts
+  - normalizarHora: aceita "9", "14h", "14h30", "1430", "930", "9:05" e devolve HH:MM; o que não
+    reconhece volta como veio (e o arredondar recusa). Usada pelo avaliarIntervalo.
+  - iniciosLivres(dia, janela): todos os inícios de 15 em 15 min dentro dos horários livres
+    (reaproveita horariosLivres, que já considera o fim_minimo de hoje).
+  - finsPossiveis(dia, janela, inicio): fins de 15 em 15 min até o próximo ocupado, o fechamento
+    ou a duração máxima, o que vier antes, respeitando o fim_minimo de hoje.
+  - duracoesPossiveis: as durações dos fins possíveis em múltiplos de 30 min; se nenhuma for
+    redonda (ex.: só cabem 15 min), devolve a maior que cabe.
+  - trechosDaBarra: converte intervalos em posição e largura (%) dentro da janela, cortando o
+    que estiver fora.
+  - inicioNaPosicao(dia, janela, fracao): do ponto tocado na barra, o último início livre do
+    trecho que não passa do ponto (ou o primeiro do trecho); null em ocupado.
+  - marcasDaBarra: horas de 3 em 3 a partir da abertura.
+frontend/src/app/publico/calendario/calendario.ts
+  - computeds: iniciosDoDia, inicioArredondado, finsDoInicio, duracoes, duracaoEscolhida,
+    trechosOcupados (ocupados + o trecho já encerrado de hoje), trechoEscolhido (válido ou não),
+    marcas. Tudo calculado com o que já veio da API.
+  - escolherInicio (barra e lista de livres): define o início e apaga o fim se ele não couber.
+    O campo digitado só atualiza o sinal (ligá-lo ao escolherInicio apagaria o fim a cada tecla).
+  - escolherDuracao: fim = início arredondado + duração. tocarBarra: posição do clique.
+frontend/src/app/publico/calendario/calendario.html
+  - Barra do dia (aria-hidden; os controles equivalentes são acessíveis): verde = livre,
+    cinza = ocupado/encerrado, amarelo = escolha (vermelho se inválida), marcas de hora e legenda.
+  - Horários livres como botões "Começar às X, livre até Y".
+  - Início e fim como type="text" + inputmode="numeric" + <datalist> (sugestões nativas,
+    teclado e leitor de tela) no lugar de type="time"; botões de duração com aria-pressed;
+    textos de ajuda ("Agora escolha a duração ou digite o fim.", início não livre).
+  - Decisão de implementação: <datalist> em vez do Angular CDK previsto na proposta; o
+    comportamento aprovado é o mesmo e o pacote não cresce.
+Testes
+  - intervalo.spec.ts: inícios livres (e hoje), fins, durações, barra, toque, marcas, hora digitada.
+  - calendario.spec.ts: lista de livres + duração (e fim apagado ao trocar o início), toque na
+    barra com a escolha desenhada, hora digitada de outros jeitos e início ocupado.
+  - e2e/reserva-no-laboratorio.spec.ts: fluxo novo no computador e no celular (lista, duração,
+    barra, reserva com 07:00 às 08:30).
