@@ -463,16 +463,11 @@
                                 }}</span>
                               }
                               @if (horario.reserva; as reserva) {
-                                <span class="block text-slate-600">
-                                  @if (reserva.tipo === 'EVENTO') {
+                                @if (reserva.tipo === 'EVENTO') {
+                                  <span class="block text-slate-600">
                                     {{ reserva.descricao || 'Evento da faculdade' }}
-                                  } @else {
-                                    {{ reserva.reservado_por.nome }}
-                                    @if (reserva.reservado_por.curso) {
-                                      · {{ reserva.reservado_por.curso }}
-                                    }
-                                  }
-                                </span>
+                                  </span>
+                                }
                                 @if (reserva.do_curso) {
                                   <span class="block text-xs font-semibold text-azul"
                                     >Do seu curso</span

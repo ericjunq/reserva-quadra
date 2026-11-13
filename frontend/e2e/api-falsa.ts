@@ -69,7 +69,6 @@ function horarioFixo(data: string, horario: string, inicio: string, fim: string)
           id: 9,
           tipo: 'ALUNO',
           descricao: null,
-          reservado_por: { tipo: 'ALUNO', nome: 'Ana Souza', curso: 'Direito' },
         }
       : null,
     equipamentos: [{ id: 1, nome: 'Bola de futsal', total: 4, disponivel: 4 }],
@@ -140,7 +139,6 @@ function calendarioLivre(de: string) {
                     id: 12,
                     tipo: 'ALUNO',
                     descricao: null,
-                    reservado_por: { tipo: 'ALUNO', nome: 'Carla Dias', curso: 'Enfermagem' },
                   },
                 },
               ]

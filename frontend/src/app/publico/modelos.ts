@@ -29,7 +29,6 @@ export interface ReservaNoCalendario {
   id: number;
   tipo: 'ALUNO' | 'EVENTO';
   descricao: string | null;
-  reservado_por: { tipo: 'ALUNO' | 'ADMIN'; nome: string | null; curso: string | null };
   do_curso?: boolean;
 }
 

@@ -49,11 +49,7 @@ export function descreverOcupacao(ocupacao: Ocupacao): string {
   if (ocupacao.situacao === 'EVENTO') {
     return ocupacao.reserva?.descricao || 'Evento da faculdade';
   }
-  const quem = ocupacao.reserva?.reservado_por;
-  if (!quem?.nome) {
-    return 'Reservado';
-  }
-  return quem.curso ? `${quem.nome} (${quem.curso})` : quem.nome;
+  return 'Reservado';
 }
 
 export function horariosLivres(

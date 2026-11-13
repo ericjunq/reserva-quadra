@@ -32,7 +32,6 @@ function dia(dados: Partial<DiaNoCalendario> = {}): DiaNoCalendario {
           id: 1,
           tipo: 'ALUNO',
           descricao: null,
-          reservado_por: { tipo: 'ALUNO', nome: 'Ana Souza', curso: 'Direito' },
         },
       },
     ],
@@ -65,7 +64,7 @@ describe('intervalo', () => {
     expect(erro('10:00', '10:05')).toBe('O fim precisa ser depois do início.');
     expect(erro('06:30', '08:00')).toBe('O espaço funciona das 07:00 às 22:00.');
     expect(erro('08:00', '11:15')).toBe('Cada reserva pode ter no máximo 3h.');
-    expect(erro('13:00', '14:15')).toBe('Esse horário bate com 14:00–15:30 (Ana Souza (Direito)).');
+    expect(erro('13:00', '14:15')).toBe('Esse horário bate com 14:00–15:30 (Reservado).');
     expect(erro('15:30', '16:00')).toBeNull();
     expect(erro('08:00', '09:00', { fim_minimo: '10:30' })).toBe(
       'Hoje, só dá para reservar horários que terminem a partir das 10:30.',

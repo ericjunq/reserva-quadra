@@ -8,7 +8,7 @@ test('o aluno escolhe o dia, monta o horário no laboratório e reserva', async 
 
   await page.getByRole('button', { name: new RegExp(formatarDia(datas.tercaSeguinte)) }).click();
   await expect(page.locator('#dia-escolhido')).toHaveText(formatarDia(datas.tercaSeguinte));
-  await expect(page.getByText('14:00–15:30 · Carla Dias (Enfermagem)')).toBeVisible();
+  await expect(page.getByText('14:00–15:30 · Reservado')).toBeVisible();
   await expect(page.getByText('Aberto das 07:00 às 22:00 · até 3h por reserva')).toBeVisible();
 
   await page.getByRole('combobox', { name: 'Início' }).fill('14:37');

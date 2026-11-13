@@ -15,7 +15,8 @@ test('o aluno escolhe a quadra, troca de semana e reserva um horário com equipa
   await page.getByRole('button', { name: 'Próxima semana' }).click();
   await expect(page.getByText(tituloDaSemana(datas.segundaSeguinte))).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`semana=${datas.segundaSeguinte}`));
-  await expect(page.getByText('Ana Souza')).toBeVisible();
+  await expect(page.getByText('Reservado', { exact: true })).toBeVisible();
+  await expect(page.getByText('Ana Souza')).toHaveCount(0);
 
   await page
     .getByRole('link', { name: rotuloDoHorario(datas.tercaSeguinte, '20:30', '22:00') })

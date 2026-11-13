@@ -172,7 +172,6 @@ describe('Calendario', () => {
         id: 7,
         tipo: 'ALUNO',
         descricao: null,
-        reservado_por: { tipo: 'ALUNO', nome: 'Ana Souza', curso: 'Direito' },
       },
     };
     dados.dias[2].horarios![0] = {
@@ -186,8 +185,8 @@ describe('Calendario', () => {
     expect(dias[0].textContent).toContain('Data passada.');
     expect(dias[0].querySelector('a')).toBeNull();
     expect(dias[1].textContent).toContain('Reservado');
-    expect(dias[1].textContent).toContain('Ana Souza');
-    expect(dias[1].textContent).toContain('Direito');
+    expect(dias[1].textContent).not.toContain('Ana Souza');
+    expect(dias[1].textContent).not.toContain('Direito');
     expect(dias[2].textContent).toContain('Indisponível');
     expect(dias[2].textContent).toContain('Aula de Anatomia');
     expect(pagina.textContent).not.toMatch(/\d{10}/);
@@ -333,7 +332,6 @@ describe('Calendario', () => {
                   id: 3,
                   tipo: 'EVENTO',
                   descricao: 'Jogos internos',
-                  reservado_por: { tipo: 'ADMIN', nome: 'Admin', curso: null },
                 },
               }),
               bloco('20:30', '22:00', {
@@ -356,7 +354,7 @@ describe('Calendario', () => {
 
   it('recarrega a semana sem piscar a tela quando a disponibilidade muda', async () => {
     const pagina = await abrir(quadra);
-    expect(pagina.textContent).not.toContain('Ana Souza');
+    expect(pagina.querySelectorAll('article')[2].textContent).not.toContain('Reservado');
 
     const atualizado = calendario();
     atualizado.dias[2].horarios![0] = {
@@ -366,7 +364,6 @@ describe('Calendario', () => {
         id: 8,
         tipo: 'ALUNO',
         descricao: null,
-        reservado_por: { tipo: 'ALUNO', nome: 'Ana Souza', curso: 'Direito' },
       },
     };
     mudancas.set(1);
@@ -376,7 +373,7 @@ describe('Calendario', () => {
     await responder(`${url}/espacos/1/disponibilidade?de=2026-11-09&ate=2026-11-13`, {
       data: atualizado,
     });
-    expect(pagina.textContent).toContain('Ana Souza');
+    expect(pagina.querySelectorAll('article')[2].textContent).toContain('Reservado');
   });
 
   describe('horário livre', () => {
@@ -391,7 +388,6 @@ describe('Calendario', () => {
             id: 7,
             tipo: 'ALUNO' as const,
             descricao: null,
-            reservado_por: { tipo: 'ALUNO' as const, nome: 'Ana Souza', curso: 'Direito' },
           },
         },
       ];
@@ -447,7 +443,7 @@ describe('Calendario', () => {
 
       const painel = pagina.querySelector('article')!;
       expect(painel.textContent).toContain('Aberto das 07:00 às 22:00 · até 3h por reserva');
-      expect(painel.textContent).toContain('14:00–15:30 · Ana Souza (Direito)');
+      expect(painel.textContent).toContain('14:00–15:30 · Reservado');
       expect(painel.textContent).toContain('07:00–14:00');
       expect(painel.textContent).toContain('15:30–22:00');
       expect(pagina.querySelectorAll('article').length).toBe(1);
@@ -463,9 +459,7 @@ describe('Calendario', () => {
 
       digitar('inicio', '13:07');
       digitar('fim', '14:38');
-      expect(pagina.textContent).toContain(
-        'Esse horário bate com 14:00–15:30 (Ana Souza (Direito)).',
-      );
+      expect(pagina.textContent).toContain('Esse horário bate com 14:00–15:30 (Reservado).');
       expect(continuar().disabled).toBe(true);
 
       digitar('inicio', '15:37');
@@ -582,7 +576,7 @@ describe('Calendario', () => {
       expect(painel.textContent).toContain(
         'Abre para reserva em 10/11/2026. Até lá, dá para ver o que já está marcado.',
       );
-      expect(painel.textContent).toContain('14:00–15:30 · Ana Souza (Direito)');
+      expect(painel.textContent).toContain('14:00–15:30 · Reservado');
       expect(painel.querySelector('form')).toBeNull();
     });
 
