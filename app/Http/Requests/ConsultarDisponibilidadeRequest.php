@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Curso;
+use App\Support\HorizonteCalendario;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -38,13 +39,22 @@ class ConsultarDisponibilidadeRequest extends FormRequest
                 if ($dias > self::MAXIMO_DIAS) {
                     $validator->errors()->add('ate', 'O período consultado pode ter no máximo '.self::MAXIMO_DIAS.' dias.');
                 }
+
+                $horizonte = HorizonteCalendario::ate();
+
+                if (Carbon::parse($this->input('de'))->gt($horizonte)) {
+                    $validator->errors()->add('de', 'O calendário mostra os dias até '.$horizonte->format('d/m/Y').' (fim do semestre).');
+                }
             },
         ];
     }
 
     public function ate(): string
     {
-        return $this->input('ate') ?: $this->input('de');
+        $ate = $this->input('ate') ?: $this->input('de');
+        $horizonte = HorizonteCalendario::ate()->toDateString();
+
+        return min($ate, max($horizonte, $this->input('de')));
     }
 
     public function curso(): ?Curso

@@ -13,6 +13,7 @@ use App\Repositories\DisponibilidadeEquipamentoRepository;
 use App\Repositories\ReservaRepository;
 use App\Rules\AntecedenciaMaxima;
 use App\Rules\HorarioAindaReservavel;
+use App\Support\HorizonteCalendario;
 use App\Support\IntervaloReserva;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -45,8 +46,10 @@ class DisponibilidadeService
             $motivo = $this->motivoDoDia($dia, $bloqueiosDoDia);
             $restantesNaSemana = $semanas[$dia->copy()->startOfWeek(Carbon::MONDAY)->toDateString()]['restantes'] ?? null;
 
+            $abreEm = HorizonteCalendario::abreEm($dia)?->toDateString();
+
             if ($espaco->livre()) {
-                $dias[] = $this->montarDiaLivre($espaco, $dia, $motivo, $reservas[$data] ?? collect(), $bloqueiosDoDia, $curso);
+                $dias[] = [...$this->montarDiaLivre($espaco, $dia, $motivo, $reservas[$data] ?? collect(), $bloqueiosDoDia, $curso), 'abre_em' => $abreEm];
 
                 continue;
             }
@@ -55,6 +58,7 @@ class DisponibilidadeService
                 'data'       => $data,
                 'reservavel' => $motivo === null,
                 'motivo'     => $motivo,
+                'abre_em'    => $abreEm,
                 'horarios'   => array_map(
                     fn (array $intervalo) => $this->montarHorario(
                         $intervalo, $dia, $motivo, $reservas[$data] ?? collect(), $bloqueiosDoDia,
@@ -76,10 +80,11 @@ class DisponibilidadeService
                 'duracao_maxima_minutos' => $espaco->duracao_maxima_minutos,
                 'bloco_minutos'          => $espaco->livre() ? IntervaloReserva::bloco() : null,
             ],
-            'de'           => $de,
-            'ate'          => $ate,
-            'reservas_ate' => AntecedenciaMaxima::dataLimite()->toDateString(),
-            'curso'        => $curso ? [
+            'de'             => $de,
+            'ate'            => $ate,
+            'reservas_ate'   => AntecedenciaMaxima::dataLimite()->toDateString(),
+            'calendario_ate' => HorizonteCalendario::ate()->toDateString(),
+            'curso'          => $curso ? [
                 ...($identificarCurso ? ['id' => $curso->id, 'nome' => $curso->nome] : []),
                 'limite_semanal' => $espaco->limite_semanal_por_curso,
                 'semanas'        => $semanas ? array_values($semanas) : [],
@@ -221,8 +226,8 @@ class DisponibilidadeService
         return match (true) {
             $dia->lt(today())                          => 'Data passada.',
             $dia->isWeekend()                          => 'Fim de semana.',
-            $dia->gt(AntecedenciaMaxima::dataLimite()) => 'Reservas abertas até '.AntecedenciaMaxima::dataLimite()->format('d/m/Y').'.',
             $diaInteiro !== null                       => $diaInteiro->motivo,
+            $dia->gt(AntecedenciaMaxima::dataLimite()) => 'Abre para reserva em '.HorizonteCalendario::abreEm($dia)->format('d/m/Y').'.',
             default                                    => null,
         };
     }

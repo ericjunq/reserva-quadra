@@ -8,6 +8,10 @@ return [
 
     'minutos_antes_do_fim' => (int) env('RESERVA_MINUTOS_ANTES_DO_FIM', 20),
 
+    'fim_dos_semestres' => array_map('trim', explode(',', (string) env('RESERVA_FIM_DOS_SEMESTRES', '06-30,12-31'))),
+
+    'calendario_minimo_semanas' => (int) env('RESERVA_CALENDARIO_MINIMO_SEMANAS', 4),
+
     'confirmacao_dias_uteis_antes' => (int) env('RESERVA_CONFIRMACAO_DIAS_UTEIS_ANTES', 2),
 
     'horario_pedido_confirmacao' => env('RESERVA_HORARIO_PEDIDO_CONFIRMACAO', '08:00'),
