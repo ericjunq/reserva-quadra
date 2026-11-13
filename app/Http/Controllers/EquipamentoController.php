@@ -6,7 +6,6 @@ use App\Http\Requests\ConsultarEquipamentosNoIntervaloRequest;
 use App\Http\Requests\StoreEquipamentoRequest;
 use App\Http\Requests\UpdateEquipamentoRequest;
 use App\Http\Resources\EquipamentoResource;
-use App\Models\Auditoria;
 use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Services\EquipamentoService;
@@ -52,19 +51,19 @@ class EquipamentoController extends Controller
     {
         $equipamento = $this->equipamentoService->criar($request->validated());
 
-        return (new EquipamentoResource($equipamento->load(Auditoria::RELACOES)))->response()->setStatusCode(201);
+        return (new EquipamentoResource($equipamento->load(Equipamento::RELACOES_ADMIN)))->response()->setStatusCode(201);
     }
 
     public function show(Equipamento $equipamento)
     {
-        return new EquipamentoResource($equipamento->load(Auditoria::RELACOES));
+        return new EquipamentoResource($equipamento->load(Equipamento::RELACOES_ADMIN));
     }
 
     public function update(UpdateEquipamentoRequest $request, Equipamento $equipamento)
     {
         $equipamento = $this->equipamentoService->atualizar($equipamento, $request->validated());
 
-        return new EquipamentoResource($equipamento->load(Auditoria::RELACOES));
+        return new EquipamentoResource($equipamento->load(Equipamento::RELACOES_ADMIN));
     }
 
     public function destroy(Equipamento $equipamento)

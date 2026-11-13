@@ -64,6 +64,11 @@ trait Auditavel
         return $this->morphMany(Auditoria::class, 'auditavel');
     }
 
+    public function auditarAlteracao(array $antes, array $depois): void
+    {
+        $this->registrarAuditoria(AcaoAuditoriaConstant::ATUALIZACAO, $antes, $depois);
+    }
+
     private function registrarAuditoria(AcaoAuditoriaConstant $acao, ?array $antes, ?array $depois): void
     {
         $antes = $this->normalizarParaAuditoria($antes);

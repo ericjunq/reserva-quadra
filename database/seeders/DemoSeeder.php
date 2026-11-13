@@ -20,25 +20,25 @@ class DemoSeeder extends Seeder
         $horarioLivre = ['modo_horario' => 'LIVRE', 'abre_as' => '07:00', 'fecha_as' => '22:00', 'duracao_maxima_minutos' => 180];
         $labQuimica = Espaco::firstOrCreate(['nome' => 'Laboratório de Química'], ['tipo' => TipoEspacoConstant::LABORATORIO, ...$horarioLivre]);
         $labBiologia = Espaco::firstOrCreate(['nome' => 'Laboratório de Biologia'], ['tipo' => TipoEspacoConstant::LABORATORIO, ...$horarioLivre]);
-        Espaco::firstOrCreate(['nome' => 'Laboratório de Informática'], ['tipo' => TipoEspacoConstant::LABORATORIO, ...$horarioLivre]);
-        Espaco::firstOrCreate(['nome' => 'Sala 101'], ['tipo' => TipoEspacoConstant::SALA, ...$horarioLivre]);
-        Espaco::firstOrCreate(['nome' => 'Sala 102'], ['tipo' => TipoEspacoConstant::SALA, ...$horarioLivre]);
+        $labInformatica = Espaco::firstOrCreate(['nome' => 'Laboratório de Informática'], ['tipo' => TipoEspacoConstant::LABORATORIO, ...$horarioLivre]);
+        $sala101 = Espaco::firstOrCreate(['nome' => 'Sala 101'], ['tipo' => TipoEspacoConstant::SALA, ...$horarioLivre]);
+        $sala102 = Espaco::firstOrCreate(['nome' => 'Sala 102'], ['tipo' => TipoEspacoConstant::SALA, ...$horarioLivre]);
 
         $equipamentos = [
-            [$quadra, 'Bola de futsal', 4, false],
-            [$quadra, 'Bola de vôlei', 3, false],
-            [$quadra, 'Bola de basquete', 3, false],
-            [$quadra, 'Coletes (jogo)', 2, false],
-            [$labBiologia, 'Microscópio', 2, true],
-            [$labQuimica, 'Kit de vidrarias', 5, false],
-            [$labQuimica, 'Projetor portátil', 1, true],
+            [$quadra, 'Bola de futsal', 4, []],
+            [$quadra, 'Bola de vôlei', 3, []],
+            [$quadra, 'Bola de basquete', 3, []],
+            [$quadra, 'Coletes (jogo)', 2, []],
+            [$labBiologia, 'Microscópio', 2, [$labQuimica]],
+            [$labQuimica, 'Kit de vidrarias', 5, []],
+            [$labQuimica, 'Projetor portátil', 1, [$labBiologia, $labInformatica, $sala101, $sala102]],
         ];
 
-        foreach ($equipamentos as [$espaco, $nome, $quantidade, $compartilhavel]) {
+        foreach ($equipamentos as [$espaco, $nome, $quantidade, $compartilhadoCom]) {
             Equipamento::firstOrCreate(
                 ['espaco_id' => $espaco->id, 'nome' => $nome],
-                ['quantidade_total' => $quantidade, 'compartilhavel' => $compartilhavel],
-            );
+                ['quantidade_total' => $quantidade],
+            )->espacosCompartilhados()->syncWithoutDetaching(collect($compartilhadoCom)->pluck('id'));
         }
 
         $alunos = [

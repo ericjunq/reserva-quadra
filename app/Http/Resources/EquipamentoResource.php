@@ -13,12 +13,15 @@ class EquipamentoResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'               => $this->id,
-            'espaco_id'        => $this->espaco_id,
-            'nome'             => $this->nome,
-            'quantidade_total' => $this->quantidade_total,
-            'ativo'            => $this->ativo,
-            'compartilhavel'   => $this->compartilhavel,
+            'id'                     => $this->id,
+            'espaco_id'              => $this->espaco_id,
+            'nome'                   => $this->nome,
+            'quantidade_total'       => $this->quantidade_total,
+            'ativo'                  => $this->ativo,
+            'espacos_compartilhados' => $this->whenLoaded(
+                'espacosCompartilhados',
+                fn () => $this->espacosCompartilhados->map(fn ($espaco) => ['id' => $espaco->id, 'nome' => $espaco->nome])->values(),
+            ),
             $this->auditoria(),
         ];
     }

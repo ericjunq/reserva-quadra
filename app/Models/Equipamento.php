@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\AtualizaDisponibilidade;
 use App\Models\Concerns\Auditavel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,14 +14,15 @@ class Equipamento extends Model
 {
     use AtualizaDisponibilidade, Auditavel, HasFactory;
 
-    protected $fillable = ['espaco_id', 'nome', 'quantidade_total', 'ativo', 'compartilhavel'];
+    public const RELACOES_ADMIN = [...Auditoria::RELACOES, 'espacosCompartilhados:id,nome'];
+
+    protected $fillable = ['espaco_id', 'nome', 'quantidade_total', 'ativo'];
 
     public function casts(): array
     {
         return [
             'quantidade_total' => 'integer',
             'ativo'            => 'boolean',
-            'compartilhavel'   => 'boolean',
         ];
     }
 
@@ -35,5 +37,20 @@ class Equipamento extends Model
     public function espaco(): BelongsTo
     {
         return $this->belongsTo(Espaco::class);
+    }
+
+    public function espacosCompartilhados(): BelongsToMany
+    {
+        return $this->belongsToMany(Espaco::class, 'equipamento_compartilhamentos')->withTimestamps();
+    }
+
+    public function scopeUsavelNoEspaco(Builder $query, int $espacoId): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->where('espaco_id', $espacoId)
+            ->orWhereIn('id', fn ($sub) => $sub
+                ->select('equipamento_id')
+                ->from('equipamento_compartilhamentos')
+                ->where('espaco_id', $espacoId)));
     }
 }

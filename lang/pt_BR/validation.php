@@ -182,6 +182,8 @@ return [
         'equipamentos'                 => 'equipamentos',
         'equipamentos.*.id'            => 'equipamento',
         'equipamentos.*.quantidade'    => 'quantidade',
+        'espacos_compartilhados'       => 'espaços compartilhados',
+        'espacos_compartilhados.*'     => 'espaço compartilhado',
         'espaco_id'                    => 'espaço',
         'fecha_as'                     => 'fecha às',
         'hora_fim'                     => 'hora de fim',

@@ -16,9 +16,12 @@ trait ValidaEquipamentosDaReserva
                 'required', 'integer', 'distinct',
                 Rule::exists('equipamentos', 'id')
                     ->where('ativo', true)
-                    ->where(fn ($q) => $q->where(
-                        fn ($q) => $q->where('espaco_id', $this->input('espaco_id'))->orWhere('compartilhavel', true)
-                    )),
+                    ->where(fn ($q) => $q->where(fn ($q) => $q
+                        ->where('espaco_id', (int) $this->input('espaco_id'))
+                        ->orWhereIn('id', fn ($sub) => $sub
+                            ->select('equipamento_id')
+                            ->from('equipamento_compartilhamentos')
+                            ->where('espaco_id', (int) $this->input('espaco_id'))))),
             ],
             'equipamentos.*.quantidade' => ['required', 'integer', 'min:1'],
         ];
