@@ -131,11 +131,11 @@ class DisponibilidadeTest extends TestCase
             ->assertJsonPath('data.dias.0.horarios.1.situacao', 'LIVRE');
     }
 
-    public function test_equipamentos_disponiveis_por_horario_incluindo_compartilhaveis(): void
+    public function test_equipamentos_disponiveis_por_horario_incluindo_os_compartilhados_com_o_espaco(): void
     {
         $bola = Equipamento::factory()->for($this->quadra)->create(['nome' => 'Bola', 'quantidade_total' => 10]);
         $laboratorio = Espaco::factory()->laboratorio()->create();
-        $microscopio = Equipamento::factory()->compartilhavel()->for($laboratorio)->create(['nome' => 'Microscópio', 'quantidade_total' => 5]);
+        $microscopio = Equipamento::factory()->for($laboratorio)->compartilhadoCom($this->quadra)->create(['nome' => 'Microscópio', 'quantidade_total' => 5]);
         Equipamento::factory()->for($laboratorio)->create(['nome' => 'Pipeta']);
 
         $this->reservar('2026-11-10')->equipamentos()->attach($bola->id, ['quantidade' => 3]);

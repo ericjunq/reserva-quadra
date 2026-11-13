@@ -202,10 +202,10 @@ class HorarioLivreTest extends TestCase
 
     public function test_equipamentos_pelo_pico_de_uso(): void
     {
-        $projetor = Equipamento::factory()->for($this->lab)->compartilhavel()->create(['nome' => 'Projetor', 'quantidade_total' => 3]);
-        $sala = Espaco::factory()->livre()->create();
+        [$sala, $outraSala] = Espaco::factory()->livre()->count(2)->create();
+        $projetor = Equipamento::factory()->for($this->lab)->compartilhadoCom($sala, $outraSala)->create(['nome' => 'Projetor', 'quantidade_total' => 3]);
         $this->reservaExistente('14:00:00', '15:00:00', [$projetor->id => 2], espaco: $sala);
-        $this->reservaExistente('15:00:00', '16:00:00', [$projetor->id => 2], espaco: Espaco::factory()->livre()->create());
+        $this->reservaExistente('15:00:00', '16:00:00', [$projetor->id => 2], espaco: $outraSala);
 
         $disponivel = app(DisponibilidadeEquipamentoRepository::class)->disponiveis([$projetor], '2026-11-12', '14:00:00', '16:00:00');
         $this->assertSame(1, $disponivel[$projetor->id]);

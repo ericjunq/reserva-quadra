@@ -62,10 +62,20 @@ class ReservaEquipamentosTest extends TestCase
         $this->reservar($this->quadra, [['id' => $b, 'quantidade' => 4]])->assertStatus(422)->assertJsonValidationErrors('equipamentos.0.quantidade');
     }
 
+    public function test_so_reserva_item_de_outro_espaco_quando_compartilhado_com_ele(): void
+    {
+        [$labA, $labB] = Espaco::factory()->laboratorio()->count(2)->create();
+        $microscopio = Equipamento::factory()->for($labA)->compartilhadoCom($labB)->create(['quantidade_total' => 2]);
+        $item = [['id' => $microscopio->id, 'quantidade' => 1]];
+
+        $this->reservar($this->quadra, $item)->assertStatus(422)->assertJsonValidationErrors('equipamentos.0.id');
+        $this->reservar($labB, $item)->assertCreated();
+    }
+
     public function test_dois_microscopios_e_tres_labs_no_mesmo_horario(): void
     {
         [$labA, $labB, $labC] = Espaco::factory()->laboratorio()->count(3)->create();
-        $microscopio = Equipamento::factory()->for($labA)->compartilhavel()->create(['quantidade_total' => 2]);
+        $microscopio = Equipamento::factory()->for($labA)->compartilhadoCom($labB, $labC)->create(['quantidade_total' => 2]);
         $item = [['id' => $microscopio->id, 'quantidade' => 1]];
 
         $this->reservar($labA, $item)->assertCreated();
@@ -82,7 +92,7 @@ class ReservaEquipamentosTest extends TestCase
     {
         Mail::fake();
         $sala = Espaco::factory()->create();
-        $microscopio = Equipamento::factory()->compartilhavel()->create(['quantidade_total' => 1]);
+        $microscopio = Equipamento::factory()->compartilhadoCom($sala, $this->quadra)->create(['quantidade_total' => 1]);
         $item = [['id' => $microscopio->id, 'quantidade' => 1]];
 
         $id = $this->reservar($sala, $item)->assertCreated()->json('data.id');
