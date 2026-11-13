@@ -118,7 +118,40 @@ class DisponibilidadeTest extends TestCase
         $this->assertSame('Fim de semana.', $dias['2026-11-14']['motivo']);
         $this->assertSame('INDISPONIVEL', $dias['2026-11-14']['horarios'][0]['situacao']);
         $this->assertTrue($dias['2026-11-23']['reservavel']);
-        $this->assertSame('Reservas abertas até 23/11/2026.', $dias['2026-11-24']['motivo']);
+        $this->assertSame('Abre para reserva em 10/11/2026.', $dias['2026-11-24']['motivo']);
+        $this->assertSame('2026-11-10', $dias['2026-11-24']['abre_em']);
+        $this->assertNull($dias['2026-11-23']['abre_em']);
+        $this->assertNull($dias['2026-11-14']['abre_em']);
+    }
+
+    public function test_calendario_vai_ate_o_fim_do_semestre(): void
+    {
+        $this->consultar(['de' => '2026-12-28', 'ate' => '2027-01-08'])->assertOk()
+            ->assertJsonPath('data.calendario_ate', '2026-12-31')
+            ->assertJsonPath('data.ate', '2026-12-31')
+            ->assertJsonCount(4, 'data.dias')
+            ->assertJsonPath('data.dias.0.motivo', 'Abre para reserva em 14/12/2026.');
+
+        $this->consultar(['de' => '2027-01-04'])->assertStatus(422)
+            ->assertJsonPath('errors.de.0', 'O calendário mostra os dias até 31/12/2026 (fim do semestre).');
+    }
+
+    public function test_perto_do_fim_do_semestre_mostra_pelo_menos_quatro_semanas(): void
+    {
+        $this->travelTo(Carbon::parse('2027-06-21 10:00'));
+
+        $this->consultar(['de' => '2027-07-12', 'ate' => '2027-07-23'])->assertOk()
+            ->assertJsonPath('data.calendario_ate', '2027-07-19')
+            ->assertJsonPath('data.ate', '2027-07-19');
+    }
+
+    public function test_dia_bloqueado_depois_do_limite_mostra_o_motivo_do_bloqueio(): void
+    {
+        DataBloqueada::factory()->entre('2026-12-25', '2026-12-25')->create(['motivo' => 'Natal']);
+
+        $this->consultar(['de' => '2026-12-25'])->assertOk()
+            ->assertJsonPath('data.dias.0.motivo', 'Natal')
+            ->assertJsonPath('data.dias.0.abre_em', '2026-12-11');
     }
 
     public function test_horario_de_hoje_encerrado_apos_o_limite(): void
