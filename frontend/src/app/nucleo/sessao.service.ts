@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 
 interface DadosSessao {
   token: string;
@@ -10,6 +10,8 @@ const CHAVE = 'reservas.sessao';
 @Injectable({ providedIn: 'root' })
 export class SessaoService {
   private readonly dados = signal<DadosSessao | null>(this.lerArmazenada());
+
+  readonly ativa = computed(() => this.dados() !== null);
 
   iniciar(token: string, expiraEm: string): void {
     const dados = { token, expiraEm };

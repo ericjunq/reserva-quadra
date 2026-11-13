@@ -6,6 +6,14 @@ export const routes: Routes = [
     loadChildren: () => import('./admin/admin.routes').then((m) => m.rotasAdmin),
   },
   {
+    path: 'redefinir-senha',
+    loadChildren: () => import('./admin/acesso/acesso.routes').then((m) => m.rotasDeRedefinicao),
+  },
+  {
+    path: 'aceitar-convite',
+    loadChildren: () => import('./admin/acesso/acesso.routes').then((m) => m.rotasDeConvite),
+  },
+  {
     path: '',
     loadChildren: () => import('./publico/publico.routes').then((m) => m.rotasPublicas),
   },
