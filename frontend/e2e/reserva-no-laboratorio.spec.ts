@@ -11,13 +11,13 @@ test('o aluno escolhe o dia, monta o horário no laboratório e reserva', async 
   await expect(page.getByText('14:00–15:30 · Carla Dias (Enfermagem)')).toBeVisible();
   await expect(page.getByText('Aberto das 07:00 às 22:00 · até 3h por reserva')).toBeVisible();
 
-  await page.getByLabel('Início').fill('14:37');
-  await page.getByLabel(/^Fim/).fill('16:00');
+  await page.getByRole('combobox', { name: 'Início' }).fill('14:37');
+  await page.getByRole('combobox', { name: /^Fim/ }).fill('16:00');
   await expect(page.getByText(/Esse horário bate com 14:00–15:30/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();
 
-  await page.getByLabel('Início').fill('15:37');
-  await page.getByLabel(/^Fim/).fill('17:52');
+  await page.getByRole('combobox', { name: 'Início' }).fill('15:37');
+  await page.getByRole('combobox', { name: /^Fim/ }).fill('17:52');
   await expect(page.getByText('Sua reserva ficará das 15:30 às 17:45.')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -46,11 +46,11 @@ test('o aluno monta o horário pela lista de livres e pelos botões de duração
   await page.goto(`/espacos/4?semana=${datas.segundaSeguinte}&dia=${datas.tercaSeguinte}`);
 
   await page.getByRole('button', { name: 'Começar às 15:30, livre até 22:00' }).click();
-  await expect(page.getByLabel('Início')).toHaveValue('15:30');
+  await expect(page.getByRole('combobox', { name: 'Início' })).toHaveValue('15:30');
   await expect(page.getByText('Agora escolha a duração ou digite o fim.')).toBeVisible();
 
   await page.getByRole('button', { name: '2h', exact: true }).click();
-  await expect(page.getByLabel(/^Fim/)).toHaveValue('17:30');
+  await expect(page.getByRole('combobox', { name: /^Fim/ })).toHaveValue('17:30');
   await expect(page.getByText('Sua reserva ficará das 15:30 às 17:30.')).toBeVisible();
   await expect(page.getByRole('button', { name: '2h', exact: true })).toHaveAttribute(
     'aria-pressed',
@@ -58,10 +58,37 @@ test('o aluno monta o horário pela lista de livres e pelos botões de duração
   );
 
   await page.getByTestId('barra-do-dia').click({ position: { x: 5, y: 10 } });
-  await expect(page.getByLabel('Início')).toHaveValue('07:00');
-  await expect(page.getByLabel(/^Fim/)).toHaveValue('');
+  await expect(page.getByRole('combobox', { name: 'Início' })).toHaveValue('07:00');
+  await expect(page.getByRole('combobox', { name: /^Fim/ })).toHaveValue('');
 
   await page.getByRole('button', { name: '1h30' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(page.locator('aside')).toContainText('07:00 às 08:30');
+});
+
+test('a lista de horários mostra todos os inícios livres, mesmo com um já escolhido', async ({
+  page,
+}) => {
+  await prepararApi(page);
+  await page.goto(`/espacos/4?semana=${datas.segundaSeguinte}&dia=${datas.tercaSeguinte}`);
+
+  await page.getByRole('combobox', { name: 'Início' }).fill('10:45');
+  await page.getByRole('button', { name: 'Mostrar os horários de início' }).click();
+  const lista = page.getByRole('listbox', { name: 'início' });
+  await expect(lista.getByRole('option')).toHaveCount(54);
+  await expect(lista.getByRole('option', { name: '10:45' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
+  await lista.getByRole('option', { name: '16:00' }).click();
+  await expect(page.getByRole('combobox', { name: 'Início' })).toHaveValue('16:00');
+  await expect(lista).toBeHidden();
+
+  await page.getByRole('combobox', { name: /^Fim/ }).focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('combobox', { name: /^Fim/ })).toHaveValue('16:30');
+  await expect(page.getByText('Sua reserva ficará das 16:00 às 16:30.')).toBeVisible();
 });
