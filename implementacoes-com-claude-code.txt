@@ -2241,3 +2241,38 @@ Testes: ConfirmacaoTest refeito; CancelamentoTest pega o link do PedidoConfirmac
   AgendadorTest e AlertaTest com os nomes novos.
 Achado: nos testes, o cache de views compiladas manteve o email antigo e deu erro de variável
   ($recemCriada); php artisan view:clear resolveu (não é defeito do código).
+
+========================================================================
+53. PASSO 11.3 — TELAS PÓS-RESERVA (MINHAS RESERVAS, LINKS DO EMAIL, PRIVACIDADE)
+========================================================================
+
+13/11/2026. 104 testes do front, 22 no navegador (API sem mudança: 263).
+
+frontend/src/app/publico/modelos.ts: ReservaDoAluno, PaginaDeReservas, PeriodoMinhasReservas,
+  ResumoDoCancelamento, ResumoDaConfirmacao, SecaoDosTermos, Termos.
+frontend/src/app/publico/api-publica.service.ts: consultarMinhasReservas (POST com o corpo e
+  ?page=), resumoDoCancelamento/cancelar, resumoDaConfirmacao/confirmar (aceite_termos),
+  consultarTermos (shareReplay: uma vez por visita).
+frontend/src/app/publico/situacao-reserva.ts: nomeDoStatus, descreverConfirmacao (etapas; prazo
+  da reconfirmação exibido 1 minuto antes, 23:59), descreverDevolucao (pendente só depois da data).
+frontend/src/app/publico/cartao-reserva/cartao-reserva.ts: resumo da reserva com <ng-content>.
+frontend/src/app/publico/secoes-termos/secoes-termos.ts: título + parágrafos de cada seção.
+frontend/src/app/publico/minhas-reservas/ (ts, html)
+  - Formulário RA + email + período; validação de formato sem chamar a API; a consulta fica num
+    signal (memória) e a página vem do input "pagina" (query param); combineLatest + switchMap
+    refaz o POST ao trocar de página; "Limpar" esquece tudo.
+frontend/src/app/publico/link-reserva/ (ts, html)
+  - input modo (data da rota) e token (parâmetro). A leitura espera os inputs (toObservable +
+    take(1)); lerToken guarda o token num campo privado e faz Location.replaceState para
+    /reservas/<modo>. Resumo por GET; enviar faz o POST (confirmar com aceite_termos, cancelar
+    vazio). Termos só no modo confirmar. Estados: carregando, sem-token, erro, pronto, concluída.
+frontend/src/app/publico/privacidade/privacidade.ts: página com #termos e #privacidade.
+frontend/src/app/publico/publico.routes.ts: minhas-reservas, reservas/{cancelar,confirmar}
+  com e sem :token (data.modo), privacidade.
+frontend/src/app/publico/layout-publico/layout-publico.html: "Minhas reservas" no cabeçalho,
+  "Termos e privacidade" no rodapé. cadastro.html: link para a privacidade no aviso.
+Testes: specs de minhas-reservas, link-reserva, situacao-reserva e privacidade; e2e/pos-reserva
+  (getByLabel exato: "RA" casava com outro rótulo no computador); api-falsa com termos,
+  minhas-reservas, confirmação e cancelamento.
+
+Proposta do 11.4 (acesso do admin) registrada no CHECKLIST, aguardando aprovação.
