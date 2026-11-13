@@ -942,7 +942,9 @@ Para testar a confirmação recebendo o email numa caixa real (explicado ao usu�
    FRONTEND_URL=http://localhost:4200
    ```
    **Senha de app** é uma senha separada, de 16 letras, que o Google gera para um programa (aqui, o Laravel) mandar email pela conta sem usar a senha principal; só existe com a verificação em duas etapas ligada e pode ser apagada a qualquer momento sem afetar a conta. O `FRONTEND_URL` não faz parte do bloco `MAIL_*` (fica no topo do `.env`); a API o usa para montar os links dos emails (`FRONTEND_URL/reservas/confirmar/<token>`).
-   Alternativa sem entregar a ninguém: **Mailtrap** (caixa de teste que captura tudo), com o host, a porta, o usuário e a senha que o painel dele mostra.
+   Se a página de senhas de app disser "não está disponível para sua conta" (aconteceu com o usuário em 13/11, mesmo tentando ativar), usar uma das alternativas abaixo.
+   - **Mailtrap Sandbox** (recomendado para testar; nada chega a ninguém, os emails aparecem no painel e os links podem ser clicados de lá): `MAIL_HOST=sandbox.smtp.mailtrap.io`, `MAIL_PORT=2525`, `MAIL_USERNAME` e `MAIL_PASSWORD` copiados de *Sandboxes → (caixa) → Integration → SMTP*; `MAIL_FROM_ADDRESS` pode ser qualquer endereço.
+   - **Brevo** (entrega de verdade, grátis até 300 por dia): `MAIL_HOST=smtp-relay.brevo.com`, `MAIL_PORT=587`, `MAIL_USERNAME` = o login SMTP do painel (*SMTP & API*, algo como `xxxx@smtp-brevo.com`), `MAIL_PASSWORD` = uma chave SMTP gerada lá; o `MAIL_FROM_ADDRESS` precisa ser um remetente confirmado em *Senders*.
 2. `php artisan config:clear` e **reiniciar** o `php artisan queue:work` (o worker guarda a configuração antiga enquanto roda). Sem o worker rodando, os emails ficam parados na fila.
 3. Cadastrar um aluno com um email seu, reservar pelo front e abrir o link do email (o link aponta para `FRONTEND_URL`).
 
