@@ -415,7 +415,15 @@ describe('Calendario', () => {
           (item) => item.textContent?.trim() === texto,
         )!;
 
-      expect(pagina.querySelectorAll('#inicios-livres option').length).toBe(54);
+      pagina
+        .querySelector<HTMLButtonElement>('[aria-label="Mostrar os horários de início"]')!
+        .click();
+      await atualizar();
+      expect(pagina.querySelectorAll('#inicio-lista [role="option"]').length).toBe(54);
+      pagina
+        .querySelector<HTMLButtonElement>('[aria-label="Mostrar os horários de início"]')!
+        .click();
+      await atualizar();
       expect(pagina.querySelector('fieldset')).toBeNull();
 
       pagina
@@ -434,7 +442,11 @@ describe('Calendario', () => {
       expect(pagina.querySelector<HTMLInputElement>('#fim')!.value).toBe('17:00');
       expect(botao('1h30').getAttribute('aria-pressed')).toBe('true');
       expect(pagina.textContent).toContain('Sua reserva ficará das 15:30 às 17:00.');
-      expect(pagina.querySelectorAll('#fins-possiveis option').length).toBe(12);
+      pagina.querySelector<HTMLButtonElement>('[aria-label="Mostrar os horários de fim"]')!.click();
+      await atualizar();
+      expect(pagina.querySelectorAll('#fim-lista [role="option"]').length).toBe(12);
+      pagina.querySelector<HTMLButtonElement>('[aria-label="Mostrar os horários de fim"]')!.click();
+      await atualizar();
 
       pagina
         .querySelector<HTMLButtonElement>('[aria-label="Começar às 07:00, livre até 14:00"]')!

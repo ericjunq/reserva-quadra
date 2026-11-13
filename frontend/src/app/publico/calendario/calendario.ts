@@ -19,6 +19,7 @@ import {
 } from '@lucide/angular';
 import { EMPTY, Observable, catchError, map, of, startWith, switchMap } from 'rxjs';
 import { AvisoErro } from '../../compartilhado/aviso-erro/aviso-erro';
+import { CampoHorario } from '../../compartilhado/campo-horario/campo-horario';
 import { ErroApi } from '../../nucleo/erro-api';
 import { ApiPublicaService } from '../api-publica.service';
 import { AtualizacaoDisponibilidadeService } from '../atualizacao-disponibilidade.service';
@@ -79,6 +80,7 @@ const NOMES_DAS_SITUACOES: Record<string, string> = {
     FormsModule,
     RouterLink,
     AvisoErro,
+    CampoHorario,
     LucideArrowLeft,
     LucideChevronLeft,
     LucideChevronRight,

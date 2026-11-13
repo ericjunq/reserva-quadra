@@ -212,7 +212,8 @@
                         Livre (toque para começar ali)</span
                       >
                       <span class="flex items-center gap-1"
-                        ><span class="size-3 rounded-sm bg-slate-300"></span> Ocupado</span
+                        ><span class="size-3 rounded-sm bg-slate-300"></span> Ocupado ou
+                        encerrado</span
                       >
                       <span class="flex items-center gap-1"
                         ><span class="size-3 rounded-sm bg-amarelo"></span> Sua escolha</span
@@ -276,24 +277,17 @@
                         <label for="inicio" class="block text-sm font-semibold text-slate-700"
                           >Início</label
                         >
-                        <input
-                          id="inicio"
-                          name="inicio"
-                          type="text"
-                          inputmode="numeric"
-                          autocomplete="off"
-                          placeholder="ex.: 14:00"
-                          list="inicios-livres"
-                          aria-describedby="ajuda-horario"
-                          class="mt-1 w-32 rounded-lg border border-slate-300 bg-white px-3 py-2"
-                          [ngModel]="inicioDigitado()"
-                          (ngModelChange)="inicioDigitado.set($event ?? '')"
+                        <app-campo-horario
+                          idCampo="inicio"
+                          rotulo="início"
+                          exemplo="ex.: 14:00"
+                          descricao="ajuda-horario"
+                          semOpcoes="Nenhum horário livre neste dia."
+                          [opcoes]="iniciosDoDia()"
+                          [valor]="inicioDigitado()"
+                          (valorChange)="inicioDigitado.set($event)"
+                          (escolhido)="escolherInicio($event)"
                         />
-                        <datalist id="inicios-livres">
-                          @for (inicio of iniciosDoDia(); track inicio) {
-                            <option [value]="inicio"></option>
-                          }
-                        </datalist>
                       </div>
 
                       @if (duracoes().length) {
@@ -326,24 +320,16 @@
                             >(ou escolha a duração)</span
                           ></label
                         >
-                        <input
-                          id="fim"
-                          name="fim"
-                          type="text"
-                          inputmode="numeric"
-                          autocomplete="off"
-                          placeholder="ex.: 15:30"
-                          list="fins-possiveis"
-                          aria-describedby="ajuda-horario"
-                          class="mt-1 w-32 rounded-lg border border-slate-300 bg-white px-3 py-2"
-                          [ngModel]="fimDigitado()"
-                          (ngModelChange)="fimDigitado.set($event ?? '')"
+                        <app-campo-horario
+                          idCampo="fim"
+                          rotulo="fim"
+                          exemplo="ex.: 15:30"
+                          descricao="ajuda-horario"
+                          semOpcoes="Escolha um início livre primeiro."
+                          [opcoes]="finsDoInicio()"
+                          [valor]="fimDigitado()"
+                          (valorChange)="fimDigitado.set($event)"
                         />
-                        <datalist id="fins-possiveis">
-                          @for (fim of finsDoInicio(); track fim) {
-                            <option [value]="fim"></option>
-                          }
-                        </datalist>
                       </div>
 
                       <div class="mt-3 min-h-10 text-sm" aria-live="polite">
