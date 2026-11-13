@@ -151,7 +151,7 @@ class DisponibilidadeTest extends TestCase
 
         $this->consultar(['de' => '2026-12-25'])->assertOk()
             ->assertJsonPath('data.dias.0.motivo', 'Natal')
-            ->assertJsonPath('data.dias.0.abre_em', '2026-12-11');
+            ->assertJsonPath('data.dias.0.abre_em', null);
     }
 
     public function test_horario_de_hoje_encerrado_apos_o_limite(): void

@@ -46,7 +46,9 @@ class DisponibilidadeService
             $motivo = $this->motivoDoDia($dia, $bloqueiosDoDia);
             $restantesNaSemana = $semanas[$dia->copy()->startOfWeek(Carbon::MONDAY)->toDateString()]['restantes'] ?? null;
 
-            $abreEm = HorizonteCalendario::abreEm($dia)?->toDateString();
+            $abreEm = $bloqueiosDoDia->contains(fn (DataBloqueada $b) => $b->diaInteiro())
+                ? null
+                : HorizonteCalendario::abreEm($dia)?->toDateString();
 
             if ($espaco->livre()) {
                 $dias[] = [...$this->montarDiaLivre($espaco, $dia, $motivo, $reservas[$data] ?? collect(), $bloqueiosDoDia, $curso), 'abre_em' => $abreEm];
