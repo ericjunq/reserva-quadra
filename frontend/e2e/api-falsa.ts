@@ -156,6 +156,33 @@ export interface Chamada {
   corpo: unknown;
 }
 
+export const tokenDoEmail = 'b'.repeat(64);
+
+const reservaDoAluno = {
+  id: 77,
+  data_reserva: datas.tercaSeguinte,
+  hora_inicio: '14:00',
+  hora_fim: '15:30',
+  status: 'RESERVADO',
+  tipo: 'ALUNO',
+  espaco: { id: 4, nome: 'Laboratório de Informática', tipo: 'LABORATORIO' },
+  equipamentos: [],
+  confirmar_ate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  confirmada_em: null,
+  reconfirmacao_pedida_em: null,
+  reconfirmar_ate: null,
+  reconfirmada_em: null,
+};
+
+const termos = {
+  versao: '2026-11',
+  rascunho: true,
+  termos_de_uso: [
+    { titulo: 'Como funciona a reserva', paragrafos: ['Toda reserva precisa ser confirmada.'] },
+  ],
+  privacidade: [{ titulo: 'Quais dados e para quê', paragrafos: ['Nome, RA, email e curso.'] }],
+};
+
 export async function prepararApi(page: Page): Promise<Chamada[]> {
   const chamadas: Chamada[] = [];
 
@@ -204,6 +231,38 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         },
         201,
       );
+    }
+    if (caminho === '/termos') {
+      return json({ data: termos });
+    }
+    if (caminho === '/minhas-reservas') {
+      const corpo = requisicao.postDataJSON();
+      if (corpo.email !== 'carla@email.com') {
+        return json({ message: 'Não encontramos reservas para esses dados.' }, 404);
+      }
+      return json({
+        data: [reservaDoAluno],
+        meta: { current_page: 1, last_page: 1, total: 1 },
+      });
+    }
+    if (caminho === `/reservas/confirmacao/${tokenDoEmail}`) {
+      if (requisicao.method() === 'POST') {
+        return json({ data: { ...reservaDoAluno, confirmada_em: new Date().toISOString() } });
+      }
+      return json({
+        data: reservaDoAluno,
+        etapa: 'CONFIRMACAO',
+        pode_confirmar: true,
+        prazo_confirmacao: reservaDoAluno.confirmar_ate,
+        exige_aceite_termos: true,
+        termos_versao: '2026-11',
+      });
+    }
+    if (caminho === `/reservas/cancelamento/${tokenDoEmail}`) {
+      if (requisicao.method() === 'POST') {
+        return json({ data: { ...reservaDoAluno, status: 'CANCELADO' } });
+      }
+      return json({ data: reservaDoAluno, pode_cancelar: true });
     }
     if (caminho === '/alunos' && requisicao.method() === 'POST') {
       return json({ data: {} }, 201);
