@@ -2372,3 +2372,29 @@ aprovado com ajustes, recomendação da reimportação, pedidos para o 11.5, Tri
 README (decisão substituída, endpoints, testes, ideias para depois, "Enviar emails de verdade
 (teste local)"), DATABASE (mudança planejada da grade detalhada).
 
+
+========================================================================
+57. EMAILS DE TESTE E REVISÃO DA DOCUMENTAÇÃO (13/11/2026)
+========================================================================
+Pedidos do usuário: como enviar emails de verdade para testar a confirmação; o que é senha de
+app e onde fica a URL do front; o Gmail não liberou a senha de app ("não está disponível para
+sua conta"); configurar o Mailtrap com as credenciais dele; revisar se a documentação está
+atualizada.
+
+.env (local, fora do git): MAIL_HOST=sandbox.smtp.mailtrap.io, MAIL_PORT=2525, usuário e senha
+  do Mailtrap, MAIL_FROM_ADDRESS com o email de teste do usuário. Teste pelo tinker e pela fila:
+  o PedidoConfirmacaoMail que estava parado foi enviado (o worker não estava rodando).
+  Credenciais nunca vão para os guias.
+
+README.md
+  - "Enviar emails de verdade (teste local)": Gmail com senha de app (o que é, como gerar),
+    FRONTEND_URL fora do bloco MAIL_*, alternativas Mailtrap Sandbox e Brevo, reiniciar o worker.
+  - Visão geral: horário livre, confirmação pelo email e calendário sem quem reservou.
+  - "Para ver o front": tirada a frase velha do 11.2; incluído o queue:work.
+  - Histórico: linha do 11.2d sem o datalist (substituído pelo CampoHorario); linha nova de 13/11.
+  - Próximos passos: grade de aulas aprovada com ajustes, reimportação em discussão.
+  - Testes: contagem atual (263 API, 115 front, 26 navegador).
+
+CHECKLIST.md: "Onde paramos" com o Mailtrap, o queue:work no passo a passo e as linhas velhas
+  dos emails no log reescritas; conceitos explicados (senha de app, FRONTEND_URL).
+

@@ -36,7 +36,9 @@ Há dois tipos de usuário:
 | **Admin** (funcionário) | Login com token (Sanctum) | Gerencia espaços, equipamentos, cursos e alunos; cria eventos; revoga reservas |
 
 - Toda reserva nasce com status `RESERVADO`.
-- A quadra usa **horários fixos** de 1h30: `19:00–20:30` e `20:30–22:00`.
+- A quadra usa **horários fixos** de 1h30: `19:00–20:30` e `20:30–22:00`. Laboratórios e salas podem usar **horário livre** (o aluno escolhe início e fim dentro da janela do espaço, arredondados a 15 min; na demonstração, 07:00–22:00 e até 3h).
+- Toda reserva de aluno precisa ser **confirmada pelo email** (com aceite dos termos) e, se feita com antecedência, reconfirmada 3 dias úteis antes; sem isso, é revogada sozinha.
+- O calendário público mostra o que está livre e ocupado, **sem identificar quem reservou** (só os admins veem).
 - O sistema começou pela quadra (atléticas), mas já está pronto para laboratórios e salas, cada um com nome próprio.
 
 **Stack:** PHP 8.3+, Laravel 13, Laravel Sanctum, SQLite em desenvolvimento. Front: Angular 22 (sem zone.js, signals), Tailwind CSS v4, Vitest, Node 22.22+/24.15+/26.
@@ -94,7 +96,7 @@ npx prettier --write src        # formata no padrão do projeto (.prettierrc)
 - O `FRONTEND_URL` do `.env` da API já é `http://localhost:4200`, então o CORS libera o front local.
 - **Rede que bloqueia o `registry.npmjs.org`** (aconteceu no PC Ubuntu): `npm config set registry https://registry.yarnpkg.com/` (espelho com os mesmos pacotes). Fica no `~/.npmrc` do PC, fora do repositório; o `package-lock.json` continua apontando para o registro padrão.
 - A coleta de dados de uso do Angular CLI fica **desligada** no projeto (`"analytics": false` no `angular.json`), em linha com a decisão de não usar rastreamento.
-- **Para ver o front:** um terminal com `php artisan serve` (raiz) e outro com `cd frontend && npm start`; abrir http://localhost:4200. Até o 11.2, só a base visual aparece (nenhuma tela chama a API ainda).
+- **Para ver o front:** um terminal com `php artisan serve` (raiz) e outro com `cd frontend && npm start`; abrir http://localhost:4200. Para os emails saírem, um terceiro terminal com `php artisan queue:work` (ver "Enviar emails de verdade (teste local)").
 
 ### Preparar um PC novo
 
@@ -728,6 +730,8 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
+**Hoje (13/11/2026):** 263 testes da API, 115 testes de unidade do front (Vitest) e 26 testes no navegador (Playwright, computador e celular).
+
 ### CI (GitHub Actions)
 
 Arquivo: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Roda a cada **push na `main`** e em **pull requests para a `main`** (repositório público: sem limite de minutos).
@@ -838,11 +842,12 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
+| LGPD do calendário e emails de teste (13/11/2026) | Calendário público sem nome e curso de quem reservou (só admins); consulta mais leve; passo a passo para enviar emails reais em desenvolvimento (Gmail com senha de app, Mailtrap, Brevo) |
 | Acesso do admin (passo 11.4) | Entrar, esqueci e redefinir a senha, aceitar convite, minha conta, sair; rotas do admin protegidas, retorno à página pedida e volta ao login quando a sessão acaba. Achado nos testes: `/admin` abria o layout das telas de acesso vazio (dois grupos de rotas com caminho vazio); corrigido com caminhos próprios |
 | Telas pós-reserva (passo 11.3) | Minhas reservas (RA + email só na memória), confirmar com os termos e cancelar pelo link do email (token fora da barra de endereço), página de termos e privacidade, links no cabeçalho, rodapé e cadastro |
 | Confirmação com aceite dos termos (passo 11.3a) | Toda reserva confirmada pelo email em 24 h (mesmo dia: 1 h) com aceite dos termos e versão gravada, reconfirmação 3 dias úteis antes com revogação na véspera, revogação a cada 15 min, `GET /api/termos` (rascunho), filtros novos de confirmação, email "Reserva registrada" removido; front com o prazo na tela de sucesso |
 | Compartilhamento por espaço e calendário do semestre (11.2c e 11.2e) | API: tabela `equipamento_compartilhamentos`, `espacos_compartilhados` no admin (com histórico e 409), `calendario_ate` e `abre_em` na disponibilidade. Front: setas e seletor de semana até o fim do semestre; dias que ainda não abriram com os ocupados e "Abre para reserva em" |
-| Escolha do horário mais amigável (passo 11.2d) | Barra do dia, horários livres como botões, início e fim com sugestões (`datalist`), duração em botões, hora digitada de vários jeitos; testes no navegador do novo fluxo |
+| Escolha do horário mais amigável (passo 11.2d) | Barra do dia, horários livres como botões, início e fim numa lista própria que mostra todos os horários (`CampoHorario`, no lugar do `datalist`, que filtrava pelo texto), duração em botões, hora digitada de vários jeitos; testes no navegador do novo fluxo |
 | Horário livre sem blocos (passo 11.2b) | API: arredondamento para 15 min, calendário LIVRE com janela e ocupados, `fim_minimo` de hoje, rota de versão da disponibilidade; demonstração com laboratórios e salas de horário livre. Front: horário montado pelo aluno com prévia do arredondamento, horários ocupados e livres, atualização automática sem piscar; testes no navegador do laboratório |
 | Horários livres (passo 8) | Modo FIXO/LIVRE por espaço, reserva e evento com início/fim em blocos de 30 min, equipamentos pelo pico de uso, calendário em blocos, consulta de equipamentos por intervalo |
 | Consulta do histórico (passo 7) | `GET /api/admin/auditorias` com filtros, morph map com nomes curtos |
@@ -869,7 +874,7 @@ Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e re
 
 1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base (11.1), área pública de reserva (11.2), horário livre sem blocos (11.2b) e escolha amigável do horário (11.2d) prontos. Também prontos (13/11): **11.2c** (equipamento compartilhado só com os espaços que o admin escolher) e **11.2e** (calendário até o fim do semestre). Também pronto (13/11): **11.3a** (API da confirmação pelo email com aceite dos termos e reconfirmação). Também pronto (13/11): **11.3** (minhas reservas, confirmar com os termos e cancelar pelo link, privacidade): a área pública está completa. Também pronto (13/11): **11.4** (acesso do admin). Próximo, pela ordem recomendada: **passo 12** (grade de aulas), proposta a enviar. Aprovados para entrar com o painel do admin (11.5): **11.2f** (solicitação de equipamento pelo aluno) e **12b** (registro de uso posterior pelo admin, com marcação própria).
    - **Ordem recomendada (13/11):** área pública → login do admin (11.4) → grade de aulas (passo 12, porque sem ela o sistema não pode entrar em uso) → reservas do admin (11.5, com 11.2f e 12b) → cadastros (11.6) → histórico (11.7) → acabamento (11.8) → API para terceiros (13).
-2. **Grade de aulas (importação):** o admin importa a grade da faculdade (espaços e horários de aula) e esses horários deixam de aceitar reservas de alunos. Ideia do usuário em 10/11/2026; detalhes e recomendações iniciais no passo 12 do [`CHECKLIST.md`](CHECKLIST.md).
+2. **Grade de aulas (importação):** o admin importa a grade da faculdade (espaços e horários de aula) e esses horários deixam de aceitar reservas de alunos; aula tem prioridade sobre reserva. Ideia do usuário em 10/11/2026; **aprovada com ajustes em 13/11/2026**, com a **reimportação ainda em discussão**. Detalhes no passo 12 do [`CHECKLIST.md`](CHECKLIST.md).
 3. **API para terceiros autorizados**, com as devidas restrições de segurança (passo 13). O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.
 4. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
 
