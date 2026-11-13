@@ -941,6 +941,7 @@ Para testar a confirmação recebendo o email numa caixa real (explicado ao usu�
    MAIL_FROM_ADDRESS=sua.conta@gmail.com
    FRONTEND_URL=http://localhost:4200
    ```
+   **Senha de app** é uma senha separada, de 16 letras, que o Google gera para um programa (aqui, o Laravel) mandar email pela conta sem usar a senha principal; só existe com a verificação em duas etapas ligada e pode ser apagada a qualquer momento sem afetar a conta. O `FRONTEND_URL` não faz parte do bloco `MAIL_*` (fica no topo do `.env`); a API o usa para montar os links dos emails (`FRONTEND_URL/reservas/confirmar/<token>`).
    Alternativa sem entregar a ninguém: **Mailtrap** (caixa de teste que captura tudo), com o host, a porta, o usuário e a senha que o painel dele mostra.
 2. `php artisan config:clear` e **reiniciar** o `php artisan queue:work` (o worker guarda a configuração antiga enquanto roda). Sem o worker rodando, os emails ficam parados na fila.
 3. Cadastrar um aluno com um email seu, reservar pelo front e abrir o link do email (o link aponta para `FRONTEND_URL`).
