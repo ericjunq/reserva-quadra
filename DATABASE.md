@@ -18,6 +18,8 @@ erDiagram
     users ||--o{ reservas : "revoga"
     espacos ||--o{ reservas : "recebe"
     espacos ||--o{ equipamentos : "guarda"
+    equipamentos ||--o{ equipamento_compartilhamentos : "compartilhado em"
+    espacos ||--o{ equipamento_compartilhamentos : "recebe emprestado"
     users |o--o{ auditorias : "faz"
     users ||--o| convites_admin_tokens : "convite pendente"
     espacos |o--o{ datas_bloqueadas : "bloqueado em"
@@ -76,7 +78,11 @@ erDiagram
         string nome "único por espaço"
         int quantidade_total
         boolean ativo
-        boolean compartilhavel
+    }
+
+    equipamento_compartilhamentos {
+        bigint espaco_id PK,FK
+        bigint equipamento_id PK,FK
     }
 
     reservas {
@@ -165,8 +171,8 @@ Os cursos mudam conforme a instituição. Com uma tabela, o sistema pode ser rea
 
 ### Espaços e equipamentos
 
-**4. Equipamento pertence a um espaço, com a flag `compartilhavel`.**
-Por padrão, um item só pode ser pedido no próprio espaço (a bola fica com a quadra). Itens marcados como compartilháveis, como o microscópio e o projetor, podem ser pedidos em qualquer espaço.
+**4. Equipamento pertence a um espaço; o compartilhamento é uma lista escolhida pelo admin (`equipamento_compartilhamentos`).**
+Por padrão, um item só aparece e só pode ser pedido no próprio espaço (a bola fica com a quadra, o microscópio com o laboratório). O admin escolhe com quais **outros espaços** cada equipamento é compartilhado; ali ele aparece e é reservado como um item do espaço. Até 13/11/2026 havia uma flag `compartilhavel`, que liberava o item para **todos** os espaços (o usuário viu o microscópio na quadra); ela foi trocada pela tabela (passo 11.2c). Detalhes na decisão 34.
 
 **5. `limite_semanal_por_curso` fica no espaço.**
 Cada espaço tem sua regra: a quadra limita a 3 reservas por curso por semana, e as salas não têm limite (`null`). A regra muda pelo cadastro, sem mexer no código.
@@ -266,6 +272,12 @@ Os dois usam o Password Broker do Laravel (token com hash, um por email). Com a 
 
 **33. Equipamentos pelo pico de uso, calculado em PHP sobre uma consulta.**
 O banco devolve, numa consulta agrupada, o total de cada equipamento por intervalo reservado; o pico (maior uso simultâneo) é calculado em PHP percorrendo inícios e fins em ordem. Fazer isso em SQL exigiria funções de janela, com sintaxe e desempenho diferentes entre SQLite, MySQL e Postgres.
+
+**34. Compartilhamento de equipamento numa tabela de ligação com chave `(espaco_id, equipamento_id)`.**
+A consulta mais usada é "quais equipamentos o espaço X pode usar": os do espaço **ou** os que estão na lista dele. Com a chave primária começando por `espaco_id`, essa subconsulta (`WHERE espaco_id = X`) usa o índice da própria chave; o índice extra em `equipamento_id` atende a chave estrangeira (o Postgres não cria sozinho) e a tela do equipamento. É uma tabela pequena (poucas linhas por equipamento) e não acrescenta consulta por item: a lista do espaço continua sendo uma consulta só. Mudanças na lista ficam no histórico como alteração do equipamento (`espacos_compartilhados` antes/depois) e avançam a versão da disponibilidade. Tirar um espaço da lista é recusado (409) se houver reserva futura daquele item naquele espaço. Alternativas avaliadas: compartilhar por tipo de espaço (sem tabela nova, mas o projetor do laboratório não iria para as salas) e manter a flag (liberava tudo para todos).
+
+**35. Horizonte do calendário calculado, sem coluna nova.**
+O fim do semestre vem da configuração (`RESERVA_FIM_DOS_SEMESTRES`, padrão `06-30,12-31`) e o mínimo de semanas também (`RESERVA_CALENDARIO_MINIMO_SEMANAS`, 4). A data em que cada dia abre para reserva (`abre_em`) é a inversa da antecedência (`dia − 10 dias úteis`), calculada em PHP. Nada é gravado; quando a grade de aulas (passo 12) existir, a vigência dela pode passar a definir o fim do semestre.
 
 **31. `auditavel_type` guarda nomes curtos (morph map).**
 Em vez de `App\Models\Reserva`, a coluna guarda `reserva` (e `aluno`, `espaco`, `equipamento`, `curso`, `data_bloqueada`, `item_reserva`, `admin`). O mapa fica em `TipoAuditavelConstant` e é registrado com `enforceMorphMap` no `AppServiceProvider`: renomear ou mover uma classe não quebra o histórico, e um model polimórfico fora do mapa dá erro em vez de gravar um nome inesperado. Vale também para `personal_access_tokens.tokenable_type` (admins aparecem como `admin`).

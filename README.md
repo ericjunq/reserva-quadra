@@ -130,6 +130,8 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `RESERVA_FERIADOS_FACULTATIVOS` | false | Se a importação automática de feriados inclui Carnaval, Quarta de Cinzas e Corpus Christi |
 | `RESERVA_TOKENS_RETENCAO_DIAS` | 30 | Depois de quantos dias os links de email usados ou vencidos são apagados |
 | `RESERVA_JOBS_FALHOS_RETENCAO_HORAS` | 168 | Depois de quantas horas os jobs que falharam são apagados (7 dias) |
+| `RESERVA_FIM_DOS_SEMESTRES` | 06-30,12-31 | Último dia de cada semestre letivo (mês-dia). O calendário público vai até o fim do semestre atual |
+| `RESERVA_CALENDARIO_MINIMO_SEMANAS` | 4 | Mínimo de semanas que o calendário mostra (perto do fim do semestre, já aparece o começo do próximo) |
 | `APP_TIMEZONE` | America/Sao_Paulo | Fuso usado nas regras de "hoje" e no agendador |
 | `FRONTEND_URL` | http://localhost:4200 | Endereço do front Angular; base dos links enviados por email (ex.: cancelamento) |
 | `AUTH_REDEFINICAO_EXPIRA_MINUTOS` | 60 | Validade do link de redefinição de senha |
@@ -259,6 +261,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
   - **Situações novas** da API (ex.: "aula", do passo 12) aparecem como "Indisponível", com o motivo, sem precisar mudar o front.
   - **Cadastro:** o `voltar` só aceita caminhos do próprio site (começando com `/`, sem `//` nem `\`), para o link não poder mandar o aluno para outro site.
   - **Escolha do horário mais amigável (11.2d):** no painel do dia, uma **barra do dia** (abertura → fechamento) mostra os trechos livres em verde, os ocupados e os horários já encerrados de hoje em cinza e a escolha em amarelo (vermelho se bater com algo); tocar num trecho livre preenche o início com o horário livre mais próximo. Os **horários livres** viraram botões ("Começar às 15:30"). O **início** aceita digitar (14:00, 14h, 1400, 9) ou escolher numa lista de sugestões só com os inícios livres de 15 em 15 min; a **duração** vem em botões (30 min a 3h, só os que cabem antes do próximo ocupado e dentro da duração máxima); o **fim** continua digitável, com sugestões. Tudo é calculado na tela com o que já veio da API (nenhuma chamada a mais). As sugestões usam o componente próprio `compartilhado/campo-horario` (combobox: a lista sempre mostra todos os horários possíveis, destaca e rola até o escolhido, e funciona com setas, Enter e Esc), sem o Angular CDK. Antes era o `<datalist>` do navegador, trocado porque ele filtra as sugestões pelo texto do campo e só mostrava o horário já escolhido.
+  - **Calendário até o fim do semestre (11.2e):** setas e um **seletor de semana** vão da semana atual até `calendario_ate`. Os dias que ainda não abriram aparecem com o aviso amarelo "Abre para reserva em dd/mm": na quadra, os horários livres viram "Livre · ainda não abriu" (sem link) e os ocupados mostram quem/qual evento; no horário livre, o botão do dia diz "Abre dd/mm" e o painel mostra a barra e os ocupados, sem o formulário.
   - **Calendário do horário livre:** o aluno escolhe o dia (botões com "N livres", "Lotado" ou "Fechado"; o primeiro dia com horário livre vem selecionado) e vê só aquele dia em grade compacta, com os horários de início livres como link e a lista das reservas do dia. O dia vai na URL (`?dia=`).
   - **Tamanho:** cada tela é um pacote sob demanda (início 2,4 kB, calendário 4,2 kB, reserva 5 kB, cadastro 2,5 kB comprimidos); formulários do Angular (17 kB) e ícones (só os usados) também ficam fora do pacote inicial. O pacote inicial (~300 kB, 80 kB comprimido) é quase todo do Angular (núcleo, router) e do rxjs; o orçamento é 350 kB (aviso) e 500 kB (erro).
 - **Sessão do admin:** token e validade (`expires_at` do login) no `sessionStorage`, que some ao fechar a aba. Sessão vencida ou conteúdo inválido é descartado ao abrir e a cada uso.
@@ -292,7 +295,8 @@ users (admins) ──< reservas (criador de eventos / quem revogou)
 | `cursos` | `nome` (único), `ativo` |
 | `alunos` | `nome_completo`, `registro_academico` (RA, único, 10 dígitos), `email`, `curso_id`, `ativo`, `anonimizado_em` |
 | `espacos` | `nome` (único), `tipo` (QUADRA, LABORATORIO, SALA), `ativo`, `limite_semanal_por_curso` (vazio = sem limite), `modo_horario` (FIXO, LIVRE), `abre_as`, `fecha_as`, `duracao_maxima_minutos` (só no LIVRE) |
-| `equipamentos` | `espaco_id`, `nome` (único dentro do espaço), `quantidade_total`, `ativo`, `compartilhavel` |
+| `equipamentos` | `espaco_id`, `nome` (único dentro do espaço), `quantidade_total`, `ativo` |
+| `equipamento_compartilhamentos` | Espaços com os quais o admin compartilhou cada equipamento (`espaco_id`, `equipamento_id`) |
 | `reservas` | `data_reserva`, `horario` (enum), `hora_inicio`, `hora_fim`, `espaco_id`, `aluno_id`, `status`, `tipo` (ALUNO, EVENTO), `descricao`, `justificativa_revogacao`, `revogada_em`, `revogada_por`, `cancelada_em`, `confirmacao_enviada_em`, `confirmada_em` |
 | `tokens_reserva` | `reserva_id`, `finalidade` (CANCELAR, CONFIRMAR), `token_hash` (SHA-256, único), `expira_em`, `usado_em` |
 | `item_reservas` | `reserva_id`, `equipamento_id`, `quantidade`, `situacao_devolucao` (PENDENTE, DEVOLVIDO, DEVOLVIDO_COM_AVARIA, NAO_DEVOLVIDO), `quantidade_devolvida`, `observacao_devolucao`, `devolvido_em`, `devolvido_por` (model `ItemReserva`, pivot auditado) |
@@ -313,7 +317,7 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | GET | `/api/disponibilidade/versao` | Código que muda sempre que algo do calendário muda (reserva, bloqueio, espaço, equipamento, aluno, curso) e a cada 5 minutos; o front consulta a cada 15 s e só recarrega a semana quando ele muda |
 | POST | `/api/alunos` | Cadastro de aluno |
 | GET | `/api/espacos?tipo=QUADRA` | Espaços ativos (filtro opcional) |
-| GET | `/api/espacos/{id}/equipamentos` | Equipamentos reserváveis no espaço (os dele + os compartilháveis) |
+| GET | `/api/espacos/{id}/equipamentos` | Equipamentos reserváveis no espaço (os dele + os que o admin compartilhou com ele) |
 | GET | `/api/espacos/{id}/equipamentos/disponibilidade?data=&hora_inicio=&hora_fim=` | Disponível de cada equipamento num intervalo (usado nos espaços LIVRE) |
 | GET | `/api/espacos/{id}/disponibilidade?de=&ate=` | Calendário do espaço: situação de cada horário e equipamentos disponíveis (opcional `curso_id`) |
 | POST | `/api/espacos/{id}/disponibilidade/curso` | O mesmo calendário com o limite semanal do curso do aluno (`registro_academico`, `de`, `ate` no corpo); só em espaços com limite por curso |
@@ -341,8 +345,9 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
   - RA inexistente ou de aluno inativo: 422 "Não encontramos um aluno ativo com este RA." (o mesmo que a reserva já revela). Espaço inativo: 404. No máximo 20 consultas por minuto.
   - O `GET` não aceita mais o `registro_academico`: um RA na URL ficaria nos logs do servidor e no histórico do navegador, e a validação respondia diferente para RA cadastrado e não cadastrado com 60 tentativas por minuto.
 - `reservas_ate`: último dia que aceita reservas de alunos (10 dias úteis à frente).
-- Cada dia tem `reservavel` e `motivo` (data passada, fim de semana, fora da antecedência ou bloqueio do dia inteiro).
-- Cada horário tem `situacao`: `LIVRE`, `RESERVADO`, `EVENTO`, `BLOQUEADO`, `INDISPONIVEL` (o dia não aceita reservas) ou `ENCERRADO` (horário de hoje passou do limite). Também traz `motivo`, `reserva` (com `reservado_por`: nome e curso do aluno, ou nome do admin; RA e email nunca aparecem) e `equipamentos` (`total` e `disponivel` naquele horário, incluindo os compartilháveis).
+- `calendario_ate` (11.2e): último dia que o calendário mostra — o **fim do semestre letivo** (jan–jun, jul–dez), com no mínimo 4 semanas a partir de hoje. Consultas que começam depois dele recebem 422 ("O calendário mostra os dias até dd/mm/aaaa (fim do semestre)."); um `ate` depois dele é cortado nele.
+- Cada dia tem `reservavel`, `motivo` (data passada, fim de semana, bloqueio do dia inteiro ou "Abre para reserva em dd/mm/aaaa.") e **`abre_em`**: a data em que o dia passa a aceitar reservas (dia − 10 dias úteis), só quando ele está fechado **apenas** porque ainda não abriu (com bloqueio do dia inteiro, vem `null` e o motivo é o do bloqueio). Os ocupados (reservas, eventos, bloqueios) aparecem normalmente nesses dias; depois dos 10 dias úteis não existem reservas de alunos, então só aparecem eventos e bloqueios.
+- Cada horário tem `situacao`: `LIVRE`, `RESERVADO`, `EVENTO`, `BLOQUEADO`, `INDISPONIVEL` (o dia não aceita reservas) ou `ENCERRADO` (horário de hoje passou do limite). Também traz `motivo`, `reserva` (com `reservado_por`: nome e curso do aluno, ou nome do admin; RA e email nunca aparecem) e `equipamentos` (`total` e `disponivel` naquele horário, incluindo os compartilhados com o espaço).
 - **Espaços LIVRE:** `espaco` traz `modo_horario`, `abre_as`, `fecha_as`, `duracao_maxima_minutos` e `bloco_minutos` (o passo do arredondamento, 15). Cada dia traz `reservavel`, `motivo`, **`ocupados`** (lista de `inicio`, `fim`, `situacao` = `RESERVADO`, `EVENTO` ou `BLOQUEADO`, `motivo` e `reserva` com quem reservou) e, só para hoje, **`fim_minimo`** (o primeiro fim aceito hoje, já arredondado; se passar do fechamento, o dia vem fechado com "Os horários de hoje já foram encerrados."). Não há mais blocos nem `horarios` no horário livre: a resposta fica pequena e o front monta o resto. Equipamentos do intervalo escolhido: `/equipamentos/disponibilidade`.
 
 
@@ -376,7 +381,7 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 | DELETE | `/api/admin/admins/{id}` | Desativa o admin (sem login e sem sessões) |
 | POST | `/api/admin/admins/{id}/reenviar-convite` | Reenvia o convite de quem ainda não definiu a senha |
 | GET/POST/PATCH/DELETE | `/api/admin/espacos` | CRUD de espaços (`?tipo=`); `modo_horario`, `abre_as`, `fecha_as`, `duracao_maxima_minutos` para horário livre |
-| GET/POST/PATCH/DELETE | `/api/admin/equipamentos` | CRUD de equipamentos (`?espaco_id=`, `?nome=`, `?ativo=`) |
+| GET/POST/PATCH/DELETE | `/api/admin/equipamentos` | CRUD de equipamentos (`?espaco_id=`, `?nome=`, `?ativo=`). `espacos_compartilhados`: lista de ids dos outros espaços onde o item aparece (vazia = só no próprio espaço; o próprio espaço dá 422 "O equipamento já pertence a este espaço."); tirar um espaço com reserva futura do item dá 409 com `dados.espacos`. A resposta do admin traz `espacos_compartilhados` (`id`, `nome`); a rota pública não traz |
 | GET/POST/PATCH/DELETE | `/api/admin/cursos` | CRUD de cursos |
 | GET | `/api/admin/alunos` | Lista de alunos (`?busca=` nome/RA/email, `?curso_id=`, `?ativo=`) |
 | GET | `/api/admin/alunos/{id}` | Detalhe do aluno, com o total de reservas futuras |
@@ -438,13 +443,13 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 
 | Regra | Erro |
 |---|---|
-| Equipamento ativo, do próprio espaço **ou** compartilhável | 422 |
+| Equipamento ativo, do próprio espaço **ou** compartilhado com ele pelo admin | 422 |
 | Sem equipamento repetido; quantidade ≥ 1 e ≤ estoque total | 422 |
 | Quantidade ≤ **disponível** naquela data/horário | 409 (lista o que faltou e quanto há) |
 
 **Disponível** = `quantidade_total` − **pico de uso** no intervalo: o maior total reservado (status `RESERVADO`, **em qualquer espaço**) em um mesmo momento. Ex.: 2 projetores das 14:00 às 15:00 e outros 2 das 15:00 às 16:00 dão pico 2 no intervalo 14:00–16:00 (e não 4). Nos horários fixos o resultado é o mesmo da soma.
 O cálculo fica todo em `DisponibilidadeEquipamentoRepository`: uma única consulta agrupada por equipamento, independente de quantos itens forem pedidos.
-Exemplo: 2 microscópios compartilháveis e 3 labs no mesmo horário → o terceiro recebe 409.
+Exemplo: 2 microscópios compartilhados com 3 labs e os 3 labs no mesmo horário → o terceiro recebe 409.
 
 ### Eventos (admin)
 
@@ -477,7 +482,7 @@ Exemplo: 2 microscópios compartilháveis e 3 labs no mesmo horário → o terce
 Reservas simultâneas são tratadas com *locks* dentro da transação:
 
 - trava a **linha do espaço**, porque o conflito de horário depende dela, e quando ainda não existe reserva não há linha de reserva para travar;
-- trava as **linhas dos equipamentos** pedidos (em ordem de id, para evitar deadlock), porque os compartilháveis podem ser disputados por espaços diferentes;
+- trava as **linhas dos equipamentos** pedidos (em ordem de id, para evitar deadlock), porque os compartilhados podem ser disputados por espaços diferentes;
 - o admin, ao reduzir o estoque, trava o mesmo equipamento.
 
 ### Auditoria
@@ -614,7 +619,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Código compatível com SQLite, MySQL e Postgres | O banco de produção ainda não foi escolhido; buscas e nomes únicos se comportam igual nos três |
 | Proteção contra fórmulas no CSV | Nome ou descrição começando com `=` poderia virar fórmula no Excel (*CSV injection*) |
 | Cursos em **tabela**, não enum | Permitir reaproveitar o sistema em outras instituições da rede |
-| Equipamento pertence a um espaço + flag `compartilhavel` | Por padrão a bola da quadra fica restrita à quadra; o microscópio pode ser marcado para uso em salas |
+| Equipamento pertence a um espaço; compartilhamento por lista de espaços escolhida pelo admin (11.2c) | Por padrão a bola fica na quadra e o microscópio no laboratório; a flag `compartilhavel` antiga liberava para todos os espaços (o usuário viu o microscópio na quadra) |
 | Disponibilidade **calculada** a partir das reservas, num repositório | Ela muda por data e horário; um número fixo no equipamento não representa isso. Uma tabela de ocupação teria que ser atualizada em cada operação e poderia ficar errada. O repositório concentra a consulta (uma ida ao banco, com índices) |
 | Repositórios **só para consultas complexas** | Entidades com operações simples usam o Eloquent direto nos services; repositório onde a query é complexa ou reaproveitada |
 | Data da reserva gravada como `Y-m-d` | Permite comparar a coluna diretamente e usar índices (o `whereDate` impede o uso de índice) |
@@ -738,7 +743,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `DevolucaoTest` | Itens pendentes, devolução completa, avaria/falta com email, estoque e aluno não afetados, correção com histórico, coerência de quantidades, item fora da reserva, validações, reserva ativa e iniciada, evento sem email, filtro de pendências, coluna na exportação |
 | `AlunoAdminTest` | Filtros, detalhe, edição, desativação com revogação e email, reativação, aluno inativo sem reservar, mudança de curso no limite semanal, anonimização (confirmação, dados e histórico limpos, sem email, bloqueio de alterações, RA liberado) |
 | `EspacoTest` | CRUD, PATCH, filtros, bloqueio de desativação com reservas futuras, paginação padronizada |
-| `EquipamentoTest` | Nome único por espaço, filtros, compartilháveis, redução de estoque |
+| `EquipamentoTest` | Nome único por espaço, filtros, lista pública com só os compartilhados com o espaço, admin escolhendo e tirando espaços (com histórico), validações do compartilhamento, 409 ao tirar espaço com reserva futura, redução de estoque |
 | `ReservaTest` | Reserva, conflito de horário, RA/espaço inválidos |
 | `ReservaEquipamentosTest` | Validações dos itens, disponibilidade entre espaços, revogação liberando estoque |
 | `EventoERevogacaoTest` | Eventos com e sem conflito, revogação, email |
@@ -808,6 +813,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
+| Compartilhamento por espaço e calendário do semestre (11.2c e 11.2e) | API: tabela `equipamento_compartilhamentos`, `espacos_compartilhados` no admin (com histórico e 409), `calendario_ate` e `abre_em` na disponibilidade. Front: setas e seletor de semana até o fim do semestre; dias que ainda não abriram com os ocupados e "Abre para reserva em" |
 | Escolha do horário mais amigável (passo 11.2d) | Barra do dia, horários livres como botões, início e fim com sugestões (`datalist`), duração em botões, hora digitada de vários jeitos; testes no navegador do novo fluxo |
 | Horário livre sem blocos (passo 11.2b) | API: arredondamento para 15 min, calendário LIVRE com janela e ocupados, `fim_minimo` de hoje, rota de versão da disponibilidade; demonstração com laboratórios e salas de horário livre. Front: horário montado pelo aluno com prévia do arredondamento, horários ocupados e livres, atualização automática sem piscar; testes no navegador do laboratório |
 | Horários livres (passo 8) | Modo FIXO/LIVRE por espaço, reserva e evento com início/fim em blocos de 30 min, equipamentos pelo pico de uso, calendário em blocos, consulta de equipamentos por intervalo |
@@ -833,7 +839,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base (11.1), área pública de reserva (11.2), horário livre sem blocos (11.2b) e escolha amigável do horário (11.2d) prontos. Aprovados e na fila: **11.2c** (equipamento compartilhado só com os espaços que o admin escolher), **11.2e** (calendário até o fim do semestre), **11.3a** (confirmação pelo email com aceite dos termos) e **11.3** (minhas reservas, cancelar/confirmar pelo link, privacidade). Aprovados para entrar com o painel do admin (11.5): **11.2f** (solicitação de equipamento pelo aluno) e **12b** (registro de uso posterior pelo admin, com marcação própria).
+1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base (11.1), área pública de reserva (11.2), horário livre sem blocos (11.2b) e escolha amigável do horário (11.2d) prontos. Também prontos (13/11): **11.2c** (equipamento compartilhado só com os espaços que o admin escolher) e **11.2e** (calendário até o fim do semestre). Na fila: **11.3a** (confirmação pelo email com aceite dos termos) e **11.3** (minhas reservas, cancelar/confirmar pelo link, privacidade). Aprovados para entrar com o painel do admin (11.5): **11.2f** (solicitação de equipamento pelo aluno) e **12b** (registro de uso posterior pelo admin, com marcação própria).
    - **Ordem recomendada (13/11):** área pública → login do admin (11.4) → grade de aulas (passo 12, porque sem ela o sistema não pode entrar em uso) → reservas do admin (11.5, com 11.2f e 12b) → cadastros (11.6) → histórico (11.7) → acabamento (11.8) → API para terceiros (13).
 2. **Grade de aulas (importação):** o admin importa a grade da faculdade (espaços e horários de aula) e esses horários deixam de aceitar reservas de alunos. Ideia do usuário em 10/11/2026; detalhes e recomendações iniciais no passo 12 do [`CHECKLIST.md`](CHECKLIST.md).
 3. **API para terceiros autorizados**, com as devidas restrições de segurança (passo 13). O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.

@@ -2111,3 +2111,68 @@ Nenhum código. Decisões do usuário registradas para os próximos chats:
 Arquivos: CHECKLIST.md (11.2c, 11.2e, 11.2f novo, 12b, Onde paramos, Trilha), README.md (Próximos
 passos com a ordem recomendada, Ideias registradas para depois, decisões), CLAUDE.md (regra de
 registros descritivos).
+
+========================================================================
+51. PASSOS 11.2c (COMPARTILHAMENTO POR ESPAÇO) E 11.2e (CALENDÁRIO ATÉ O FIM DO SEMESTRE)
+========================================================================
+
+13/11/2026. 258 testes da API, 88 do front, 14 no navegador.
+
+--- 11.2c ---
+database/migrations/2026_10_23_190141_create_equipamentos_table.php
+  - Coluna compartilhavel removida (migration editada no lugar; precisa de migrate:fresh).
+database/migrations/2026_10_23_190142_create_equipamento_compartilhamentos_table.php (nova)
+  - espaco_id + equipamento_id (chave primária composta, nessa ordem: a consulta mais usada é
+    "o que o espaço X pode usar"), índice em equipamento_id (FK no Postgres), timestamps.
+app/Models/Equipamento.php
+  - espacosCompartilhados() (BelongsToMany na tabela nova); escopo usavelNoEspaco($id): do espaço
+    OU id na subconsulta da tabela de ligação; RELACOES_ADMIN = auditoria + espacosCompartilhados
+    (id, nome), usado no controller e na listagem do admin (sem N+1).
+app/Models/Concerns/Auditavel.php
+  - auditarAlteracao(antes, depois): registra uma ATUALIZACAO com valores montados à mão (para a
+    lista de espaços, que não é coluna do model).
+app/Services/EquipamentoService.php
+  - listarAtivos usa o escopo. criar/atualizar separam espacos_compartilhados dos campos do model
+    e chamam compartilhar(): compara a lista atual com a nova (ordenadas); se mudou, confere se
+    algum espaço removido tem reserva futura RESERVADO com o item (409 com os nomes e dados.espacos),
+    faz sync, audita antes/depois e avança a versão da disponibilidade depois do commit.
+app/Http/Requests/Store/UpdateEquipamentoRequest.php
+  - espacos_compartilhados: array; cada item inteiro, distinto, existente e diferente do espaço do
+    equipamento (mensagem "O equipamento já pertence a este espaço.").
+app/Http/Requests/Concerns/ValidaEquipamentosDaReserva.php
+  - O exists do item da reserva troca o orWhere('compartilhavel') pela subconsulta da tabela nova.
+app/Http/Resources/EquipamentoResource.php
+  - espacos_compartilhados (id, nome) só quando a relação foi carregada (respostas do admin).
+lang/pt_BR/validation.php: rótulos dos campos novos.
+database/factories/EquipamentoFactory.php: estado compartilhadoCom(...$espacos) no lugar de compartilhavel().
+database/seeders/DemoSeeder.php: microscópio com Química; projetor com Biologia, Informática e salas.
+Testes: EquipamentoTest (lista pública, admin, validações, 409, histórico), ReservaEquipamentosTest
+(item não compartilhado dá 422), e os testes antigos passaram a usar compartilhadoCom.
+
+--- 11.2e ---
+config/reservas.php: fim_dos_semestres (RESERVA_FIM_DOS_SEMESTRES, "06-30,12-31") e
+  calendario_minimo_semanas (RESERVA_CALENDARIO_MINIMO_SEMANAS, 4).
+app/Support/HorizonteCalendario.php (novo)
+  - ate(): maior entre o fim do semestre atual e hoje + 4 semanas.
+  - fimDoSemestre(dia): primeiro "ano-fim" configurado que não ficou para trás (este ano ou o próximo).
+  - abreEm(dia): null em fim de semana ou dentro do limite; senão dia − N dias úteis (inverso do
+    AntecedenciaMaxima::dataLimite, que soma dias úteis com addWeekdays).
+app/Http/Requests/ConsultarDisponibilidadeRequest.php
+  - de depois do horizonte: 422 em "de"; ate() cortado no horizonte (vale também para o POST com RA,
+    que herda o request).
+app/Services/DisponibilidadeService.php
+  - calendario_ate na resposta; abre_em em cada dia (FIXO e LIVRE), null se houver bloqueio do dia
+    inteiro; motivo "Abre para reserva em dd/mm/aaaa." e bloqueio do dia inteiro antes dele.
+frontend/src/app/publico/modelos.ts: calendario_ate e abre_em.
+frontend/src/app/publico/calendario/calendario.ts/html
+  - podeAvancar até calendario_ate; semanasDoCalendario (rótulos "dd/mm a dd/mm") num <select>
+    "Ir para a semana" (sr-only label); irParaSegunda.
+  - resumoDoDia: "Abre dd/mm"; nomeDaSituacao(dia, horario): "Livre · ainda não abriu" para
+    INDISPONIVEL em dia com abre_em (e o motivo repetido não aparece em cada horário).
+  - Dias com abre_em: aviso amarelo; no FIXO, horários listados sem link; no LIVRE, barra e
+    ocupados sem o formulário; legenda da barra sem "toque para começar ali"; cursor de clique só
+    em dia reservável.
+Testes: DisponibilidadeTest (horizonte, mínimo de 4 semanas perto do fim de junho, abre_em, bloqueio),
+calendario.spec (seletor, última semana, dia que não abriu no FIXO e no LIVRE), e2e da quadra
+(seletor até a última semana). e2e/api-falsa.ts: calendario_ate, abre_em e INDISPONIVEL nos dias
+que ainda não abriram, como a API.
