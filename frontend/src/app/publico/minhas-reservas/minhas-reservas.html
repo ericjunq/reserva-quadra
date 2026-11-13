@@ -1,0 +1,176 @@
+<div class="mx-auto max-w-3xl px-4 py-8">
+  <h1 class="text-3xl font-extrabold italic text-azul">Minhas reservas</h1>
+  <p class="mt-2 text-slate-600">
+    Informe o seu RA e o email do cadastro para ver as suas reservas.
+  </p>
+
+  <div
+    class="mt-6 flex items-start gap-3 rounded-xl border border-azul/20 bg-azul/5 p-4 text-sm text-slate-700"
+  >
+    <svg lucideInfo [size]="18" class="mt-0.5 shrink-0 text-azul" aria-hidden="true"></svg>
+    <p>
+      Pedimos o RA e o email juntos para que só você veja as suas reservas. Os dados ficam só nesta
+      tela e somem quando você sai dela. Veja como usamos os seus dados em
+      <a routerLink="/privacidade" class="font-semibold text-azul underline">Termos e privacidade</a
+      >.
+    </p>
+  </div>
+
+  <form
+    class="mt-6 space-y-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+    (ngSubmit)="consultar()"
+    novalidate
+  >
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="ra" class="block font-semibold text-slate-900">RA</label>
+        <input
+          id="ra"
+          name="ra"
+          inputmode="numeric"
+          autocomplete="off"
+          maxlength="10"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [ngModel]="ra()"
+          (ngModelChange)="ra.set($event)"
+        />
+      </div>
+      <div>
+        <label for="email" class="block font-semibold text-slate-900">Email</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="off"
+          maxlength="100"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [ngModel]="email()"
+          (ngModelChange)="email.set($event)"
+        />
+      </div>
+    </div>
+
+    <fieldset>
+      <legend class="font-semibold text-slate-900">Quais reservas</legend>
+      <div class="mt-1 flex flex-wrap gap-4 text-slate-700">
+        <label class="flex items-center gap-2">
+          <input
+            type="radio"
+            name="periodo"
+            value="FUTURAS"
+            [ngModel]="periodo()"
+            (ngModelChange)="periodo.set($event)"
+          />
+          De hoje em diante
+        </label>
+        <label class="flex items-center gap-2">
+          <input
+            type="radio"
+            name="periodo"
+            value="TODAS"
+            [ngModel]="periodo()"
+            (ngModelChange)="periodo.set($event)"
+          />
+          Todas, das mais recentes às mais antigas
+        </label>
+      </div>
+    </fieldset>
+
+    @if (erroDoFormulario(); as mensagem) {
+      <p class="text-sm text-red-700" role="alert">{{ mensagem }}</p>
+    }
+
+    <div class="flex flex-wrap gap-3">
+      <button
+        type="submit"
+        class="rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio"
+      >
+        Consultar
+      </button>
+      @if (resultado()) {
+        <button
+          type="button"
+          class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 hover:bg-azul/5"
+          (click)="esquecer()"
+        >
+          Limpar
+        </button>
+      }
+    </div>
+  </form>
+
+  <section class="mt-8" aria-live="polite" aria-label="Resultado da consulta">
+    @switch (resultado()?.tipo) {
+      @case ('carregando') {
+        <p class="text-slate-600">Buscando as suas reservas…</p>
+      }
+      @case ('erro') {
+        <app-aviso-erro [mensagem]="$any(resultado()).erro.mensagem" />
+      }
+      @case ('pronto') {
+        @if (paginaPronta(); as pagina) {
+          @if (pagina.data.length) {
+            <p class="text-sm text-slate-600">{{ pagina.meta.total }} reserva(s) encontrada(s).</p>
+            <ul class="mt-3 space-y-3">
+              @for (reserva of pagina.data; track reserva.id) {
+                <li class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                  <app-cartao-reserva [reserva]="reserva">
+                    <p class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                      <span
+                        class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                        [class]="
+                          reserva.status === 'RESERVADO'
+                            ? 'bg-emerald-100 text-emerald-900'
+                            : 'bg-slate-200 text-slate-800'
+                        "
+                        >{{ nomeDoStatus(reserva.status) }}</span
+                      >
+                      @if (descreverConfirmacao(reserva); as confirmacao) {
+                        <span class="text-slate-700">{{ confirmacao }}</span>
+                      }
+                    </p>
+                    @if (reserva.status === 'REVOGADO' && reserva.justificativa_revogacao) {
+                      <p class="mt-1 text-sm text-slate-700">
+                        Motivo: {{ reserva.justificativa_revogacao }}
+                      </p>
+                    }
+                    @if (podeCancelarPeloEmail(reserva)) {
+                      <p class="mt-1 text-xs text-slate-600">
+                        Para cancelar, use o link "Cancelar reserva" do email que você recebeu.
+                      </p>
+                    }
+                  </app-cartao-reserva>
+                </li>
+              }
+            </ul>
+            @if (pagina.meta.last_page > 1) {
+              <nav class="mt-4 flex items-center justify-between" aria-label="Páginas">
+                <button
+                  type="button"
+                  class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 disabled:opacity-40"
+                  [disabled]="pagina.meta.current_page <= 1"
+                  (click)="irParaPagina(pagina.meta.current_page - 1)"
+                >
+                  Anterior
+                </button>
+                <span class="text-sm text-slate-700"
+                  >Página {{ pagina.meta.current_page }} de {{ pagina.meta.last_page }}</span
+                >
+                <button
+                  type="button"
+                  class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 disabled:opacity-40"
+                  [disabled]="pagina.meta.current_page >= pagina.meta.last_page"
+                  (click)="irParaPagina(pagina.meta.current_page + 1)"
+                >
+                  Próxima
+                </button>
+              </nav>
+            }
+          } @else {
+            <p class="text-slate-700">Nenhuma reserva para mostrar.</p>
+          }
+        }
+      }
+    }
+  </section>
+</div>

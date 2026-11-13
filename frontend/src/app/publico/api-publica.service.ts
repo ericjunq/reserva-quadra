@@ -9,7 +9,13 @@ import {
   Espaco,
   NovaReserva,
   NovoAluno,
+  PaginaDeReservas,
+  PeriodoMinhasReservas,
   ReservaCriada,
+  ReservaDoAluno,
+  ResumoDaConfirmacao,
+  ResumoDoCancelamento,
+  Termos,
 } from './modelos';
 
 interface Resposta<T> {
@@ -22,6 +28,7 @@ export class ApiPublicaService {
   private readonly url = ambiente.urlApi;
   private espacos$: Observable<Espaco[]> | null = null;
   private cursos$: Observable<Curso[]> | null = null;
+  private termos$: Observable<Termos> | null = null;
   private readonly calendarios = new Map<string, Observable<Calendario>>();
 
   listarEspacos(): Observable<Espaco[]> {
@@ -114,5 +121,48 @@ export class ApiPublicaService {
 
   cadastrarAluno(aluno: NovoAluno): Observable<void> {
     return this.http.post<unknown>(`${this.url}/alunos`, aluno).pipe(map(() => undefined));
+  }
+
+  consultarMinhasReservas(
+    registroAcademico: string,
+    email: string,
+    periodo: PeriodoMinhasReservas,
+    pagina: number,
+  ): Observable<PaginaDeReservas> {
+    return this.http.post<PaginaDeReservas>(
+      `${this.url}/minhas-reservas`,
+      { registro_academico: registroAcademico, email, periodo },
+      { params: new HttpParams().set('page', pagina) },
+    );
+  }
+
+  resumoDoCancelamento(token: string): Observable<ResumoDoCancelamento> {
+    return this.http.get<ResumoDoCancelamento>(`${this.url}/reservas/cancelamento/${token}`);
+  }
+
+  cancelar(token: string): Observable<ReservaDoAluno> {
+    return this.http
+      .post<Resposta<ReservaDoAluno>>(`${this.url}/reservas/cancelamento/${token}`, {})
+      .pipe(map((resposta) => resposta.data));
+  }
+
+  resumoDaConfirmacao(token: string): Observable<ResumoDaConfirmacao> {
+    return this.http.get<ResumoDaConfirmacao>(`${this.url}/reservas/confirmacao/${token}`);
+  }
+
+  confirmar(token: string, aceiteTermos: boolean): Observable<ReservaDoAluno> {
+    return this.http
+      .post<Resposta<ReservaDoAluno>>(`${this.url}/reservas/confirmacao/${token}`, {
+        aceite_termos: aceiteTermos,
+      })
+      .pipe(map((resposta) => resposta.data));
+  }
+
+  consultarTermos(): Observable<Termos> {
+    this.termos$ ??= this.http.get<Resposta<Termos>>(`${this.url}/termos`).pipe(
+      map((resposta) => resposta.data),
+      shareReplay(1),
+    );
+    return this.termos$;
   }
 }

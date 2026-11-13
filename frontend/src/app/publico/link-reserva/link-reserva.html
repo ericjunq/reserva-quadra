@@ -1,0 +1,153 @@
+<div class="mx-auto max-w-2xl px-4 py-8">
+  <h1 class="text-3xl font-extrabold italic text-azul">
+    {{ modo() === 'confirmar' ? 'Confirmar reserva' : 'Cancelar reserva' }}
+  </h1>
+
+  @if (concluida(); as reserva) {
+    <section
+      class="mt-6 rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200"
+      role="status"
+    >
+      <svg lucideCircleCheck [size]="48" class="mx-auto text-emerald-600" aria-hidden="true"></svg>
+      @if (modo() === 'confirmar') {
+        <h2 class="mt-3 text-2xl font-extrabold italic text-azul">Reserva confirmada!</h2>
+        <p class="mt-2 text-slate-700">
+          {{ reserva.espaco?.nome }}: está tudo certo. Se não puder ir, cancele pelo link "Cancelar
+          reserva" do email, até o horário de início.
+        </p>
+      } @else {
+        <h2 class="mt-3 text-2xl font-extrabold italic text-azul">Reserva cancelada</h2>
+        <p class="mt-2 text-slate-700">
+          O horário ficou livre para outras pessoas. Enviamos um aviso para o seu email.
+        </p>
+      }
+      <a
+        routerLink="/"
+        class="mt-6 inline-block rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio"
+      >
+        Ver os espaços
+      </a>
+    </section>
+  } @else {
+    @switch (resumo().tipo) {
+      @case ('carregando') {
+        <p class="mt-6 text-slate-600">Carregando a reserva…</p>
+      }
+      @case ('sem-token') {
+        <div class="mt-6">
+          <app-aviso-erro
+            mensagem="Por segurança, o link some da barra de endereço depois de aberto. Abra de novo pelo botão do email."
+          />
+        </div>
+      }
+      @case ('erro') {
+        <div class="mt-6">
+          <app-aviso-erro [mensagem]="$any(resumo()).mensagem" />
+        </div>
+      }
+      @case ('pronto') {
+        @if (reserva(); as reserva) {
+          <section class="mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <app-cartao-reserva [reserva]="reserva" />
+          </section>
+
+          @if (erroDoEnvio(); as erro) {
+            <div class="mt-4"><app-aviso-erro [mensagem]="erro.mensagem" /></div>
+          }
+
+          @if (confirmacao(); as confirmacao) {
+            @if (!confirmacao.pode_confirmar) {
+              <p class="mt-4 rounded-lg bg-slate-100 px-4 py-3 text-slate-700">
+                Esta reserva não pode mais ser confirmada (já foi confirmada, cancelada ou passou do
+                prazo).
+              </p>
+            } @else {
+              @if (prazo(); as prazo) {
+                <p class="mt-4 text-slate-700">
+                  {{
+                    confirmacao.etapa === 'RECONFIRMACAO'
+                      ? 'Sua reserva está chegando. Confirme que ainda vai usar o horário'
+                      : 'Confirme a sua reserva'
+                  }}
+                  até <strong>{{ prazo }}</strong
+                  >. Sem a confirmação, ela é cancelada e o horário fica livre.
+                </p>
+              }
+
+              @if (confirmacao.exige_aceite_termos) {
+                <section
+                  class="mt-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+                  aria-labelledby="titulo-termos"
+                >
+                  <h2 id="titulo-termos" class="text-lg font-semibold text-slate-900">
+                    Termos de uso e aviso de privacidade
+                  </h2>
+                  @if (termos()?.termos; as termos) {
+                    @if (termos.rascunho) {
+                      <p class="mt-2 rounded-lg bg-amarelo/15 px-3 py-2 text-xs text-slate-800">
+                        Texto provisório, em validação pela instituição (versão
+                        {{ termos.versao }}).
+                      </p>
+                    }
+                    <div
+                      class="mt-2 max-h-72 overflow-y-auto rounded-lg border border-slate-200 p-3"
+                      tabindex="0"
+                      aria-label="Texto dos termos"
+                    >
+                      <h3 class="font-bold text-azul">Termos de uso</h3>
+                      <app-secoes-termos [secoes]="termos.termos_de_uso" />
+                      <h3 class="mt-4 font-bold text-azul">Aviso de privacidade</h3>
+                      <app-secoes-termos [secoes]="termos.privacidade" />
+                    </div>
+                    <label class="mt-4 flex items-start gap-2 text-slate-800">
+                      <input
+                        type="checkbox"
+                        name="aceite"
+                        class="mt-1"
+                        [ngModel]="aceite()"
+                        (ngModelChange)="aceite.set($event)"
+                      />
+                      <span>Li e aceito os termos de uso e o aviso de privacidade.</span>
+                    </label>
+                  } @else if (termos()?.erro; as erro) {
+                    <div class="mt-2"><app-aviso-erro [mensagem]="erro" /></div>
+                  } @else {
+                    <p class="mt-2 text-slate-600">Carregando os termos…</p>
+                  }
+                </section>
+              }
+
+              <button
+                type="button"
+                class="mt-4 rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio disabled:opacity-50"
+                [disabled]="!podeEnviar() || enviando()"
+                (click)="enviar()"
+              >
+                {{ enviando() ? 'Confirmando…' : 'Confirmar reserva' }}
+              </button>
+            }
+          } @else if (cancelamento(); as cancelamento) {
+            @if (cancelamento.pode_cancelar) {
+              <p class="mt-4 text-slate-700">
+                Cancelar libera o horário e os equipamentos para outras pessoas. Não dá para
+                desfazer.
+              </p>
+              <button
+                type="button"
+                class="mt-4 rounded-full bg-red-700 px-6 py-2 font-semibold text-white hover:bg-red-800 disabled:opacity-50"
+                [disabled]="enviando()"
+                (click)="enviar()"
+              >
+                {{ enviando() ? 'Cancelando…' : 'Cancelar reserva' }}
+              </button>
+            } @else {
+              <p class="mt-4 rounded-lg bg-slate-100 px-4 py-3 text-slate-700">
+                Esta reserva não pode mais ser cancelada (já foi cancelada, revogada ou já começou).
+              </p>
+            }
+          }
+        }
+      }
+    }
+  }
+</div>

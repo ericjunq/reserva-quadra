@@ -113,3 +113,61 @@ export interface NovoAluno {
   email: string;
   curso_id: number;
 }
+
+export type StatusReserva = 'RESERVADO' | 'CANCELADO' | 'REVOGADO';
+export type SituacaoDevolucao = 'PENDENTE' | 'DEVOLVIDO' | 'DEVOLVIDO_COM_AVARIA' | 'NAO_DEVOLVIDO';
+
+export interface ReservaDoAluno {
+  id: number;
+  data_reserva: string;
+  hora_inicio: string;
+  hora_fim: string;
+  status: StatusReserva;
+  tipo: 'ALUNO' | 'EVENTO';
+  espaco?: { id: number; nome: string; tipo: TipoEspaco };
+  equipamentos?: {
+    id: number;
+    nome: string;
+    quantidade: number;
+    devolucao: { situacao: SituacaoDevolucao | null; observacao: string | null };
+  }[];
+  justificativa_revogacao?: string | null;
+  confirmar_ate: string | null;
+  confirmada_em: string | null;
+  reconfirmacao_pedida_em: string | null;
+  reconfirmar_ate: string | null;
+  reconfirmada_em: string | null;
+}
+
+export interface PaginaDeReservas {
+  data: ReservaDoAluno[];
+  meta: { current_page: number; last_page: number; total: number };
+}
+
+export type PeriodoMinhasReservas = 'FUTURAS' | 'TODAS';
+
+export interface ResumoDoCancelamento {
+  data: ReservaDoAluno;
+  pode_cancelar: boolean;
+}
+
+export interface ResumoDaConfirmacao {
+  data: ReservaDoAluno;
+  etapa: 'CONFIRMACAO' | 'RECONFIRMACAO';
+  pode_confirmar: boolean;
+  prazo_confirmacao: string | null;
+  exige_aceite_termos: boolean;
+  termos_versao: string;
+}
+
+export interface SecaoDosTermos {
+  titulo: string;
+  paragrafos: string[];
+}
+
+export interface Termos {
+  versao: string;
+  rascunho: boolean;
+  termos_de_uso: SecaoDosTermos[];
+  privacidade: SecaoDosTermos[];
+}
