@@ -35,10 +35,14 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 
 ### Continuidade entre conversas (o usuário alterna entre PCs e chats)
 - A memória da conversa **não** vai para outro PC. O que garante a continuidade são os arquivos do repositório: **este `CLAUDE.md`** (como trabalhar) e o **`CHECKLIST.md`** (onde estamos, o que foi decidido e o que vem). Escreva-os como instruções **para você mesmo** numa conversa nova, com contexto suficiente para seguir a mesma linha de ideias, sem precisar perguntar o que já foi combinado.
+- **REGRA PRINCIPAL (reforçada pelo usuário em 13/11/2026): documentar tudo, na hora.** Toda alteração, implementação, ideia discutida, correção necessária, e tudo o que foi decidido fazer (o quê e como) ou mudar (o quê e como), vai para os guias **assim que a ideia surge ou é implementada**, e não depois. Ao terminar cada resposta que mexeu em algo, **revisar os guias, ver se falta alguma coisa e documentar** antes de encerrar. Na dúvida se algo merece registro, registrar.
 - **Mantenha tudo atualizado o tempo todo**, e não só ao concluir uma etapa. Atualize e commite os guias sempre que:
   - enviar uma **proposta**: resumo e decisões em aberto no passo do plano, e "Onde paramos" como "proposta enviada, aguardando aprovação";
   - o usuário **aprovar, recusar ou ajustar** algo: registrar a decisão e o motivo;
   - **explicar um conceito** ao usuário: anotar em "Conceitos já explicados" e, se for útil, numa seção do README;
+  - surgir uma **ideia** (do usuário ou do Claude), mesmo sem decisão: na Trilha de ideias e, se for uma ideia para depois, em "Ideias registradas para depois" no README;
+  - aparecer um **defeito ou correção necessária**: o que aconteceu, a causa e a correção (Trilha, txt e, se mudar regra, README);
+  - **mudar algo já decidido**: o que muda, como, por quê e o que vale agora (riscar ou marcar a decisão antiga como substituída, sem apagar);
   - concluir uma etapa: todos os guias (CHECKLIST, README, DATABASE se mexer no banco, txt).
 - A seção **"🧵 Trilha de ideias"** do CHECKLIST ganha uma linha a cada nova ideia, decisão ou mudança de rumo, com o porquê. A última linha ("Agora:") é sempre atualizada.
 - **Registros descritivos (pedido reforçado em 13/11/2026):** cada decisão vai para os guias com o texto do usuário (ou um resumo fiel), a leitura do Claude, o porquê, as alternativas descartadas e, quando já houver, "como implementar" (campos, rotas, telas). Ideias aprovadas que ainda não têm data entram também no README, em "Ideias registradas para depois". O objetivo é que outro chat entenda as regras, práticas, padrões, ideias e diretrizes sem perguntar de novo.
