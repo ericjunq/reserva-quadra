@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Constants\StatusConstant;
+use App\Mail\PedidoConfirmacaoMail;
 use App\Mail\ReservaCanceladaMail;
-use App\Mail\ReservaCriadaMail;
 use App\Models\Aluno;
 use App\Models\Equipamento;
 use App\Models\Espaco;
@@ -50,7 +50,7 @@ class CancelamentoTest extends TestCase
     {
         $link = null;
 
-        Mail::assertQueued(ReservaCriadaMail::class, function (ReservaCriadaMail $mail) use (&$link) {
+        Mail::assertQueued(PedidoConfirmacaoMail::class, function (PedidoConfirmacaoMail $mail) use (&$link) {
             $link = $mail->linkCancelamento;
 
             return true;
@@ -63,7 +63,7 @@ class CancelamentoTest extends TestCase
     {
         $this->reservar();
 
-        Mail::assertQueued(ReservaCriadaMail::class, function (ReservaCriadaMail $mail) {
+        Mail::assertQueued(PedidoConfirmacaoMail::class, function (PedidoConfirmacaoMail $mail) {
             return $mail->hasTo('maria@email.com')
                 && $mail->nome === 'Maria Souza'
                 && str_starts_with($mail->linkCancelamento, 'http://localhost:4200/reservas/cancelar/')
@@ -76,7 +76,7 @@ class CancelamentoTest extends TestCase
         $id = $this->reservar()->json('data.id');
         $token = $this->tokenDoEmail();
 
-        $registro = TokenReserva::where('reserva_id', $id)->sole();
+        $registro = TokenReserva::where('reserva_id', $id)->where('finalidade', 'CANCELAR')->sole();
         $this->assertSame(hash('sha256', $token), $registro->token_hash);
         $this->assertNotSame($token, $registro->token_hash);
         $this->assertSame('2026-11-12 19:00:00', $registro->expira_em->format('Y-m-d H:i:s'));
@@ -169,7 +169,7 @@ class CancelamentoTest extends TestCase
             'descricao'    => 'Palestra',
         ])->assertCreated();
 
-        Mail::assertNotQueued(ReservaCriadaMail::class);
+        Mail::assertNotQueued(PedidoConfirmacaoMail::class);
         $this->assertSame(0, TokenReserva::count());
     }
 

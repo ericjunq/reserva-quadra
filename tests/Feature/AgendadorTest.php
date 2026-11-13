@@ -28,8 +28,8 @@ class AgendadorTest extends TestCase
     public function test_tarefas_agendadas_com_horario_e_sem_sobreposicao(): void
     {
         $esperado = [
-            'reservas:pedir-confirmacao'       => '0 8 * * *',
-            'reservas:revogar-nao-confirmadas' => '5 0 * * *',
+            'reservas:pedir-reconfirmacao'     => '0 8 * * *',
+            'reservas:revogar-nao-confirmadas' => '*/15 * * * *',
             'feriados:importar'                => '0 3 1 12 *',
             'reservas:limpar-tokens'           => '10 3 * * *',
             'sanctum:prune-expired'            => '20 3 * * *',

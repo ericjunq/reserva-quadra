@@ -89,7 +89,7 @@ class AlertaTest extends TestCase
         }
 
         Mail::assertSentCount(count($tarefas));
-        Mail::assertSent(AlertaSistemaMail::class, fn (AlertaSistemaMail $mail) => str_contains($mail->descricao, 'Pedido de confirmação'));
+        Mail::assertSent(AlertaSistemaMail::class, fn (AlertaSistemaMail $mail) => str_contains($mail->descricao, 'Pedido de reconfirmação'));
     }
 
     public function test_tarefa_que_termina_bem_nao_gera_alerta(): void
