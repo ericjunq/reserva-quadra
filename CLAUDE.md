@@ -42,6 +42,7 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
   - concluir uma etapa: todos os guias (CHECKLIST, README, DATABASE se mexer no banco, txt).
 - A seção **"🧵 Trilha de ideias"** do CHECKLIST ganha uma linha a cada nova ideia, decisão ou mudança de rumo, com o porquê. A última linha ("Agora:") é sempre atualizada.
 - **Registros descritivos (pedido reforçado em 13/11/2026):** cada decisão vai para os guias com o texto do usuário (ou um resumo fiel), a leitura do Claude, o porquê, as alternativas descartadas e, quando já houver, "como implementar" (campos, rotas, telas). Ideias aprovadas que ainda não têm data entram também no README, em "Ideias registradas para depois". O objetivo é que outro chat entenda as regras, práticas, padrões, ideias e diretrizes sem perguntar de novo.
+- Ao atualizar "📍 Onde paramos", **reescrever as linhas que ficaram velhas** (último passo, próximo passo, pendências, instruções para outro PC), em vez de só acrescentar; antes de dizer que a documentação está pronta, reler a seção inteira.
 - A seção **"📍 Onde paramos"** do CHECKLIST sempre traz: o último passo concluído, o que está em andamento (proposta enviada? decisões pendentes?), o próximo passo, o que o usuário precisa fazer (push, `migrate:fresh` etc.) e os conceitos já explicados.
 - **Novas instruções de comportamento** do usuário (como trabalhar, responder, commitar, documentar) entram **neste `CLAUDE.md` na mesma hora**, em vez de ficar só na conversa.
 
