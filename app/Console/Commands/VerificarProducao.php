@@ -33,6 +33,7 @@ class VerificarProducao extends Command
             ['Remetente do email definido', config('mail.from.address') !== 'hello@example.com', 'defina MAIL_FROM_ADDRESS'],
             ['Cache fora da memória', config('cache.default') !== 'array', 'use CACHE_STORE=database'],
             ['Logs diários com nível warning ou acima', $this->logsOk(), 'use LOG_STACK=daily e LOG_LEVEL=warning'],
+            ['Login do admin com código por email', (bool) config('reservas.login_com_codigo'), 'defina LOGIN_COM_CODIGO=true'],
             ['ALERTAS_EMAIL definido', filled(config('reservas.alertas_email')), 'defina ALERTAS_EMAIL com o email que recebe os alertas'],
             ['ADMIN_INICIAL_SENHA vazio', blank(config('reservas.admin_inicial.senha')), 'apague ADMIN_INICIAL_SENHA do .env depois de criar o admin'],
             ['Admin principal ativo', $bancoOk && (bool) User::buscarPrincipal()?->ativo, 'rode php artisan admin:criar-principal'],

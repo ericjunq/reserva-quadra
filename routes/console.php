@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\DesafioLogin;
 use App\Services\AlertaService;
 use Illuminate\Support\Facades\Schedule;
 
@@ -27,6 +28,11 @@ Schedule::command('reservas:limpar-tokens')
     ->dailyAt('03:10')
     ->withoutOverlapping()
     ->onFailure($alertarSeFalhar('Limpeza dos links de email vencidos'));
+
+Schedule::command('model:prune', ['--model' => [DesafioLogin::class]])
+    ->dailyAt('03:15')
+    ->withoutOverlapping()
+    ->onFailure($alertarSeFalhar('Limpeza dos códigos de login vencidos'));
 
 Schedule::command('sanctum:prune-expired --hours=24')
     ->dailyAt('03:20')

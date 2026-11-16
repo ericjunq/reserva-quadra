@@ -81,7 +81,7 @@ class AlertaTest extends TestCase
         Artisan::call('schedule:list');
 
         $tarefas = app(Schedule::class)->events();
-        $this->assertCount(6, $tarefas);
+        $this->assertCount(7, $tarefas);
 
         foreach ($tarefas as $tarefa) {
             $tarefa->exitCode = 1;

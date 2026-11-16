@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthService
 {
+    public function __construct(private CodigoLoginService $codigos) {}
+
     public function login(array $data): array
     {
         $user = User::where('email', User::normalizarEmail($data['email']))->first();
@@ -17,6 +19,21 @@ class AuthService
             throw new AuthenticationException('Credenciais inválidas');
         }
 
+        return config('reservas.login_com_codigo') ? $this->codigos->iniciar($user) : $this->emitirToken($user);
+    }
+
+    public function confirmarCodigo(array $data): array
+    {
+        return $this->emitirToken($this->codigos->confirmar($data['desafio'], $data['codigo']));
+    }
+
+    public function reenviarCodigo(array $data): array
+    {
+        return $this->codigos->reenviar($data['desafio']);
+    }
+
+    private function emitirToken(User $user): array
+    {
         $expira_em = now()->addMinutes(config('sanctum.expiration'));
         $token = $user->createToken('api', ['*'], $expira_em);
 

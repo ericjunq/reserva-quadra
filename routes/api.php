@@ -36,6 +36,8 @@ Route::post('/reservas/confirmacao/{token}', [ConfirmacaoController::class, 'con
 Route::post('/minhas-reservas', [MinhasReservasController::class, 'index'])->middleware('throttle:10,1');
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/login/codigo', [AuthController::class, 'confirmarCodigo'])->middleware('throttle:10,1');
+Route::post('/login/reenviar', [AuthController::class, 'reenviarCodigo'])->middleware('throttle:3,1');
 Route::post('/esqueci-senha', [SenhaController::class, 'esqueci'])->middleware('throttle:5,1');
 Route::post('/redefinir-senha', [SenhaController::class, 'redefinir'])->middleware('throttle:10,1');
 Route::post('/convites/aceitar', [SenhaController::class, 'aceitarConvite'])->middleware('throttle:10,1');

@@ -23,7 +23,7 @@ class AdminTest extends TestCase
 
     private function login(string $email, string $senha = 'password')
     {
-        return $this->postJson('/api/login', ['email' => $email, 'password' => $senha]);
+        return $this->entrar($email, $senha);
     }
 
     public function test_login_e_me_respondem_com_o_resource_sem_senha(): void

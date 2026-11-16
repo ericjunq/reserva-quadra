@@ -55,7 +55,7 @@ class SenhaTest extends TestCase
 
     private function login(string $senha, string $email = 'eric@fac.edu')
     {
-        return $this->postJson('/api/login', ['email' => $email, 'password' => $senha]);
+        return $this->entrar($email, $senha);
     }
 
     public function test_esqueci_a_senha_envia_link_so_com_o_token(): void

@@ -32,6 +32,7 @@ class AgendadorTest extends TestCase
             'reservas:revogar-nao-confirmadas' => '*/15 * * * *',
             'feriados:importar'                => '0 3 1 12 *',
             'reservas:limpar-tokens'           => '10 3 * * *',
+            'model:prune'                      => '15 3 * * *',
             'sanctum:prune-expired'            => '20 3 * * *',
             'queue:prune-failed'               => '30 3 * * *',
         ];
