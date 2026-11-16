@@ -212,7 +212,7 @@ Antes de cada commit de código, nesta ordem, sem pular etapas:
 
 ### 10. Linha de contexto do projeto (resumo para se situar; os detalhes estão no CHECKLIST)
 - Sistema de reservas de espaços (quadra, laboratórios, salas) e equipamentos da UniFG. Aluno sem login (RA, e confirmação pelo email com aceite dos termos); admin com login (Sanctum).
-- Ordem seguida: API completa (passos 1–10, com produção e CI) → front em Angular (passo 11: base, área pública completa, acesso do admin, reservas do admin 11.5a e calendário do admin 11.5b em 16/11/2026) → em seguida 11.4b (login com senha + código por email), 11.5c (registro posterior), 11.5d (solicitação de equipamento), 11.6 (cadastros), 11.7 (histórico), 11.8 (acabamento) → passo 12 (grade de aulas, aprovado com ajustes, reimportação em discussão) → passo 13 (API para terceiros).
+- Ordem seguida: API completa (passos 1–10, com produção e CI) → front em Angular (passo 11: base, área pública completa, acesso do admin, reservas do admin 11.5a e calendário do admin 11.5b em 16/11/2026) → 11.4b (login com senha + código por email, 16/11/2026) → em seguida 11.5c (registro posterior), 11.5d (solicitação de equipamento), 11.6 (cadastros), 11.7 (histórico), 11.8 (acabamento) → passo 12 (grade de aulas, aprovado com ajustes, reimportação em discussão) → passo 13 (API para terceiros).
 - Pendências que dependem do usuário: reimportação da grade, serviço de disparo de emails (parado por decisão dele em 16/11/2026), termos com a faculdade, hospedagem, backup.
 - O usuário alterna entre PCs; tudo o que importa precisa estar nos guias do repositório.
 

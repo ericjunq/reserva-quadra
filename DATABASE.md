@@ -22,6 +22,7 @@ erDiagram
     espacos ||--o{ equipamento_compartilhamentos : "recebe emprestado"
     users |o--o{ auditorias : "faz"
     users ||--o| convites_admin_tokens : "convite pendente"
+    users ||--o{ desafios_login : "códigos de login"
     espacos |o--o{ datas_bloqueadas : "bloqueado em"
     users |o--o{ datas_bloqueadas : "cadastra"
     reservas ||--o{ item_reservas : "pede"
@@ -58,6 +59,19 @@ erDiagram
         string email PK
         string token "hash"
         timestamp created_at
+    }
+
+    desafios_login {
+        bigint id PK
+        bigint user_id FK "índice"
+        string desafio_hash "HMAC, único"
+        string codigo_hash "HMAC"
+        timestamp expira_em "índice"
+        tinyint tentativas "máximo 5"
+        tinyint reenvios "máximo 3"
+        timestamp ultimo_envio_em
+        timestamp usado_em "nullable"
+        timestamps timestamps
     }
 
     espacos {
@@ -286,6 +300,9 @@ O fim do semestre vem da configuração (`RESERVA_FIM_DOS_SEMESTRES`, padrão `0
 
 **36. Confirmação em duas etapas com o prazo gravado na reserva.**
 `confirmar_ate` (prazo da primeira confirmação, com o aceite dos termos) e `reconfirmar_ate` (prazo da reconfirmação, 00:00 da véspera) ficam gravados, em vez de calculados na hora, porque o comando que revoga roda a cada 15 minutos: com o prazo na coluna e os índices `(status, confirmar_ate)` e `(status, reconfirmar_ate)`, cada execução são duas consultas por índice, sem calcular datas por reserva. `termos_aceitos_em` e `termos_versao` registram o aceite (prova do que foi informado ao aluno, LGPD); a versão vem da configuração e muda quando o texto muda. Substituiu `confirmacao_enviada_em` (o pedido único de 2 dias úteis antes), passo 11.3a, 13/11/2026.
+
+**37. Login do admin em duas etapas com `desafios_login` (11.4b, 16/11/2026).**
+A senha certa cria uma linha com o **desafio** (64 caracteres devolvidos ao front) e o **código** de 6 dígitos (enviado por email), os dois guardados só como HMAC-SHA256 com a chave do app: um vazamento do banco não revela nenhum dos dois, e o HMAC permite buscar o desafio pelo índice único. Validade de 10 minutos, uso único (`usado_em`), até 5 tentativas e 3 reenvios com 60 s entre eles. Um login novo encerra os desafios abertos do mesmo admin. Sem IP nem navegador (LGPD: sem finalidade). As linhas vencidas há mais de 1 dia são apagadas todo dia às 03:15 (`model:prune`, model `Prunable`). O token do Sanctum só é criado na segunda etapa.
 
 **31. `auditavel_type` guarda nomes curtos (morph map).**
 Em vez de `App\Models\Reserva`, a coluna guarda `reserva` (e `aluno`, `espaco`, `equipamento`, `curso`, `data_bloqueada`, `item_reserva`, `admin`). O mapa fica em `TipoAuditavelConstant` e é registrado com `enforceMorphMap` no `AppServiceProvider`: renomear ou mover uma classe não quebra o histórico, e um model polimórfico fora do mapa dá erro em vez de gravar um nome inesperado. Vale também para `personal_access_tokens.tokenable_type` (admins aparecem como `admin`).

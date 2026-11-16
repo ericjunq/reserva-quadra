@@ -110,12 +110,19 @@ O que foi preciso no PC Ubuntu (09/11/2026), sem `sudo` e sem `curl`:
 
 ### Fazer login como admin
 
+O login tem **duas etapas** (11.4b, 16/11/2026): senha e depois um código de 6 dígitos enviado por email.
+
 ```http
 POST /api/login
 { "email": "admin@email.com", "password": "Admin" }
+→ { "etapa": "CODIGO", "desafio": "<64 caracteres>", "expira_em": "..." }
+
+POST /api/login/codigo
+{ "desafio": "<o mesmo>", "codigo": "123456" }
+→ { "token": "...", "expires_at": "...", "user": { ... } }
 ```
 
-Use o `token` devolvido no cabeçalho `Authorization: Bearer <token>`. O token vale 8 horas.
+Use o `token` devolvido no cabeçalho `Authorization: Bearer <token>`. O token vale 8 horas. O código chega por email (neste PC, no painel do Mailtrap; com `MAIL_MAILER=log`, no `storage/logs/laravel.log`). **Em desenvolvimento**, enquanto o envio real de emails está pendente, dá para desligar o código com `LOGIN_COM_CODIGO=false` no `.env` (o `/api/login` volta a devolver o token direto); em produção ele precisa ficar ligado (`sistema:verificar-producao` confere).
 
 ### Variáveis de ambiente do negócio
 
@@ -144,6 +151,7 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `CORS_ALLOWED_ORIGINS` | `FRONTEND_URL` | Endereços (separados por vírgula) que podem chamar a API pelo navegador |
 | `CORS_MAX_AGE` | 86400 | Por quantos segundos o navegador guarda a liberação do CORS (menos requisições `OPTIONS`) |
 | `TRUSTED_PROXIES` | vazio | IPs do proxy/balanceador na frente do servidor (ou `*`), para o Laravel enxergar o HTTPS e o IP real |
+| `LOGIN_COM_CODIGO` | `true` | Login do admin com senha + código de 6 dígitos por email. `false` só em desenvolvimento (o `sistema:verificar-producao` acusa em produção) |
 | `ALERTAS_EMAIL` | vazio | Email (ou lista separada por vírgula) que recebe os alertas, além dos admins ativos |
 | `ALERTAS_INTERVALO_MINUTOS` | 60 | Intervalo mínimo entre dois alertas do mesmo problema |
 | `LOG_DAILY_DAYS` | 14 | Por quantos dias os arquivos de log são guardados (um por dia) |
@@ -167,6 +175,7 @@ Definidas em `routes/console.php`, no fuso `APP_TIMEZONE` (America/Sao_Paulo). N
 |---|---|---|
 | `reservas:revogar-nao-confirmadas` | A cada 15 minutos | Revoga as reservas que passaram do prazo de confirmação ou de reconfirmação |
 | `reservas:limpar-tokens` | Todo dia, 03:10 | Apaga links de email usados ou vencidos há mais de 30 dias |
+| `model:prune` (`DesafioLogin`) | Todo dia, 03:15 | Apaga os códigos de login vencidos há mais de 1 dia |
 | `sanctum:prune-expired --hours=24` | Todo dia, 03:20 | Apaga tokens de login vencidos |
 | `queue:prune-failed --hours=168` | Todo dia, 03:30 | Apaga jobs que falharam há mais de 7 dias |
 | `reservas:pedir-reconfirmacao` | Todo dia, 08:00 | Pede a reconfirmação das reservas que acontecem em até 3 dias úteis |
@@ -252,7 +261,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/publico/cartao-reserva/`, `secoes-termos/`, `situacao-reserva.ts` | Resumo de uma reserva (espaço, dia, horário, equipamentos e devolução), seções dos termos e textos de status/confirmação/devolução |
 | `app/publico/cadastro/` | `/cadastro?voltar=`: cadastro do aluno com o aviso de uso dos dados; volta para a reserva com o RA preenchido |
 | `app/admin/` | Área do admin: `LayoutAdmin` (neutro), páginas e `admin.routes.ts` |
-| `app/admin/acesso/` | Acesso do admin (11.4): `AcessoService` (login, `/me` uma vez por sessão, sair, sair de todos, esqueci, redefinir, aceitar convite, trocar senha), guardas `exigirLogin` (manda para `/admin/entrar?voltar=`) e `somenteSemLogin`, `LayoutAcesso` (layout simples), telas `entrar`, `esqueci-senha`, `definir-senha` (redefinir e convite, modo pela rota) e `minha-conta`, regras da senha (`regras-senha.ts` + componente) e `acesso.routes.ts` (rotas `/redefinir-senha` e `/aceitar-convite`, carregadas só quando abertas) |
+| `app/admin/acesso/` | Acesso do admin (11.4 e 11.4b): `AcessoService` (login em duas etapas com o código por email — o desafio fica só na memória da tela —, reenvio do código, `/me` uma vez por sessão, sair, sair de todos, esqueci, redefinir, aceitar convite, trocar senha), guardas `exigirLogin` (manda para `/admin/entrar?voltar=`) e `somenteSemLogin`, `LayoutAcesso` (layout simples), telas `entrar`, `esqueci-senha`, `definir-senha` (redefinir e convite, modo pela rota) e `minha-conta`, regras da senha (`regras-senha.ts` + componente) e `acesso.routes.ts` (rotas `/redefinir-senha` e `/aceitar-convite`, carregadas só quando abertas) |
 | `app/admin/reservas/` | Reservas do admin (11.5a): `ReservasAdminService` (consulta e exportação por POST, detalhe, revogar, devolução), `filtros.ts` (filtros da URL validados, atalhos de período, limite de 366 dias na exportação), `linha-do-tempo.ts` (criada, prazos, confirmação com a versão dos termos, reconfirmação, cancelamento, revogação), `selos.ts` (cores do status e da confirmação, sempre com texto), `lista-reservas/` (`/admin/reservas?periodo=&de=&ate=&espaco=&curso=&tipo=&status=&confirmacao=&devolucao=&pagina=`: filtros, totais por status que filtram, tabela no computador e cartões no celular, nome e curso sem RA/email), `detalhe-reserva/` (`/admin/reservas/:id`: aluno com RA e email, linha do tempo, equipamentos, revogar e registrar devolução) e `exportar-reservas/` (CSV com colunas a escolher e aviso de dados pessoais) |
 | `app/admin/calendario/` | Calendário do admin (11.5b): `/admin/calendario?espaco=&semana=`, semana de segunda a domingo pela rota do admin, com quem reservou (nome · curso), o selo da confirmação, eventos com quem criou, bloqueios e "Criar evento aqui" nos horários livres; `itens-do-dia.ts` junta ocupados e livres de cada dia (fixo e livre) e monta o link do evento; `CalendarioAdminService` (espaços do admin, inclusive desativados, calendário e criar evento) |
 | `app/admin/eventos/` | `/admin/eventos/novo?espaco=&data=&horario=` ou `&inicio=&fim=`: criar evento já preenchido pelo calendário, com equipamentos opcionais e, se houver reserva no horário, a justificativa para revogá-la |
@@ -344,7 +353,9 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | GET | `/api/reservas/confirmacao/{token}` | Resumo da reserva do link de confirmação (`etapa`, `pode_confirmar`, `prazo_confirmacao`, `exige_aceite_termos`, `termos_versao`) |
 | POST | `/api/reservas/confirmacao/{token}` | Confirma a reserva; na primeira confirmação exige `{"aceite_termos": true}` |
 | GET | `/api/termos` | Termos de uso e aviso de privacidade (versão e seções), com cache de 1 hora |
-| POST | `/api/login` | Login do admin (responde com `token`, `expires_at` e `user`) |
+| POST | `/api/login` | Login do admin, 1ª etapa: email e senha certos mandam o código por email e respondem `etapa`, `desafio` e `expira_em` (com `LOGIN_COM_CODIGO=false`, responde direto com `token`, `expires_at` e `user`); 5/min |
+| POST | `/api/login/codigo` | 2ª etapa: `desafio` + `codigo` → `token`, `expires_at` e `user`; 10/min |
+| POST | `/api/login/reenviar` | Manda um código novo para o mesmo `desafio` (até 3 vezes, 60 s entre elas); 3/min |
 | POST | `/api/esqueci-senha` | Pede o link de redefinição de senha (resposta sempre igual) |
 | POST | `/api/redefinir-senha` | Define a senha nova com o token do email |
 | POST | `/api/convites/aceitar` | Admin convidado define a senha com o token do convite |
@@ -572,6 +583,7 @@ POST /api/admin/reservas/15/devolucao
 - Ao **redefinir** ou **aceitar convite**: todas as sessões do admin caem e os links pendentes dele são invalidados. Ao **trocar logado** (`PATCH /api/me/senha`, exige a senha atual): caem as outras sessões, a atual continua. Nos três casos, o admin recebe **"Sua senha foi alterada"**.
 - **Desativar admin:** ele não faz mais login e perde todas as sessões na hora. Ninguém desativa a si mesmo, e sempre sobra pelo menos um admin ativo (verificado com trava). Reativar é `PATCH` com `ativo: true`.
 - **Login** de admin inativo ou com senha errada: a mesma resposta, "Credenciais inválidas".
+- **Código de acesso (11.4b, 16/11/2026):** depois da senha certa, um código de 6 dígitos vai por email **na hora** (sem fila, para o login não depender do `queue:work`); vale 10 minutos, uma vez só, com até 5 tentativas (na 5ª errada é preciso digitar a senha de novo) e até 3 reenvios com 60 s entre eles; um login novo invalida o código anterior. Erros com a mesma mensagem genérica ("Código inválido ou vencido. Entre de novo se precisar."). Se o envio falhar, 503 e nada fica guardado. O código nunca vai para os logs do sistema e não aparece no assunto do email ("Seu código de acesso").
 - **Auditoria:** convites, edições e desativações de admins ficam no histórico; senha e `remember_token` aparecem só como `[oculto]`.
 - **Admin principal** (um só; conta de testes e manutenção): **ninguém o desativa** (409) e **só ele mesmo edita os próprios dados** (403 para os outros). Fora isso, tem os mesmos poderes dos outros admins. A flag `principal` não muda pela API: o seeder cria o `admin@email.com` como principal em desenvolvimento; em produção, `php artisan admin:criar-principal` (pergunta nome, email e senha, que não aparece na tela) e `php artisan admin:transferir-principal {email}` (passa o papel para outro admin ativo que já definiu a senha).
 
@@ -660,6 +672,9 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Disponibilidade como **calendário** (até 31 dias) | O front navega por semanas/meses; reservas continuam limitadas a 10 dias úteis, e os dias fora da janela vêm com o motivo |
 | ~~Consulta mostra **quem reservou** (nome e curso)~~ (substituída em 13/11/2026) | Facilitava o mapeamento do uso |
 | Calendário público **não identifica quem reservou**; só os admins veem nome e curso | Pedido do usuário (13/11): mínima exposição (LGPD); para o aluno basta saber que o horário está ocupado |
+| Login do admin com **senha + código por email** (dois fatores) | Ideia do usuário (16/11/2026), opção A recomendada: roubar só a senha ou só o email não basta; só o código deixaria a segurança inteira no email e o login dependente do envio |
+| Código de login enviado **na hora, sem fila** | O login é interativo e não pode depender do `queue:work`; custa 1 a 3 s no primeiro passo |
+| Código e desafio guardados com **HMAC**, sem IP | Com o limite de tentativas, bcrypt não acrescenta segurança e o HMAC permite buscar o desafio por índice; IP não tem finalidade (LGPD) |
 | Calendário do admin em **rota própria** (`/api/admin/espacos/{id}/disponibilidade`) | A rota pública continua sem identificar ninguém; o modo admin só carrega aluno, curso e criador quando é o admin que pede (16/11/2026) |
 | Admin vê o calendário **sem o limite do semestre** e de segunda a domingo | Histórico e eventos futuros; eventos podem cair no fim de semana (16/11/2026) |
 | Criar evento em **página própria**, preenchida pelo calendário | Mais simples e acessível que uma janela por cima, e com URL (16/11/2026) |
@@ -741,7 +756,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (16/11/2026):** 273 testes da API, 130 testes de unidade do front (Vitest) e 30 testes no navegador (Playwright, computador e celular).
+**Hoje (16/11/2026):** 287 testes da API, 133 testes de unidade do front (Vitest) e 30 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -764,6 +779,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `LoginCodigoTest` | Senha certa manda o código na hora (sem fila) e não entrega token; senha errada não manda; código certo entra uma vez só; vencido; 5 tentativas; login novo invalida o anterior; admin desativado no meio; reenvio com espera de 60 s e limite de 3; desafio inválido genérico; falha no envio (503, nada guardado); formato do código; nada no log; configuração desligada; limpeza diária |
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
 | `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, **arredondamento para 15 min** (inclusive em conflitos e na duração máxima), espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela e arredondado, equipamentos pelo pico, redução de estoque pelo pico, **calendário com janela e ocupados** (reservas e bloqueios, sem RA), **`fim_minimo` de hoje e dia encerrado**, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
 | `VersaoDisponibilidadeTest` | Versão igual sem mudanças; muda depois de uma reserva e de um bloqueio; muda a cada faixa de 5 minutos; resposta só com a versão |
@@ -857,6 +873,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
+| Login com código (passo 11.4b, 16/11/2026) | API: `desafios_login`, `/login` em duas etapas, `/login/codigo`, `/login/reenviar`, email "Seu código de acesso" sem fila, `LOGIN_COM_CODIGO`, limpeza diária e conferência no `verificar-producao`. Front: segunda etapa na tela Entrar, com reenvio e contagem |
 | Calendário do admin (passo 11.5b, 16/11/2026) | API: rota do admin com quem reservou e a confirmação, sem o limite do semestre, bloqueio do dia inteiro em `ocupados`. Front: calendário de segunda a domingo e criação de evento com conflito e justificativa; correção dos `<select>` com opções vindas da API |
 | Reservas do admin (passo 11.5a, 16/11/2026) | API: `situacao_confirmacao` na reserva e lista/exportação também por POST (busca fora da URL). Front: lista com filtros na URL, totais que filtram, selos de status e confirmação, detalhe com linha do tempo, revogar, registrar devolução e exportar CSV |
 | LGPD do calendário e emails de teste (13/11/2026) | Calendário público sem nome e curso de quem reservou (só admins); consulta mais leve; passo a passo para enviar emails reais em desenvolvimento (Gmail com senha de app, Mailtrap, Brevo) |
@@ -889,7 +906,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
 
-1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base (11.1), área pública de reserva (11.2), horário livre sem blocos (11.2b) e escolha amigável do horário (11.2d) prontos. Também prontos (13/11): **11.2c** (equipamento compartilhado só com os espaços que o admin escolher) e **11.2e** (calendário até o fim do semestre). Também pronto (13/11): **11.3a** (API da confirmação pelo email com aceite dos termos e reconfirmação). Também pronto (13/11): **11.3** (minhas reservas, confirmar com os termos e cancelar pelo link, privacidade): a área pública está completa. Também pronto (13/11): **11.4** (acesso do admin). Prontos em 16/11: **11.5a** (reservas do admin: lista, detalhe, revogar, devolução e exportação) e **11.5b** (calendário do admin com quem reservou e criar evento). Próximo: **11.4b** (login com senha + código por email); depois **11.5c** (registro posterior) e **11.5d** (solicitação de equipamento). Próximo, pela ordem recomendada: **passo 12** (grade de aulas), proposta a enviar. Aprovados para entrar com o painel do admin (11.5): **11.2f** (solicitação de equipamento pelo aluno) e **12b** (registro de uso posterior pelo admin, com marcação própria).
+1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base (11.1), área pública de reserva (11.2), horário livre sem blocos (11.2b) e escolha amigável do horário (11.2d) prontos. Também prontos (13/11): **11.2c** (equipamento compartilhado só com os espaços que o admin escolher) e **11.2e** (calendário até o fim do semestre). Também pronto (13/11): **11.3a** (API da confirmação pelo email com aceite dos termos e reconfirmação). Também pronto (13/11): **11.3** (minhas reservas, confirmar com os termos e cancelar pelo link, privacidade): a área pública está completa. Também pronto (13/11): **11.4** (acesso do admin). Prontos em 16/11: **11.5a** (reservas do admin: lista, detalhe, revogar, devolução e exportação) e **11.5b** (calendário do admin com quem reservou e criar evento). Pronto em 16/11: **11.4b** (login com senha + código por email). Próximo: **11.5c** (registro posterior) e **11.5d** (solicitação de equipamento). Próximo, pela ordem recomendada: **passo 12** (grade de aulas), proposta a enviar. Aprovados para entrar com o painel do admin (11.5): **11.2f** (solicitação de equipamento pelo aluno) e **12b** (registro de uso posterior pelo admin, com marcação própria).
    - **Ordem recomendada (13/11):** área pública → login do admin (11.4) → grade de aulas (passo 12, porque sem ela o sistema não pode entrar em uso) → reservas do admin (11.5, com 11.2f e 12b) → cadastros (11.6) → histórico (11.7) → acabamento (11.8) → API para terceiros (13).
 2. **Grade de aulas (importação):** o admin importa a grade da faculdade (espaços e horários de aula) e esses horários deixam de aceitar reservas de alunos; aula tem prioridade sobre reserva. Ideia do usuário em 10/11/2026; **aprovada com ajustes em 13/11/2026**, com a **reimportação ainda em discussão**. Detalhes no passo 12 do [`CHECKLIST.md`](CHECKLIST.md).
 3. **API para terceiros autorizados**, com as devidas restrições de segurança (passo 13). O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.
@@ -929,7 +946,7 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 - **Admin: reserva x reserva confirmada (para o 11.5, pedido de 13/11/2026):** selo com cor por situação da confirmação e filtro; calendário do admin com quem reservou.
 - **Calendário até o fim do semestre (11.2e, aprovado em 13/11/2026):** semestres jan–jun e jul–dez, mínimo de 4 semanas, seletor de semana, limite também na API e "Abre para reserva em dd/mm"; a reserva continua limitada a 10 dias úteis.
 
-- **Login do admin com senha + código por email (11.4b; ideia do usuário em 16/11/2026, opção A escolhida no mesmo dia):** recomendação do Claude, aceita: **senha + código de 6 dígitos por email** (dois fatores; validade de 10 min, uso único, até 5 tentativas, guardado com hash, resposta genérica). Alternativas: só o código (depende inteiramente do email e do serviço de envio, que está pendente) ou senha + aplicativo autenticador (TOTP). Ver o passo 11.4b do CHECKLIST.
+- **✅ Feito em 16/11/2026 (11.4b). Login do admin com senha + código por email (ideia do usuário em 16/11/2026, opção A escolhida no mesmo dia):** recomendação do Claude, aceita: **senha + código de 6 dígitos por email** (dois fatores; validade de 10 min, uso único, até 5 tentativas, guardado com hash, resposta genérica). Alternativas: só o código (depende inteiramente do email e do serviço de envio, que está pendente) ou senha + aplicativo autenticador (TOTP). Ver o passo 11.4b do CHECKLIST.
 
 - **Monitor externo da API:** um serviço gratuito (UptimeRobot ou Healthchecks.io) consulta `GET /up` a cada poucos minutos e avisa por outro canal (app, SMS, Telegram) quando a API não responde. Cobre o caso em que o próprio serviço de email cai e os alertas por email não saem. É configurado fora do código, na hora do deploy.
 - **Backup do banco:** definido na hora do deploy, conforme a plataforma. Regra 3-2-1; banco gerenciado com backup automático **ou** `spatie/laravel-backup` com armazenamento externo (Backblaze B2, Cloudflare R2, S3); retenção de 7 diários, 4 semanais e 6 mensais; teste mensal de restauração; `.env` guardado à parte num gerenciador de senhas. LGPD: backup criptografado, acesso restrito, e refazer as anonimizações depois de uma restauração.
@@ -944,12 +961,13 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 | Confirme sua reserva (Confirmar + Cancelar) | Aluno | Ao reservar (prazo de 24 h; mesmo dia: 1 h). Confirmar exige aceitar os termos | ✅ Pronto (11.3a) |
 | Sua reserva está chegando: confirme de novo | Aluno | 3 dias úteis antes, para quem confirmou há mais de 2 dias úteis (prazo: 00:00 da véspera) | ✅ Pronto (11.3a) |
 | Reserva revogada por falta de confirmação | Aluno | Quando vence o prazo da confirmação ou da reconfirmação (verificado a cada 15 min; reaproveita o email de revogação) | ✅ Pronto |
+| Seu código de acesso | Admin | Login com a senha certa e "Reenviar código" (11.4b) | ✅ Pronto (enviado na hora, sem fila) |
 | Convite para acessar o sistema | Admin novo | Admin cadastra ou reenvia o convite | ✅ Pronto |
 | Redefinição de senha | Admin | Pedido de "esqueci a senha" | ✅ Pronto |
 | Sua senha foi alterada | Admin | Depois de redefinir, aceitar convite ou trocar a senha | ✅ Pronto |
 | Alerta do sistema | Admins ativos e `ALERTAS_EMAIL` | Tarefa agendada ou job que falhou (máx. 1 por hora por problema) | ✅ Pronto (enviado na hora, sem fila) |
 
-Todos, menos o alerta, vão pela fila (`php artisan queue:work`). Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
+Todos, menos o alerta e o código de acesso, vão pela fila (`php artisan queue:work`). Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
 
 #### Enviar emails de verdade (teste local)
 

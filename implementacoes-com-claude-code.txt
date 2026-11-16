@@ -2526,3 +2526,58 @@ TESTES
 admin/calendario/calendario.spec.ts (4) e e2e/calendario-admin.spec.ts; api-falsa.ts com espaços
 do admin, calendário do admin e criação de evento.
 Totais: 273 da API, 130 do front, 30 no navegador. Build: inicial 311,5 kB (82,2 kB transferidos).
+
+========================================================================
+61. PASSO 11.4b: LOGIN DO ADMIN COM SENHA + CÓDIGO POR EMAIL (16/11/2026)
+========================================================================
+Ideia do usuário ("o login do admin ... enviar um codigo de login via email"), opção A escolhida
+("pode ser senha + codigo por email então") e proposta aprovada ("aprovo"). Antes, no mesmo dia,
+o usuário pediu duas regras no CLAUDE.md: sempre ler os guias antes de qualquer tarefa e testar
+sempre da mesma forma ("Rotina de testes", item 4b da seção de comportamento).
+
+API
+database/migrations/2026_11_16_120000_create_desafios_login_table.php (nova; migration nova, e
+  não edição, porque basta `php artisan migrate`): user_id (índice), desafio_hash (único),
+  codigo_hash, expira_em (índice), tentativas, reenvios, ultimo_envio_em, usado_em, timestamps.
+app/Models/DesafioLogin.php: MAXIMO_TENTATIVAS = 5; valido() (não usado, não vencido, menos de 5
+  tentativas); Prunable com os vencidos há mais de 1 dia.
+app/Services/CodigoLoginService.php (novo):
+  - iniciar(user): encerra os desafios abertos do admin, cria desafio (Str::random(64)) e código
+    (random_int, 6 dígitos), guarda os dois como HMAC-SHA256 com a APP_KEY, manda o email na hora
+    e responde etapa/desafio/expira_em. Falha no envio: apaga a linha, report() do erro (sem o
+    código) e 503 com mensagem genérica.
+  - confirmar(desafio, codigo): numa transação com lockForUpdate, compara com hash_equals; errado
+    soma uma tentativa; certo marca usado_em. A exceção (401 genérico) é lançada fora da transação
+    para a contagem de tentativas não ser desfeita. Admin desativado no meio também cai no 401.
+  - reenviar(desafio): no máximo 3, com 60 s entre eles (429 com dados.segundos); novo código,
+    validade e tentativas recomeçam; se o envio falhar, o desafio vence.
+app/Services/AuthService.php: login() confere a senha e, com reservas.login_com_codigo, chama
+  iniciar(); senão emite o token como antes (emitirToken). confirmarCodigo() e reenviarCodigo().
+app/Http/Controllers/AuthController.php: confirmarCodigo e reenviarCodigo.
+app/Http/Requests/ConfirmarCodigoLoginRequest.php (desafio com 64 caracteres; código com 6 números,
+  mensagem "O código tem 6 números.") e ReenviarCodigoLoginRequest.php.
+app/Mail/CodigoLoginMail.php (sem ShouldQueue) e resources/views/emails/codigo-login.blade.php
+  (assunto sem o código; código em destaque; validade; "não foi você?").
+routes/api.php: POST /login/codigo (10/min) e /login/reenviar (3/min).
+routes/console.php: model:prune do DesafioLogin às 03:15, com alerta se falhar.
+config/reservas.php: login_com_codigo (LOGIN_COM_CODIGO, padrão true); .env.example e
+  .env.production.example. VerificarProducao: acusa se estiver desligado.
+tests/TestCase.php: entrar(email, senha) faz as duas etapas (pega o código do Mail::fake).
+tests/Feature/LoginCodigoTest.php (14 testes); AdminTest e SenhaTest usam entrar();
+  AlertaTest (7 tarefas agendadas) e AgendadorTest (model:prune às 03:15).
+
+FRONT
+admin/acesso/acesso.service.ts: entrar() devolve ResultadoDoLogin (ENTROU com o admin, quando o
+  código está desligado, ou CODIGO com o desafio); confirmarCodigo() abre a sessão;
+  reenviarCodigo().
+admin/acesso/entrar.ts: duas etapas na mesma tela. Etapa do código: aviso, campo com
+  inputmode=numeric, autocomplete=one-time-code e maxlength 6, botão só com 6 números, "Reenviar
+  código" com contagem de 60 s (interval + takeUntilDestroyed; usa dados.segundos do 429) e
+  "Voltar" para email e senha. O desafio fica num campo privado (memória da tela).
+admin/acesso/acesso.spec.ts: 3 testes novos (código certo abre a sessão, código errado, reenvio
+  com contagem e voltar). e2e/api-falsa.ts: /login devolve o desafio, /login/codigo aceita 123456;
+  entrarComoAdmin(page). e2e/acesso-admin.spec.ts: código errado e certo; os outros testes do
+  admin usam entrarComoAdmin.
+
+Totais: 287 da API, 133 do front, 30 no navegador. Build: inicial 312,1 kB (82,3 kB transferidos).
+O usuário precisa rodar `php artisan migrate`.
