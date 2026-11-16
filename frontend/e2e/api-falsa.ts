@@ -148,6 +148,41 @@ function calendarioLivre(de: string) {
   };
 }
 
+function calendarioAdmin(de: string) {
+  const dias = [0, 1, 2, 3, 4, 5, 6].map((deslocamento) =>
+    paraIso(somarDias(deIso(de), deslocamento)),
+  );
+  return {
+    espaco: { ...espacos[1], bloco_minutos: 15 },
+    de,
+    ate: dias[6],
+    dias: dias.map((data) => ({
+      data,
+      reservavel: data > datas.hoje && ehDiaUtil(data),
+      motivo: ehDiaUtil(data) ? null : 'Fim de semana.',
+      fim_minimo: null,
+      ocupados:
+        data === datas.tercaSeguinte
+          ? [
+              {
+                inicio: '14:00',
+                fim: '15:30',
+                situacao: 'RESERVADO',
+                motivo: null,
+                reserva: {
+                  id: 77,
+                  tipo: 'ALUNO',
+                  descricao: null,
+                  reservado_por: { tipo: 'ALUNO', nome: 'Carla Dias', curso: 'Enfermagem' },
+                  situacao_confirmacao: 'AGUARDANDO_CONFIRMACAO',
+                },
+              },
+            ]
+          : [],
+    })),
+  };
+}
+
 export interface Chamada {
   metodo: string;
   url: string;
@@ -204,6 +239,7 @@ const termos = {
 
 export async function prepararApi(page: Page): Promise<Chamada[]> {
   const chamadas: Chamada[] = [];
+  let eventoCriado: Record<string, unknown> | null = null;
 
   await page.route('**/api/**', async (route: Route) => {
     const requisicao = route.request();
@@ -302,6 +338,34 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         return json({ data: { ...reservaDoAluno, status: 'CANCELADO' } });
       }
       return json({ data: reservaDoAluno, pode_cancelar: true });
+    }
+    if (caminho === '/admin/espacos') {
+      return json({
+        data: espacos.map((espaco) => ({ id: espaco.id, nome: espaco.nome, ativo: true })),
+      });
+    }
+    if (caminho === '/admin/espacos/4/disponibilidade') {
+      return json({ data: calendarioAdmin(url.searchParams.get('de')!) });
+    }
+    if (caminho === '/admin/reservas/eventos') {
+      const corpo = requisicao.postDataJSON();
+      eventoCriado = {
+        ...reservaDoAdmin,
+        id: 31,
+        tipo: 'EVENTO',
+        aluno: null,
+        descricao: corpo.descricao,
+        data_reserva: corpo.data_reserva,
+        hora_inicio: corpo.hora_inicio,
+        hora_fim: corpo.hora_fim,
+        situacao_confirmacao: null,
+        confirmar_ate: null,
+        criado_por: { id: 1, nome: 'Eric' },
+      };
+      return json({ data: eventoCriado }, 201);
+    }
+    if (caminho === '/admin/reservas/31' && eventoCriado) {
+      return json({ data: eventoCriado });
     }
     if (caminho === '/admin/reservas/consulta') {
       const corpo = requisicao.postDataJSON();
