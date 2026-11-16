@@ -191,6 +191,8 @@ export interface Chamada {
 
 export const tokenDoEmail = 'b'.repeat(64);
 
+export const codigoDoEmail = '123456';
+
 const adminFalso = { id: 1, nome: 'Eric', email: 'eric@fac.edu', principal: true };
 
 const reservaDoAluno = {
@@ -236,6 +238,15 @@ const termos = {
   ],
   privacidade: [{ titulo: 'Quais dados e para quê', paragrafos: ['Nome, RA, email e curso.'] }],
 };
+
+export async function entrarComoAdmin(page: Page): Promise<void> {
+  await page.goto('/admin/entrar');
+  await page.getByLabel('Email').fill('eric@fac.edu');
+  await page.getByLabel('Senha').fill('Senha1234');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.getByLabel('Código').fill(codigoDoEmail);
+  await page.getByRole('button', { name: 'Entrar' }).click();
+}
 
 export async function prepararApi(page: Page): Promise<Chamada[]> {
   const chamadas: Chamada[] = [];
@@ -291,6 +302,16 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
       const corpo = requisicao.postDataJSON();
       if (corpo.email !== 'eric@fac.edu' || corpo.password !== 'Senha1234') {
         return json({ message: 'Credenciais inválidas' }, 401);
+      }
+      return json({
+        etapa: 'CODIGO',
+        desafio: 'd'.repeat(64),
+        expira_em: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      });
+    }
+    if (caminho === '/login/codigo') {
+      if (requisicao.postDataJSON().codigo !== codigoDoEmail) {
+        return json({ message: 'Código inválido ou vencido. Entre de novo se precisar.' }, 401);
       }
       return json({
         token: 'token-admin',

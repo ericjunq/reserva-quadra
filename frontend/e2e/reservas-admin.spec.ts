@@ -1,12 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { prepararApi } from './api-falsa';
+import { entrarComoAdmin, prepararApi } from './api-falsa';
 
 test('o admin filtra as reservas, abre o detalhe e revoga com justificativa', async ({ page }) => {
   const chamadas = await prepararApi(page);
-  await page.goto('/admin/entrar');
-  await page.getByLabel('Email').fill('eric@fac.edu');
-  await page.getByLabel('Senha').fill('Senha1234');
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await entrarComoAdmin(page);
 
   await page.getByRole('link', { name: 'Reservas', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Reservas' })).toBeVisible();

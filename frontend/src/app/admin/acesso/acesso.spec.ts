@@ -150,6 +150,100 @@ describe('acesso do admin', () => {
     });
   });
 
+  describe('Entrar com código', () => {
+    const desafio = 'd'.repeat(64);
+
+    async function ateOCodigo() {
+      const fixture = TestBed.createComponent(Entrar);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      digitar(fixture.nativeElement, 'email', 'eric@fac.edu');
+      digitar(fixture.nativeElement, 'senha', 'Senha1234');
+      await enviar(fixture);
+      controle
+        .expectOne(`${url}/login`)
+        .flush({ etapa: 'CODIGO', desafio, expira_em: daquiAUmaHora() });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      return fixture;
+    }
+
+    it('depois da senha pede o código e só então abre a sessão', async () => {
+      const navegar = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      const fixture = await ateOCodigo();
+      const elemento = fixture.nativeElement as HTMLElement;
+      expect(sessao.tokenValido()).toBeNull();
+      expect(elemento.textContent).toContain('Enviamos um código de 6 números');
+      expect(elemento.textContent).toContain('Reenviar código em 60 s');
+      const campo = elemento.querySelector('#codigo') as HTMLInputElement;
+      expect(campo.getAttribute('autocomplete')).toBe('one-time-code');
+
+      digitar(elemento, 'codigo', '12345');
+      fixture.detectChanges();
+      expect((elemento.querySelector('button[type=submit]') as HTMLButtonElement).disabled).toBe(
+        true,
+      );
+      digitar(elemento, 'codigo', '123456');
+      await enviar(fixture);
+      const codigo = controle.expectOne(`${url}/login/codigo`);
+      expect(codigo.request.body).toEqual({ desafio, codigo: '123456' });
+      codigo.flush({ token: 'tok', expires_at: daquiAUmaHora(), user: admin });
+      expect(sessao.tokenValido()).toBe('tok');
+      expect(navegar).toHaveBeenCalledWith('/admin');
+    });
+
+    it('código errado mostra a mensagem da API e limpa o campo', async () => {
+      const fixture = await ateOCodigo();
+      digitar(fixture.nativeElement, 'codigo', '000000');
+      await enviar(fixture);
+      controle
+        .expectOne(`${url}/login/codigo`)
+        .flush(
+          { message: 'Código inválido ou vencido. Entre de novo se precisar.' },
+          { status: 401, statusText: 'erro' },
+        );
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const elemento = fixture.nativeElement as HTMLElement;
+      expect(elemento.textContent).toContain('Código inválido ou vencido');
+      expect((elemento.querySelector('#codigo') as HTMLInputElement).value).toBe('');
+      expect(sessao.tokenValido()).toBeNull();
+    });
+
+    it('reenvia depois da contagem e volta para a senha', async () => {
+      vi.useFakeTimers();
+      try {
+        const fixture = await ateOCodigo();
+        const elemento = fixture.nativeElement as HTMLElement;
+        const reenviar = () =>
+          [...elemento.querySelectorAll('button')].find((b) =>
+            b.textContent?.includes('Reenviar'),
+          ) as HTMLButtonElement;
+        expect(reenviar().disabled).toBe(true);
+
+        vi.advanceTimersByTime(60_000);
+        fixture.detectChanges();
+        expect(reenviar().disabled).toBe(false);
+        reenviar().click();
+        const pedido = controle.expectOne(`${url}/login/reenviar`);
+        expect(pedido.request.body).toEqual({ desafio });
+        pedido.flush({ expira_em: daquiAUmaHora() });
+        fixture.detectChanges();
+        expect(elemento.textContent).toContain('Enviamos um código novo');
+        expect(reenviar().textContent).toContain('60 s');
+
+        [...elemento.querySelectorAll('button')]
+          .find((b) => b.textContent?.includes('Voltar'))!
+          .click();
+        fixture.detectChanges();
+        expect(elemento.querySelector('#senha')).not.toBeNull();
+        expect(elemento.querySelector('#codigo')).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('EsqueciSenha', () => {
     it('mostra a resposta genérica da API', async () => {
       const fixture = TestBed.createComponent(EsqueciSenha);

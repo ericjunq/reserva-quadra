@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { prepararApi, tokenDoEmail } from './api-falsa';
+import { codigoDoEmail, prepararApi, tokenDoEmail } from './api-falsa';
 
 test('o admin entra, vê o painel e sai', async ({ page }) => {
   const chamadas = await prepararApi(page);
@@ -13,7 +13,16 @@ test('o admin entra, vê o painel e sai', async ({ page }) => {
 
   await page.getByLabel('Senha').fill('Senha1234');
   await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Enviamos um código de 6 números')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Reenviar código em \d+ s/ })).toBeDisabled();
+  await page.getByLabel('Código').fill('000000');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Código inválido ou vencido')).toBeVisible();
+  await page.getByLabel('Código').fill(codigoDoEmail);
+  await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByRole('heading', { name: 'Minha conta' })).toBeVisible();
+  const confirmacao = chamadas.filter((chamada) => chamada.url === '/api/login/codigo');
+  expect(confirmacao.at(-1)?.corpo).toEqual({ desafio: 'd'.repeat(64), codigo: codigoDoEmail });
   await expect(page.getByText('eric@fac.edu')).toBeVisible();
   expect(page.url()).not.toContain('eric');
 

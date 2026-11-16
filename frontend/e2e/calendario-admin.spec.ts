@@ -1,14 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { datas, prepararApi } from './api-falsa';
+import { datas, entrarComoAdmin, prepararApi } from './api-falsa';
 
 test('o admin vê quem reservou no calendário e cria um evento num horário livre', async ({
   page,
 }) => {
   const chamadas = await prepararApi(page);
-  await page.goto('/admin/entrar');
-  await page.getByLabel('Email').fill('eric@fac.edu');
-  await page.getByLabel('Senha').fill('Senha1234');
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await entrarComoAdmin(page);
   await expect(page.getByRole('heading', { name: 'Painel' })).toBeVisible();
 
   await page.goto(`/admin/calendario?espaco=4&semana=${datas.segundaSeguinte}`);
