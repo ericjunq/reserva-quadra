@@ -92,6 +92,7 @@ erDiagram
         string nome "único por espaço"
         int quantidade_total
         boolean ativo
+        boolean aceita_solicitacao "pode ser pedido por reservas de outros espaços"
     }
 
     equipamento_compartilhamentos {
@@ -136,6 +137,10 @@ erDiagram
         string observacao_devolucao
         timestamp devolvido_em
         bigint devolvido_por FK
+        string situacao_solicitacao "null = item normal; AGUARDANDO, APROVADA, RECUSADA, VENCIDA"
+        timestamp respondida_em
+        bigint respondida_por FK
+        string justificativa_recusa
     }
 
     datas_bloqueadas {
@@ -308,6 +313,9 @@ A senha certa cria uma linha com o **desafio** (64 caracteres devolvidos ao fron
 **38. Origem da reserva numa coluna própria (11.5c, 16/11/2026).**
 `reservas.origem` diz como a reserva nasceu: `SITE` (aluno pelo site; padrão), `ADMIN` (evento criado pelo admin) ou `REGISTRO_POSTERIOR` (uso registrado pelo admin depois de acontecer). É gravada na criação e nunca editada. Um enum em vez de um booleano porque o passo 13 pode acrescentar `API`. Sem índice novo: o filtro por origem sempre vem junto do período, que já usa o índice de data. O registro posterior de aluno é `tipo = ALUNO` (conta no histórico e no limite semanal do curso); o de grupo sem RA é `tipo = EVENTO` com descrição. Registros posteriores não têm prazo de confirmação gravado, então a revogação automática e a reconfirmação os ignoram, e `situacao_confirmacao` é `null`.
 
+**39. Pedido de equipamento no próprio item da reserva (11.5d, 16/11/2026).**
+O pedido de um equipamento de outro espaço é uma linha de `item_reservas` com `situacao_solicitacao` preenchida (itens normais ficam com ela vazia), mais `respondida_em`, `respondida_por` e `justificativa_recusa`; índice `(situacao_solicitacao, reserva_id)` para a lista de pedidos aguardando. Sem tabela nova: a quantidade pedida já entra no mesmo cálculo de disponibilidade, que só passou a ignorar os itens `RECUSADA` e `VENCIDA` (uma condição na consulta central `reservasAtivas`). A aprovação vale só para aquele item daquela reserva: não vira compartilhamento (outra reserva que quiser o item pede de novo). `equipamentos.aceita_solicitacao` diz quais itens podem ser pedidos (padrão não). Pedido sem resposta vence 2 h antes do início (`RESERVA_SOLICITACAO_VENCE_HORAS_ANTES`).
+
 **31. `auditavel_type` guarda nomes curtos (morph map).**
 Em vez de `App\Models\Reserva`, a coluna guarda `reserva` (e `aluno`, `espaco`, `equipamento`, `curso`, `data_bloqueada`, `item_reserva`, `admin`). O mapa fica em `TipoAuditavelConstant` e é registrado com `enforceMorphMap` no `AppServiceProvider`: renomear ou mover uma classe não quebra o histórico, e um model polimórfico fora do mapa dá erro em vez de gravar um nome inesperado. Vale também para `personal_access_tokens.tokenable_type` (admins aparecem como `admin`).
 
@@ -325,4 +333,3 @@ O token puro (64 caracteres aleatórios) só existe no email. O banco guarda o S
 |---|---|
 | Clientes de API (passo 13) | Terceiros autorizados, com permissões por cliente e um **responsável** cadastrado (organização, pessoa, email) que aceita os termos de uso da API (versão guardada) |
 | Grade de aulas (passo 12, aprovado em 13/11/2026; reimportação em discussão) | `aulas` (espaço, dia da semana, início, fim, descrição curta, importação), sem professores nem alunos, índice `(espaco_id, dia_semana)`; `grade_importacoes` (nome, vigência, totais, quem importou, substituída por); `espacos.codigo` para reconhecer o espaço na importação. Recomendação: vigência guardada só na importação; reimportar corta a vigência da grade substituída, sem apagar |
-| Solicitação de equipamento (11.2f) | Situação do item da reserva (ex.: aguardando aprovação, aprovado, recusado) e, talvez, a marca "aceita solicitação" no equipamento; detalhes em aberto |

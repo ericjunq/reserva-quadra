@@ -2639,3 +2639,67 @@ Testes: reservas.spec.ts (+3), calendario.spec.ts (+1 e ajustes), e2e/registro-p
 
 Totais: 300 da API, 137 do front, 32 no navegador. Build: inicial 313,4 kB (82,6 kB transferidos;
 +1,3 kB pela redistribuição do código compartilhado entre os pacotes).
+
+========================================================================
+63. PASSO 11.5d: PEDIDO DE EQUIPAMENTO DE OUTRO ESPAÇO (16/11/2026)
+========================================================================
+Ideia de 13/11 (11.2f); proposta aprovada em 16/11 com dois reforços do usuário: o pedido não
+afeta a reserva e a aprovação vale só para aquele pedido ("um aluno na reserva da sala 11 não deve
+poder reservar o equipamento X, ele teria que fazer uma solicitação também"). Para a recusa, o
+usuário escolheu a opção A ("A - OK"): a reserva continua e o email traz o botão de cancelar; o
+pedido vence 2 h antes do início. A opção C (reserva condicionada) ficou como ideia para depois.
+
+API
+migrations (editadas no lugar): equipamentos.aceita_solicitacao; item_reservas com
+  situacao_solicitacao, respondida_em, respondida_por, justificativa_recusa e o índice
+  (situacao_solicitacao, reserva_id).
+app/Constants/SituacaoSolicitacaoConstant.php: AGUARDANDO, APROVADA, RECUSADA, VENCIDA; label() e
+  semEfeito() (RECUSADA e VENCIDA, que não contam na disponibilidade).
+app/Models/Equipamento.php (aceita_solicitacao) e ItemReserva.php (colunas novas no pivot, cast e
+  AtualizaDisponibilidade, para a versão da disponibilidade avançar quando o item muda).
+app/Repositories/DisponibilidadeEquipamentoRepository.php: reservasAtivas ignora itens com pedido
+  recusado ou vencido; todas as contas de disponibilidade passam por ela.
+app/Services/EquipamentoService.php: solicitaveisNoIntervalo (itens que aceitam pedido, ativos, de
+  espaço ativo, que não são do espaço nem compartilhados com ele, com o espaço de origem e o
+  disponível). EquipamentoController@solicitaveis e GET /api/espacos/{id}/equipamentos/solicitaveis.
+app/Http/Requests/Concerns/ValidaEquipamentosDaReserva.php: regrasSolicitacoes (exists com as
+  mesmas condições acima) e a checagem de estoque total também para "solicitacoes".
+app/Http/Requests/StoreReservaRequest.php: solicitacoes e 2 h de antecedência para pedir.
+app/Services/ReservaService.php: create confere a disponibilidade dos equipamentos e dos pedidos
+  juntos e anexa os pedidos como AGUARDANDO (anexarSolicitacoes).
+app/Services/SolicitacaoService.php (novo): aprovar, recusar (com trava de linha; 404 sem pedido,
+  409 reserva inativa ou já respondido) e vencerPendentes (reservas ativas que começam em até
+  RESERVA_SOLICITACAO_VENCE_HORAS_ANTES). Avisa o aluno pela fila; na recusa e no vencimento gera
+  um link de cancelamento.
+app/Mail/SolicitacaoRespondidaMail.php e emails/solicitacao-respondida.blade.php (aprovado,
+  recusado com motivo, sem resposta; "a sua reserva do espaço continua valendo" e o botão).
+app/Console/Commands/VencerSolicitacoes.php e routes/console.php (a cada 15 min, com alerta).
+app/Http/Controllers/SolicitacaoController.php, RecusarSolicitacaoRequest e as rotas de
+  aprovar/recusar.
+app/Http/Resources/ReservaResource.php: equipamentos com "solicitacao" (situação, justificativa,
+  respondida_em). EquipamentoResource: aceita_solicitacao. Store/UpdateEquipamentoRequest.
+app/Services/DevolucaoService.php: só itens normais e pedidos aprovados.
+app/Repositories/ReservaRepository.php: filtro solicitacao; filtro devolucao ignora pedidos que não
+  valem. ListarReservasRequest: solicitacao.
+app/Services/ExportacaoReservasService.php: a coluna Equipamentos mostra a situação do pedido.
+emails/pedido-confirmacao.blade.php: o item pedido aparece com a situação.
+config/reservas.php: solicitacao_vence_horas_antes (RESERVA_SOLICITACAO_VENCE_HORAS_ANTES = 2), nos
+  dois .env de exemplo e na tabela do README.
+Testes: SolicitacaoTest (11); AlertaTest (8 tarefas) e AgendadorTest (vencer-solicitacoes).
+
+FRONT
+publico/modelos.ts (EquipamentoSolicitavel, Solicitacao, solicitacoes na NovaReserva),
+  api-publica.service.ts (consultarSolicitaveis), situacao-reserva.ts (descreverSolicitacao,
+  itemValeNaReserva), cartao-reserva (situação do pedido; devolução só de quem vale).
+publico/reservar/pedidos-de-equipamento.ts (novo): seção recolhida que busca a lista só ao abrir,
+  com o aviso de que a reserva vale de qualquer jeito; reservar.ts/.html: pedidos zerados quando o
+  horário muda, resumo "Pedidos (dependem de aprovação)", campo solicitacoes no envio e aviso na
+  tela de sucesso.
+admin/reservas: modelos, serviço (aprovarSolicitacao, recusarSolicitacao, consultar com per_page),
+  detalhe-reserva/responder-solicitacao.ts (novo), detalhe (situação, botões, devolução só dos que
+  valem), registrar-devolucao (só itens que valem), selos (Pedido de equipamento), filtros e lista
+  (filtro "Pedido de equipamento"), painel (contador de pedidos aguardando).
+Testes: reservar.spec (+1), situacao-reserva.spec (+1), reservas.spec (+3), e2e
+  pedido-equipamento.spec.ts; api-falsa com a lista de solicitáveis e o filtro.
+
+Totais: 311 da API, 142 do front, 34 no navegador. Build: inicial 313,9 kB (82,7 kB transferidos).
