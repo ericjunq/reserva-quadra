@@ -2581,3 +2581,61 @@ admin/acesso/acesso.spec.ts: 3 testes novos (código certo abre a sessão, códi
 
 Totais: 287 da API, 133 do front, 30 no navegador. Build: inicial 312,1 kB (82,3 kB transferidos).
 O usuário precisa rodar `php artisan migrate`.
+
+========================================================================
+62. PASSO 11.5c: REGISTRO DE USO POSTERIOR PELO ADMIN (16/11/2026)
+========================================================================
+Ideia do usuário de 13/11 (12b), proposta aprovada em 16/11: "aprovo as suas decisões, pode
+partir pra implementação".
+
+CORREÇÃO ACHADA ANTES (commit próprio)
+resources/views/emails/reserva-revogada.blade.php: usava $reserva->horario->label(), nulo nas
+  reservas de horário livre; revogar uma reserva de laboratório ou sala fazia o job do email
+  falhar. Agora mostra "das HH:MM às HH:MM", como os outros emails. Teste novo em
+  EventoERevogacaoTest.
+
+API
+database/migrations/..._create_reservas_table.php: coluna origem (string 20, padrão SITE),
+  editada no lugar (o usuário precisa de migrate:fresh --seed).
+app/Constants/OrigemReservaConstant.php: SITE, ADMIN, REGISTRO_POSTERIOR, com label() em português
+  (usado na exportação).
+app/Models/Reserva.php: origem no fillable, no padrão e no cast; situacaoConfirmacao() devolve null
+  para registro posterior.
+database/factories/ReservaFactory.php: evento() com origem ADMIN; estado registroPosterior().
+app/Http/Requests/RegistrarUsoPosteriorRequest.php: espaço ativo; data de hoje-30 até hoje, sem
+  bloqueio; horário fixo ou início/fim (sem a regra de "horário ainda reservável"); RA de aluno
+  ativo OU descrição (required_without e prohibits); equipamentos com estoque; hoje, o início
+  precisa já ter passado. Mensagens próprias em português.
+app/Services/ReservaService.php: criarEvento grava origem ADMIN; registrarUsoPosterior() trava o
+  espaço, recusa conflito com 409 e o id (sem revogar), confere os equipamentos, cria a reserva
+  (ALUNO com aluno_id ou EVENTO com descrição), anexa os itens, manda UsoRegistradoMail pela fila
+  (só para aluno, depois do commit) e calcula o aviso do limite semanal (avisoDoLimiteSemanal, que
+  só avisa).
+app/Http/Controllers/ReservaController.php e routes/api.php: POST /api/admin/reservas/registro-
+  posterior, 201 com a reserva (relações do admin) e "aviso".
+app/Mail/UsoRegistradoMail.php e resources/views/emails/uso-registrado.blade.php.
+app/Http/Resources/ReservaResource.php: origem. app/Services/DisponibilidadeService.php: origem na
+  reserva do calendário do admin.
+app/Repositories/ReservaRepository.php: filtro origem; o filtro confirmacao ignora registros
+  posteriores. app/Http/Requests/ListarReservasRequest.php: origem.
+app/Services/ExportacaoReservasService.php: coluna opcional "Origem" (label).
+tests/Feature/RegistroPosteriorTest.php (12 testes); CalendarioAdminTest confere a origem;
+  ExportacaoReservasTest com a coluna nova.
+
+FRONT
+admin/compartilhado/campos-do-uso.ts (novo): componente CamposDoUso com os campos de espaço, data,
+  horário e equipamentos (models para o pai), mais as funções horarioDoUso, horarioDaUrl e
+  equipamentosEscolhidos. admin/eventos/novo-evento.ts/.html passou a usá-lo (o conflito agora é
+  limpo quando espaço, data ou horário mudam).
+admin/reservas/registrar-uso/ (novo): tela /admin/reservas/registrar com "Quem usou" (aluno pelo RA
+  ou grupo), conflito com link e navegação para o detalhe levando o aviso no state.
+admin/reservas/modelos.ts, reservas-admin.service.ts (registrarUsoPosterior), filtros.ts (origem),
+  selos.ts (selo fúcsia tracejado e nomes das origens), lista (filtro Origem, botão Registrar uso,
+  selo, "Grupo:"), detalhe (selo, "Registrado depois do uso por", aviso), calendário (borda
+  tracejada, selo, "Grupo:", "registrado por", botão e link "Registrar uso aqui"),
+  calendario/itens-do-dia.ts (podeRegistrarUso com referência de hoje, agora e 30 dias atrás;
+  linkDoEvento virou linkDoHorario), admin.routes.ts (reservas/registrar antes de reservas/:id).
+Testes: reservas.spec.ts (+3), calendario.spec.ts (+1 e ajustes), e2e/registro-posterior.spec.ts.
+
+Totais: 300 da API, 137 do front, 32 no navegador. Build: inicial 313,4 kB (82,6 kB transferidos;
++1,3 kB pela redistribuição do código compartilhado entre os pacotes).

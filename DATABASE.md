@@ -111,6 +111,7 @@ erDiagram
         bigint atualizado_por FK
         string status "RESERVADO, CANCELADO, REVOGADO"
         string tipo "ALUNO, EVENTO"
+        string origem "SITE, ADMIN, REGISTRO_POSTERIOR"
         string descricao "eventos"
         text justificativa_revogacao
         timestamp revogada_em
@@ -304,6 +305,9 @@ O fim do semestre vem da configuração (`RESERVA_FIM_DOS_SEMESTRES`, padrão `0
 **37. Login do admin em duas etapas com `desafios_login` (11.4b, 16/11/2026).**
 A senha certa cria uma linha com o **desafio** (64 caracteres devolvidos ao front) e o **código** de 6 dígitos (enviado por email), os dois guardados só como HMAC-SHA256 com a chave do app: um vazamento do banco não revela nenhum dos dois, e o HMAC permite buscar o desafio pelo índice único. Validade de 10 minutos, uso único (`usado_em`), até 5 tentativas e 3 reenvios com 60 s entre eles. Um login novo encerra os desafios abertos do mesmo admin. Sem IP nem navegador (LGPD: sem finalidade). As linhas vencidas há mais de 1 dia são apagadas todo dia às 03:15 (`model:prune`, model `Prunable`). O token do Sanctum só é criado na segunda etapa.
 
+**38. Origem da reserva numa coluna própria (11.5c, 16/11/2026).**
+`reservas.origem` diz como a reserva nasceu: `SITE` (aluno pelo site; padrão), `ADMIN` (evento criado pelo admin) ou `REGISTRO_POSTERIOR` (uso registrado pelo admin depois de acontecer). É gravada na criação e nunca editada. Um enum em vez de um booleano porque o passo 13 pode acrescentar `API`. Sem índice novo: o filtro por origem sempre vem junto do período, que já usa o índice de data. O registro posterior de aluno é `tipo = ALUNO` (conta no histórico e no limite semanal do curso); o de grupo sem RA é `tipo = EVENTO` com descrição. Registros posteriores não têm prazo de confirmação gravado, então a revogação automática e a reconfirmação os ignoram, e `situacao_confirmacao` é `null`.
+
 **31. `auditavel_type` guarda nomes curtos (morph map).**
 Em vez de `App\Models\Reserva`, a coluna guarda `reserva` (e `aluno`, `espaco`, `equipamento`, `curso`, `data_bloqueada`, `item_reserva`, `admin`). O mapa fica em `TipoAuditavelConstant` e é registrado com `enforceMorphMap` no `AppServiceProvider`: renomear ou mover uma classe não quebra o histórico, e um model polimórfico fora do mapa dá erro em vez de gravar um nome inesperado. Vale também para `personal_access_tokens.tokenable_type` (admins aparecem como `admin`).
 
@@ -321,5 +325,4 @@ O token puro (64 caracteres aleatórios) só existe no email. O banco guarda o S
 |---|---|
 | Clientes de API (passo 13) | Terceiros autorizados, com permissões por cliente e um **responsável** cadastrado (organização, pessoa, email) que aceita os termos de uso da API (versão guardada) |
 | Grade de aulas (passo 12, aprovado em 13/11/2026; reimportação em discussão) | `aulas` (espaço, dia da semana, início, fim, descrição curta, importação), sem professores nem alunos, índice `(espaco_id, dia_semana)`; `grade_importacoes` (nome, vigência, totais, quem importou, substituída por); `espacos.codigo` para reconhecer o espaço na importação. Recomendação: vigência guardada só na importação; reimportar corta a vigência da grade substituída, sem apagar |
-| Registro de uso posterior (12b) | Origem da reserva gravada na criação (ex.: `origem` = SITE, ADMIN, REGISTRO_POSTERIOR), para a marcação e a cor próprias nas telas do admin e a coluna na exportação |
 | Solicitação de equipamento (11.2f) | Situação do item da reserva (ex.: aguardando aprovação, aprovado, recusado) e, talvez, a marca "aceita solicitação" no equipamento; detalhes em aberto |
