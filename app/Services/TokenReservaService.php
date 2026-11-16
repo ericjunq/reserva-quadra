@@ -32,6 +32,7 @@ class TokenReservaService
         $caminho = match ($finalidade) {
             FinalidadeTokenConstant::CANCELAR  => 'reservas/cancelar',
             FinalidadeTokenConstant::CONFIRMAR => 'reservas/confirmar',
+            FinalidadeTokenConstant::MANTER    => 'reservas/manter',
         };
 
         return FrontEnd::url("{$caminho}/{$token}");

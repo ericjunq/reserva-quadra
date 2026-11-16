@@ -11,6 +11,7 @@ use App\Http\Controllers\DataBloqueadaController;
 use App\Http\Controllers\EquipamentoController;
 use App\Http\Controllers\EspacoController;
 use App\Http\Controllers\ExportacaoReservasController;
+use App\Http\Controllers\ManterReservaController;
 use App\Http\Controllers\MinhasReservasController;
 use App\Http\Controllers\ReservaController;
 use App\Http\Controllers\SenhaController;
@@ -32,6 +33,8 @@ Route::post('/alunos', [AlunoController::class, 'store'])->middleware('throttle:
 Route::post('/reservas', [ReservaController::class, 'store'])->middleware('throttle:10,1');
 Route::get('/reservas/cancelamento/{token}', [CancelamentoController::class, 'show'])->middleware('throttle:10,1');
 Route::post('/reservas/cancelamento/{token}', [CancelamentoController::class, 'cancelar'])->middleware('throttle:10,1');
+Route::get('/reservas/manter/{token}', [ManterReservaController::class, 'show'])->middleware('throttle:10,1');
+Route::post('/reservas/manter/{token}', [ManterReservaController::class, 'manter'])->middleware('throttle:10,1');
 Route::get('/termos', [TermosController::class, 'show']);
 Route::get('/reservas/confirmacao/{token}', [ConfirmacaoController::class, 'show'])->middleware('throttle:10,1');
 Route::post('/reservas/confirmacao/{token}', [ConfirmacaoController::class, 'confirmar'])->middleware('throttle:10,1');

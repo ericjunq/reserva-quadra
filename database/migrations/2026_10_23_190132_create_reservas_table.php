@@ -28,6 +28,8 @@ return new class extends Migration
             $table->timestamp('reconfirmacao_pedida_em')->nullable();
             $table->timestamp('reconfirmar_ate')->nullable();
             $table->timestamp('reconfirmada_em')->nullable();
+            $table->timestamp('manter_ate')->nullable();
+            $table->timestamp('mantida_em')->nullable();
             $table->string('descricao', 255)->nullable();
             $table->text('justificativa_revogacao')->nullable();
             $table->timestamp('revogada_em')->nullable();
@@ -40,6 +42,7 @@ return new class extends Migration
             $table->index(['aluno_id', 'data_reserva']);
             $table->index(['status', 'confirmar_ate']);
             $table->index(['status', 'reconfirmar_ate']);
+            $table->index(['status', 'manter_ate']);
         });
     }
 

@@ -207,9 +207,24 @@ class ReservaService
             ->whereNull('reconfirmada_em')
             ->get();
 
+        $naoMantidas = Reserva::query()
+            ->where('status', StatusConstant::RESERVADO)
+            ->where('manter_ate', '<=', $agora)
+            ->whereNull('mantida_em')
+            ->get();
+
         $revogadas = 0;
 
-        foreach ($semConfirmacao->concat($semReconfirmacao)->unique('id') as $reserva) {
+        foreach ($naoMantidas as $reserva) {
+            try {
+                $this->revogar($reserva, null, SolicitacaoService::JUSTIFICATIVA_NAO_MANTIDA);
+                $revogadas++;
+            } catch (RegraNegocioException) {
+                continue;
+            }
+        }
+
+        foreach ($semConfirmacao->concat($semReconfirmacao)->unique('id')->reject(fn (Reserva $r) => $naoMantidas->contains('id', $r->id)) as $reserva) {
             try {
                 $this->revogar($reserva, null, self::JUSTIFICATIVA_NAO_CONFIRMADA);
                 $revogadas++;
@@ -338,9 +353,12 @@ class ReservaService
 
     private function anexarSolicitacoes(Reserva $reserva, array $solicitacoes): void
     {
+        $prazo = app(SolicitacaoService::class)->prazoDeResposta($reserva->inicio());
+
         $itens = collect($solicitacoes)->mapWithKeys(fn ($item) => [$item['id'] => [
             'quantidade'           => $item['quantidade'],
             'situacao_solicitacao' => SituacaoSolicitacaoConstant::AGUARDANDO,
+            'responder_ate'        => $prazo,
         ]]);
 
         if ($itens->isNotEmpty()) {

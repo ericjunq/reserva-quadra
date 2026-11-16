@@ -22,6 +22,7 @@ class ItemReserva extends Pivot
         'devolvido_em',
         'devolvido_por',
         'situacao_solicitacao',
+        'responder_ate',
         'respondida_em',
         'respondida_por',
         'justificativa_recusa',
@@ -42,6 +43,7 @@ class ItemReserva extends Pivot
             'devolvido_em'         => 'datetime',
             'situacao_solicitacao' => SituacaoSolicitacaoConstant::class,
             'respondida_em'        => 'datetime',
+            'responder_ate'        => 'datetime',
         ];
     }
 

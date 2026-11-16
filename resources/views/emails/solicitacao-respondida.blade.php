@@ -14,12 +14,18 @@ O seu pedido de **{{ $equipamento }} × {{ $quantidade }}** para a reserva do es
 O seu pedido de **{{ $equipamento }} × {{ $quantidade }}** para a reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_reserva->format('d/m/Y') }}**, das **{{ substr($reserva->hora_inicio, 0, 5) }}** às **{{ substr($reserva->hora_fim, 0, 5) }}**, **não foi respondido a tempo** e deixou de valer.
 @endif
 
-**A sua reserva do espaço continua valendo.** Se sem o equipamento ela não serve mais, cancele e libere o horário para outro aluno.
+@if ($manterAte)
+**A sua reserva será cancelada em {{ $manterAte->format('d/m/Y') }} às {{ $manterAte->format('H:i') }}**, a menos que você confirme que quer mantê-la sem o equipamento.
+
+<x-mail::button :url="$linkManter">
+Manter a reserva sem o equipamento
+</x-mail::button>
+@else
+A sua reserva do espaço continua valendo.
+@endif
 
 @if ($linkCancelar)
-<x-mail::button :url="$linkCancelar">
-Cancelar reserva
-</x-mail::button>
+Se não precisa mais do espaço, cancele agora e libere o horário: [Cancelar a reserva]({{ $linkCancelar }})
 @endif
 @endif
 

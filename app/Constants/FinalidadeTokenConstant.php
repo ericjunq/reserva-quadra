@@ -6,4 +6,5 @@ enum FinalidadeTokenConstant: string
 {
     case CANCELAR = 'CANCELAR';
     case CONFIRMAR = 'CONFIRMAR';
+    case MANTER = 'MANTER';
 }

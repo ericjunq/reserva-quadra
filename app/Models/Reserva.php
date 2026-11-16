@@ -45,6 +45,8 @@ class Reserva extends Model
         'reconfirmacao_pedida_em',
         'reconfirmar_ate',
         'reconfirmada_em',
+        'manter_ate',
+        'mantida_em',
     ];
 
     protected $attributes = [
@@ -69,6 +71,8 @@ class Reserva extends Model
             'reconfirmacao_pedida_em' => 'datetime',
             'reconfirmar_ate'         => 'datetime',
             'reconfirmada_em'         => 'datetime',
+            'manter_ate'              => 'datetime',
+            'mantida_em'              => 'datetime',
         ];
     }
 

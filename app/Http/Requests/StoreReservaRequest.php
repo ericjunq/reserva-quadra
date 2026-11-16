@@ -7,6 +7,7 @@ use App\Http\Requests\Concerns\ValidaHorarioDaReserva;
 use App\Rules\AntecedenciaMaxima;
 use App\Rules\DataNaoBloqueada;
 use App\Rules\DiaUtil;
+use App\Services\SolicitacaoService;
 use App\Support\IntervaloReserva;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
@@ -55,10 +56,9 @@ class StoreReservaRequest extends FormRequest
         }
 
         $intervalo = IntervaloReserva::doPedido($this->all());
-        $horas = (int) config('reservas.solicitacao_vence_horas_antes');
 
-        if ($intervalo && Carbon::parse($this->input('data_reserva').' '.$intervalo[0])->lt(now()->addHours($horas))) {
-            $validator->errors()->add('solicitacoes', "Pedidos de equipamento de outro espaço precisam de pelo menos {$horas} horas de antecedência.");
+        if ($intervalo && ! app(SolicitacaoService::class)->prazoDeResposta(Carbon::parse($this->input('data_reserva').' '.$intervalo[0]))) {
+            $validator->errors()->add('solicitacoes', SolicitacaoService::SEM_TEMPO);
         }
     }
 }

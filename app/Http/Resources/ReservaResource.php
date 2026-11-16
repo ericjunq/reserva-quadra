@@ -50,6 +50,7 @@ class ReservaResource extends JsonResource
                     'situacao'      => $e->pivot->situacao_solicitacao->value,
                     'justificativa' => $e->pivot->justificativa_recusa,
                     'respondida_em' => $e->pivot->respondida_em,
+                    'responder_ate' => $e->pivot->responder_ate,
                 ] : null,
                 'devolucao' => [
                     'situacao'             => $e->pivot->situacao_devolucao?->value,
@@ -70,6 +71,8 @@ class ReservaResource extends JsonResource
             'reconfirmacao_pedida_em' => $this->reconfirmacao_pedida_em,
             'reconfirmar_ate'         => $this->reconfirmar_ate,
             'reconfirmada_em'         => $this->reconfirmada_em,
+            'manter_ate'              => $this->manter_ate,
+            'mantida_em'              => $this->mantida_em,
             'revogada_por'            => $this->when($revogada && $this->relationLoaded('revogador'), fn () => $this->revogador ? [
                 'id'   => $this->revogador->id,
                 'nome' => $this->revogador->name,

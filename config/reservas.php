@@ -22,7 +22,15 @@ return [
 
     'horario_pedido_reconfirmacao' => env('RESERVA_HORARIO_PEDIDO_RECONFIRMACAO', '08:00'),
 
-    'solicitacao_vence_horas_antes' => (int) env('RESERVA_SOLICITACAO_VENCE_HORAS_ANTES', 2),
+    'solicitacao_prazo_horas_antes' => (int) env('RESERVA_SOLICITACAO_PRAZO_HORAS_ANTES', 24),
+
+    'solicitacao_prazo_curto_horas_antes' => (int) env('RESERVA_SOLICITACAO_PRAZO_CURTO_HORAS_ANTES', 3),
+
+    'solicitacao_tempo_minimo_resposta_horas' => (int) env('RESERVA_SOLICITACAO_TEMPO_MINIMO_RESPOSTA_HORAS', 2),
+
+    'manter_reserva_horas' => (int) env('RESERVA_MANTER_HORAS', 12),
+
+    'manter_reserva_minimo_horas_antes' => (int) env('RESERVA_MANTER_MINIMO_HORAS_ANTES', 1),
 
     'termos_versao' => env('RESERVA_TERMOS_VERSAO', '2026-11'),
 

@@ -53,9 +53,9 @@ class EquipamentoController extends Controller
 
         [$inicio, $fim] = $request->intervalo();
 
-        return response()->json([
-            'data' => $this->equipamentoService->solicitaveisNoIntervalo($espaco, $request->input('data'), $inicio, $fim),
-        ]);
+        $solicitaveis = $this->equipamentoService->solicitaveisNoIntervalo($espaco, $request->input('data'), $inicio, $fim);
+
+        return response()->json(['data' => $solicitaveis['itens'], 'responder_ate' => $solicitaveis['responder_ate']]);
     }
 
     public function store(StoreEquipamentoRequest $request)

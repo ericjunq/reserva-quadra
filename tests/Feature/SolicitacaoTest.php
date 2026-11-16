@@ -122,15 +122,19 @@ class SolicitacaoTest extends TestCase
         $this->pedir(3)->assertUnprocessable()->assertJsonValidationErrors('solicitacoes.0.quantidade');
     }
 
-    public function test_pedido_precisa_de_2_horas_de_antecedencia(): void
+    public function test_prazo_de_resposta_normal_curto_ou_presencial(): void
     {
-        $this->travelTo(now()->setTime(17, 30));
+        $this->pedir()->assertCreated()
+            ->assertJsonPath('data.equipamentos.0.solicitacao.responder_ate', '2026-11-10T22:00:00.000000Z');
+        $this->solicitaveis($this->sala11)->assertJsonPath('responder_ate', '2026-11-10T19:00:00-03:00');
 
-        $this->reservar($this->sala10, [
-            'data_reserva' => '2026-11-09',
-            'solicitacoes' => [['id' => $this->projetor->id, 'quantidade' => 1]],
-        ])->assertUnprocessable()
-            ->assertJsonPath('errors.solicitacoes.0', 'Pedidos de equipamento de outro espaço precisam de pelo menos 2 horas de antecedência.');
+        $this->travelTo('2026-11-10 18:00');
+        $this->solicitaveis($this->sala11)->assertJsonPath('responder_ate', '2026-11-11T16:00:00-03:00');
+
+        $this->travelTo('2026-11-11 15:00');
+        $this->solicitaveis($this->sala11)->assertJsonPath('responder_ate', null)->assertJsonCount(0, 'data');
+        $this->pedir(1, $this->sala11, Aluno::factory()->create())->assertUnprocessable()
+            ->assertJsonPath('errors.solicitacoes.0', 'Faltam poucas horas para a reserva: peça o equipamento diretamente na coordenação.');
     }
 
     public function test_admin_aprova_e_o_aluno_recebe_email_sem_link_de_cancelar(): void
@@ -151,7 +155,7 @@ class SolicitacaoTest extends TestCase
             ->assertStatus(409)->assertJsonPath('message', 'Este pedido já foi respondido.');
     }
 
-    public function test_recusa_libera_a_quantidade_mantem_a_reserva_e_manda_o_link_de_cancelar(): void
+    public function test_recusa_libera_a_quantidade_e_pede_para_o_aluno_manter_em_12_horas(): void
     {
         $id = $this->pedir(2)->json('data.id');
         $this->comoAdmin();
@@ -161,6 +165,7 @@ class SolicitacaoTest extends TestCase
         $this->postJson("/api/admin/reservas/{$id}/solicitacoes/{$this->projetor->id}/recusar", ['justificativa' => 'Projetor em manutenção.'])
             ->assertOk()
             ->assertJsonPath('data.status', 'RESERVADO')
+            ->assertJsonPath('data.manter_ate', '2026-11-10T01:00:00.000000Z')
             ->assertJsonPath('data.equipamentos.0.solicitacao.situacao', 'RECUSADA')
             ->assertJsonPath('data.equipamentos.0.solicitacao.justificativa', 'Projetor em manutenção.');
 
@@ -169,28 +174,69 @@ class SolicitacaoTest extends TestCase
         Mail::assertQueued(SolicitacaoRespondidaMail::class, function (SolicitacaoRespondidaMail $mail) {
             $html = $mail->render();
 
-            return str_contains((string) $mail->linkCancelar, '/reservas/cancelar/')
+            return str_contains((string) $mail->linkManter, '/reservas/manter/')
+                && str_contains((string) $mail->linkCancelar, '/reservas/cancelar/')
+                && $mail->envelope()->subject === 'Equipamento não liberado: confirme se quer manter a reserva'
                 && str_contains($html, 'Projetor em manutenção.')
-                && str_contains($html, 'continua valendo')
-                && str_contains($html, 'Cancelar reserva');
+                && str_contains($html, 'será cancelada em 09/11/2026 às 22:00')
+                && str_contains($html, 'Manter a reserva sem o equipamento');
         });
     }
 
-    public function test_pedido_sem_resposta_vence_2_horas_antes_e_avisa(): void
+    public function test_sem_clicar_em_manter_a_reserva_e_revogada_e_clicando_ela_fica(): void
+    {
+        $id = $this->pedir()->json('data.id');
+        $outra = $this->pedir(1, $this->sala11, Aluno::factory()->create())->json('data.id');
+        $this->comoAdmin();
+        foreach ([$id, $outra] as $reserva) {
+            $this->postJson("/api/admin/reservas/{$reserva}/solicitacoes/{$this->projetor->id}/recusar", ['justificativa' => 'Projetor em manutenção.']);
+        }
+
+        $link = Mail::queued(SolicitacaoRespondidaMail::class)->first(fn ($mail) => $mail->reserva->id === $id)->linkManter;
+        $token = basename($link);
+        $this->getJson("/api/reservas/manter/{$token}")->assertOk()->assertJsonPath('pode_manter', true);
+        $this->postJson("/api/reservas/manter/{$token}")->assertOk()->assertJsonPath('data.mantida_em', now()->toJSON());
+        $this->postJson("/api/reservas/manter/{$token}")->assertNotFound();
+
+        $this->travelTo('2026-11-09 22:00');
+        Artisan::call('reservas:revogar-nao-confirmadas');
+
+        $this->assertSame('RESERVADO', Reserva::find($id)->status->value);
+        $this->assertSame('REVOGADO', Reserva::find($outra)->status->value);
+        $this->assertSame('Equipamento não liberado e a reserva não foi mantida.', Reserva::find($outra)->justificativa_revogacao);
+    }
+
+    public function test_prazo_para_manter_nunca_passa_de_1_hora_antes_do_inicio(): void
+    {
+        $id = $this->pedir()->json('data.id');
+        $this->comoAdmin();
+
+        $this->travelTo('2026-11-11 10:00');
+        $this->postJson("/api/admin/reservas/{$id}/solicitacoes/{$this->projetor->id}/recusar", ['justificativa' => 'Projetor em manutenção.'])
+            ->assertJsonPath('data.manter_ate', '2026-11-11T21:00:00.000000Z');
+
+        $outra = $this->reservar($this->sala11, ['data_reserva' => '2026-11-12', 'solicitacoes' => [['id' => $this->projetor->id, 'quantidade' => 1]]], Aluno::factory()->create())->json('data.id');
+        $this->travelTo('2026-11-12 18:30');
+        $this->postJson("/api/admin/reservas/{$outra}/solicitacoes/{$this->projetor->id}/recusar", ['justificativa' => 'Projetor em manutenção.'])
+            ->assertJsonPath('data.manter_ate', null);
+    }
+
+    public function test_pedido_sem_resposta_vence_no_prazo_gravado_e_pede_para_manter(): void
     {
         $id = $this->pedir()->json('data.id');
 
-        $this->travelTo('2026-11-11 16:59');
+        $this->travelTo('2026-11-10 18:59');
         Artisan::call('reservas:vencer-solicitacoes');
         $this->assertSame('AGUARDANDO', ItemReserva::sole()->situacao_solicitacao->value);
 
-        $this->travelTo('2026-11-11 17:00');
+        $this->travelTo('2026-11-10 19:00');
         Artisan::call('reservas:vencer-solicitacoes');
         $this->assertSame('VENCIDA', ItemReserva::sole()->situacao_solicitacao->value);
         $this->assertSame('RESERVADO', Reserva::find($id)->status->value);
+        $this->assertSame('2026-11-11 07:00', Reserva::find($id)->manter_ate->format('Y-m-d H:i'));
 
-        Mail::assertQueued(SolicitacaoRespondidaMail::class, fn ($mail) => $mail->envelope()->subject === 'Seu pedido de equipamento ficou sem resposta'
-            && $mail->linkCancelar !== null);
+        Mail::assertQueued(SolicitacaoRespondidaMail::class, fn ($mail) => $mail->situacao->value === 'VENCIDA'
+            && $mail->linkManter !== null && $mail->linkCancelar !== null);
 
         $this->comoAdmin();
         $this->postJson("/api/admin/reservas/{$id}/solicitacoes/{$this->projetor->id}/aprovar")->assertStatus(409);

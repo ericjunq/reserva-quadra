@@ -8,6 +8,7 @@ use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Repositories\DisponibilidadeEquipamentoRepository;
 use App\Support\VersaoDisponibilidade;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -50,14 +51,18 @@ class EquipamentoService
             ->get();
 
         $disponiveis = $this->disponibilidade->disponiveis($equipamentos, $data, $inicio, $fim);
+        $prazo = app(SolicitacaoService::class)->prazoDeResposta(Carbon::parse("{$data} {$inicio}"));
 
-        return $equipamentos->map(fn (Equipamento $equipamento) => [
-            'id'         => $equipamento->id,
-            'nome'       => $equipamento->nome,
-            'espaco'     => $equipamento->espaco->nome,
-            'total'      => $equipamento->quantidade_total,
-            'disponivel' => $disponiveis[$equipamento->id],
-        ])->values()->all();
+        return [
+            'responder_ate' => $prazo?->toIso8601String(),
+            'itens'         => $prazo ? $equipamentos->map(fn (Equipamento $equipamento) => [
+                'id'         => $equipamento->id,
+                'nome'       => $equipamento->nome,
+                'espaco'     => $equipamento->espaco->nome,
+                'total'      => $equipamento->quantidade_total,
+                'disponivel' => $disponiveis[$equipamento->id],
+            ])->values()->all() : [],
+        ];
     }
 
     public function listarPaginado(
