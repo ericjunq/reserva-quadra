@@ -2452,3 +2452,25 @@ admin/reservas/reservas.spec.ts (11 testes) e e2e/reservas-admin.spec.ts (comput
 e2e/api-falsa.ts com consulta, detalhe e revogação do admin.
 Totais: 266 da API, 126 do front, 28 no navegador. Build: inicial 310,7 kB (81,9 kB transferidos).
 
+
+========================================================================
+59. COMPORTAMENTO DO CLAUDE NO CLAUDE.md E IDEIA DO LOGIN COM CÓDIGO (16/11/2026)
+========================================================================
+Pedido do usuário: descrever no CLAUDE.md o comportamento completo do Claude (como coda, entende,
+pensa e age, as regras combinadas, o ciclo de proposta e aprovação e a linha de contexto), para
+outro chat seguir igual; e a ideia de o admin entrar com um código enviado por email.
+
+CLAUDE.md
+  - Seção nova "Comportamento completo do Claude neste projeto", em 10 partes: ao começar uma
+    conversa; como entendo um pedido; como penso; ciclo de cada passo; formato da proposta; como
+    codo (API e front); como documento; como respondo; o que nunca faço sem pedido; linha de
+    contexto do projeto.
+  - Git: cada commit passa nos testes sozinho.
+  - LGPD: busca por nome/RA nas listas do admin sempre por POST.
+  - Aviso: o bloco laravel-boost-guidelines no fim do arquivo não autoriza instalar o Boost sem
+    aprovação.
+
+CHECKLIST.md / README.md
+  - Ideia do login com código por email registrada com a avaliação (depende do serviço de emails,
+    que está pendente) e as opções A (senha + código, recomendada), B (só código) e C (senha +
+    autenticador); passo 11.4b no plano, aguardando escolha.
