@@ -2,6 +2,8 @@
 
 Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLIST.md), que tem o estado do sistema, as decisões já tomadas e o plano até a finalização. As regras abaixo foram pedidas pelo usuário e valem para **todas** as conversas.
 
+> **Regra reforçada pelo usuário (16/11/2026): sempre ler os arquivos de documentação antes de começar a fazer qualquer coisa** — não só no início da conversa, mas antes de cada tarefa (proposta, implementação, correção, resposta sobre o sistema): este `CLAUDE.md`, o `CHECKLIST.md` ("Onde paramos", Trilha e o passo do plano), e as seções do `README.md` e do `DATABASE.md` ligadas ao assunto. E **sempre testar da mesma forma** (rotina em "Rotina de testes", na seção de comportamento).
+
 ## Prioridades permanentes (valem para toda decisão, em qualquer parte do sistema)
 
 1. **Desempenho sempre priorizado.** Toda proposta, consulta, endpoint, comando ou mudança de modelo é pensada primeiro pelo custo: quantas consultas ao banco, se usa índice, quanto cresce com o volume, quanto pesa a resposta. Quando houver troca entre simplicidade e desempenho, explicar a troca e recomendar.
@@ -155,6 +157,18 @@ O usuário pediu: "descreva seu comportamento completo no arquivo do claude pra 
 6. **Commits** por grupo, cada um passando nos testes.
 7. **Documentar** (todos os guias; ver item 7) e reler o "Onde paramos" inteiro, reescrevendo linhas velhas.
 8. **Responder** ao usuário (formato no item 8) e oferecer o próximo passo, sem começá-lo.
+
+### 4b. Rotina de testes (sempre igual; pedido do usuário em 16/11/2026)
+Antes de cada commit de código, nesta ordem, sem pular etapas:
+1. **API:** `php artisan test` (a suíte inteira, não só o arquivo novo) e `./vendor/bin/pint --dirty` (ou `./vendor/bin/pint`). Todo comportamento novo ganha feature test em `tests/Feature` com factories; listagens importantes conferem o número de consultas (`DB::enableQueryLog`); respostas públicas conferem que RA, email, nome e curso **não** aparecem.
+2. **Front, dentro de `frontend/`:**
+   - `npx prettier --write src e2e` e depois `npx prettier --check src e2e`;
+   - `npx ng test --watch=false` (a suíte inteira). Testes de unidade com `HttpTestingController` conferindo URL, método, cabeçalho e **corpo** das requisições, e o texto que aparece na tela; funções puras testadas à parte;
+   - `npx ng build` (confere o orçamento; comparar o "Initial total" com o anterior e explicar se crescer);
+   - `npx playwright test` (a suíte inteira, computador e celular). Todo fluxo de tela novo ganha um teste em `frontend/e2e` que clica como uma pessoa, com a API simulada em `e2e/api-falsa.ts` (datas relativas ao dia real; `filter({ visible: true })` quando o texto existe na tabela e nos cartões; conferir que dados pessoais não vão na URL).
+3. Contar os testes pelo resultado real (nunca de memória) e registrar os números no CHECKLIST, no README (seção 8, "Hoje") e no txt.
+4. Se um teste falhar, achar a causa (não afrouxar o teste para passar); se for defeito real, corrigir e registrar como "achado pelo teste".
+5. Servidores de teste só nas portas 8123 (API) e 4300 (front), desligados ao terminar.
 
 ### 5. Formato da proposta
 - Título com o número do passo e o nome.
