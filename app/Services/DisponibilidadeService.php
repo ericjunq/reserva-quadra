@@ -21,14 +21,17 @@ use Illuminate\Support\Collection;
 
 class DisponibilidadeService
 {
+    private bool $paraAdmin = false;
+
     public function __construct(
         private DisponibilidadeEquipamentoRepository $disponibilidade,
         private ReservaRepository $reservas,
         private EquipamentoService $equipamentoService,
     ) {}
 
-    public function consultar(Espaco $espaco, string $de, string $ate, ?Curso $curso = null, bool $identificarCurso = true): array
+    public function consultar(Espaco $espaco, string $de, string $ate, ?Curso $curso = null, bool $identificarCurso = true, bool $paraAdmin = false): array
     {
+        $this->paraAdmin = $paraAdmin;
         $equipamentos = $espaco->livre() ? collect() : $this->equipamentoService->listarAtivos($espaco);
         $uso = $this->disponibilidade->usoNoPeriodo($equipamentos->pluck('id')->all(), $de, $ate)->groupBy('data');
         $intervalos = $espaco->livre() ? [] : $this->intervalosFixos();
@@ -215,6 +218,13 @@ class DisponibilidadeService
             $dados['do_curso'] = $reserva->aluno?->curso_id === $curso->id;
         }
 
+        if ($this->paraAdmin) {
+            $dados['reservado_por'] = $reserva->aluno
+                ? ['tipo' => 'ALUNO', 'nome' => $reserva->aluno->nome_completo, 'curso' => $reserva->aluno->curso?->nome]
+                : ['tipo' => 'ADMIN', 'nome' => $reserva->criador?->name, 'curso' => null];
+            $dados['situacao_confirmacao'] = $reserva->situacaoConfirmacao()?->value;
+        }
+
         return $dados;
     }
 
@@ -233,7 +243,11 @@ class DisponibilidadeService
 
     private function reservasDoPeriodo(Espaco $espaco, string $de, string $ate): Collection
     {
-        return Reserva::with('aluno:id,curso_id')
+        $relacoes = $this->paraAdmin
+            ? ['aluno:id,nome_completo,curso_id', 'aluno.curso:id,nome', 'criador:id,name']
+            : ['aluno:id,curso_id'];
+
+        return Reserva::with($relacoes)
             ->where('espaco_id', $espaco->id)
             ->where('status', StatusConstant::RESERVADO)
             ->whereBetween('data_reserva', [$de, $ate])

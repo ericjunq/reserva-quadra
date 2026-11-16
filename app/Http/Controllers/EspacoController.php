@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Constants\TipoEspacoConstant;
+use App\Http\Requests\ConsultarDisponibilidadeAdminRequest;
 use App\Http\Requests\ConsultarDisponibilidadeDoCursoRequest;
 use App\Http\Requests\ConsultarDisponibilidadeRequest;
 use App\Http\Requests\StoreEspacoRequest;
@@ -31,6 +32,13 @@ class EspacoController extends Controller
 
         return response()->json([
             'data' => $disponibilidadeService->consultar($espaco, $request->input('de'), $request->ate(), $request->curso()),
+        ]);
+    }
+
+    public function disponibilidadeAdmin(ConsultarDisponibilidadeAdminRequest $request, Espaco $espaco, DisponibilidadeService $disponibilidadeService)
+    {
+        return response()->json([
+            'data' => $disponibilidadeService->consultar($espaco, $request->input('de'), $request->ate(), paraAdmin: true),
         ]);
     }
 
