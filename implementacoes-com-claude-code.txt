@@ -2755,3 +2755,23 @@ Testes: reservar.spec (+1, presencial; o de pedido confere o prazo), situacao-re
   de manter.
 
 Totais: 313 da API, 144 do front, 36 no navegador. Build: inicial 313,9 kB (82,6 kB transferidos).
+
+========================================================================
+65. REVISÃO COMPLETA DOS GUIAS PARA CONTINUAR EM OUTRO PC (16/11/2026)
+========================================================================
+Pedido do usuário: "documenta tudo que foi feito e tudo que há pra fazer, as decisões, ideias e
+contexto completo de tudo nos arquivos de documentação, talvez eu continue em outro pc".
+
+CHECKLIST.md
+  - "Onde paramos" reescrito como guia de passagem: estado no fim do dia, último subpasso, o que
+    está em andamento (proposta do 11.5e), próximo passo, "🗂️ Tudo o que falta fazer" (lista
+    consolidada de 9 itens), "Decisões em aberto", o que o usuário precisa (push, migrate:fresh,
+    termos, como subir o front, email no outro PC) e um passo 5 novo em "Para retomar em outro PC"
+    (preparar o .env e rodar a rotina de testes antes de mexer).
+  - 11.5e registrado no plano com os 5 pontos da proposta.
+  - Conceitos explicados em 16/11 acrescentados.
+README.md: "Próximos passos" reescrito (o que está pronto e a ordem do que falta).
+CLAUDE.md: número da última seção do txt (65) e linha de contexto com o 11.5d ajustado e o 11.5e.
+
+Situação ao fim de 16/11/2026: 313 testes da API, 144 do front e 36 no navegador passando;
+nada implementando; aguardando a aprovação do 11.5e.

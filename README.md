@@ -951,14 +951,18 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 ## 10. Próximos passos
 
-Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem).
+Na ordem combinada (revisado em 16/11/2026). O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem), e a lista consolidada em "🗂️ Tudo o que falta fazer", no "Onde paramos".
 
-1. **Front-end em Angular** (pasta `frontend/`; não será com Blade): base (11.1), área pública de reserva (11.2), horário livre sem blocos (11.2b) e escolha amigável do horário (11.2d) prontos. Também prontos (13/11): **11.2c** (equipamento compartilhado só com os espaços que o admin escolher) e **11.2e** (calendário até o fim do semestre). Também pronto (13/11): **11.3a** (API da confirmação pelo email com aceite dos termos e reconfirmação). Também pronto (13/11): **11.3** (minhas reservas, confirmar com os termos e cancelar pelo link, privacidade): a área pública está completa. Também pronto (13/11): **11.4** (acesso do admin). Prontos em 16/11: **11.5a** (reservas do admin: lista, detalhe, revogar, devolução e exportação) e **11.5b** (calendário do admin com quem reservou e criar evento). Prontos em 16/11: **11.4b** (login com senha + código por email), **11.5c** (registro de uso posterior) e **11.5d** (pedido de equipamento). Próximo: **11.6** (cadastros) (registro posterior) e **11.5d** (solicitação de equipamento). Próximo, pela ordem recomendada: **passo 12** (grade de aulas), proposta a enviar. Aprovados para entrar com o painel do admin (11.5): **11.2f** (solicitação de equipamento pelo aluno) e **12b** (registro de uso posterior pelo admin, com marcação própria).
-   - **Ordem recomendada (13/11):** área pública → login do admin (11.4) → grade de aulas (passo 12, porque sem ela o sistema não pode entrar em uso) → reservas do admin (11.5, com 11.2f e 12b) → cadastros (11.6) → histórico (11.7) → acabamento (11.8) → API para terceiros (13).
-2. **Grade de aulas (importação):** o admin importa a grade da faculdade (espaços e horários de aula) e esses horários deixam de aceitar reservas de alunos; aula tem prioridade sobre reserva. Ideia do usuário em 10/11/2026; **aprovada com ajustes em 13/11/2026**, com a **reimportação ainda em discussão**. Detalhes no passo 12 do [`CHECKLIST.md`](CHECKLIST.md).
-3. **API para terceiros autorizados**, com as devidas restrições de segurança (passo 13). O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.
-4. **⏸️ Pendente (decisão do usuário, 16/11/2026): serviço de disparo de emails.** Em desenvolvimento os emails vão para o Mailtrap Sandbox (não entregam no Gmail). Falta escolher o envio real para testes e o de produção (SMTP da faculdade ou serviço transacional com o domínio dela). Ver "Enviar emails de verdade (teste local)".
-5. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
+**Pronto:** API (passos 1 a 10), área pública (11.1 a 11.3), acesso do admin (11.4) com senha + código por email (11.4b), reservas do admin (11.5a), calendário do admin e eventos (11.5b), registro de uso posterior (11.5c) e pedido de equipamento de outro espaço com prazos e reserva mantida (11.5d e ajuste).
+
+1. **11.5e — reservar pelo admin para um aluno** ("Reservar aqui" no calendário; "Para um aluno" ou "Evento"; equipamento de outro espaço já aprovado). Proposta enviada em 16/11/2026, aguardando aprovação.
+2. **11.6 — cadastros do admin:** espaços, equipamentos (compartilhamento e "aceita solicitação"), cursos, alunos (com anonimização), datas bloqueadas e feriados, admins.
+3. **11.7 — histórico de auditoria** no admin.
+4. **11.8 — acabamento:** acessibilidade, desempenho, guia de deploy do front, limites por IP das rotas públicas.
+5. **Passo 12 — grade de aulas (importação):** aprovado com ajustes em 13/11/2026; falta decidir a reimportação e saber o formato do arquivo da faculdade. Detalhes no passo 12 do CHECKLIST.
+6. **Passo 13 — API para terceiros autorizados**, com responsável por cliente e as devidas restrições de segurança. O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.
+7. **⏸️ Pendente (decisão do usuário, 16/11/2026): serviço de disparo de emails.** Em desenvolvimento os emails vão para o Mailtrap Sandbox (não entregam no Gmail). Falta escolher o envio real para testes e o de produção (SMTP da faculdade ou serviço transacional com o domínio dela). Ver "Enviar emails de verdade (teste local)".
+8. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md); termos e aviso de privacidade revisados pela faculdade.
 
 ### Front-end: identidade visual
 
