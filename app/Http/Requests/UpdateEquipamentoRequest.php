@@ -27,6 +27,7 @@ class UpdateEquipamentoRequest extends FormRequest
                 ),
             ],
             'quantidade_total'         => ['sometimes', 'integer', 'min:1'],
+            'aceita_solicitacao'       => ['sometimes', 'boolean'],
             'ativo'                    => ['sometimes', 'boolean'],
             'espacos_compartilhados'   => ['sometimes', 'array'],
             'espacos_compartilhados.*' => [

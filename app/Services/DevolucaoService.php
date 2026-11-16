@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Constants\SituacaoDevolucaoConstant;
+use App\Constants\SituacaoSolicitacaoConstant;
 use App\Constants\StatusConstant;
 use App\Exceptions\RegraNegocioException;
 use App\Mail\DevolucaoComPendenciaMail;
@@ -23,6 +24,9 @@ class DevolucaoService
             $this->verificarReserva($reserva);
 
             $registrados = ItemReserva::where('reserva_id', $reserva->id)
+                ->where(fn ($q) => $q
+                    ->whereNull('situacao_solicitacao')
+                    ->orWhere('situacao_solicitacao', SituacaoSolicitacaoConstant::APROVADA))
                 ->with('equipamento')
                 ->get()
                 ->keyBy('equipamento_id');

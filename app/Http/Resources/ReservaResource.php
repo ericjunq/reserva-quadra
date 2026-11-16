@@ -43,10 +43,15 @@ class ReservaResource extends JsonResource
             ] : null),
             'descricao'    => $this->descricao,
             'equipamentos' => $this->whenLoaded('equipamentos', fn () => $this->equipamentos->map(fn ($e) => [
-                'id'         => $e->id,
-                'nome'       => $e->nome,
-                'quantidade' => $e->pivot->quantidade,
-                'devolucao'  => [
+                'id'          => $e->id,
+                'nome'        => $e->nome,
+                'quantidade'  => $e->pivot->quantidade,
+                'solicitacao' => $e->pivot->situacao_solicitacao ? [
+                    'situacao'      => $e->pivot->situacao_solicitacao->value,
+                    'justificativa' => $e->pivot->justificativa_recusa,
+                    'respondida_em' => $e->pivot->respondida_em,
+                ] : null,
+                'devolucao' => [
                     'situacao'             => $e->pivot->situacao_devolucao?->value,
                     'quantidade_devolvida' => $e->pivot->quantidade_devolvida,
                     'observacao'           => $e->pivot->observacao_devolucao,

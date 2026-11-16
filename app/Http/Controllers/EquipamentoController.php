@@ -47,6 +47,17 @@ class EquipamentoController extends Controller
         ]);
     }
 
+    public function solicitaveis(ConsultarEquipamentosNoIntervaloRequest $request, Espaco $espaco)
+    {
+        abort_unless($espaco->ativo, 404);
+
+        [$inicio, $fim] = $request->intervalo();
+
+        return response()->json([
+            'data' => $this->equipamentoService->solicitaveisNoIntervalo($espaco, $request->input('data'), $inicio, $fim),
+        ]);
+    }
+
     public function store(StoreEquipamentoRequest $request)
     {
         $equipamento = $this->equipamentoService->criar($request->validated());

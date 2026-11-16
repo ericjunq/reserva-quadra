@@ -18,6 +18,7 @@ class EquipamentoResource extends JsonResource
             'nome'                   => $this->nome,
             'quantidade_total'       => $this->quantidade_total,
             'ativo'                  => $this->ativo,
+            'aceita_solicitacao'     => $this->aceita_solicitacao,
             'espacos_compartilhados' => $this->whenLoaded(
                 'espacosCompartilhados',
                 fn () => $this->espacosCompartilhados->map(fn ($espaco) => ['id' => $espaco->id, 'nome' => $espaco->nome])->values(),

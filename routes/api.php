@@ -14,6 +14,7 @@ use App\Http\Controllers\ExportacaoReservasController;
 use App\Http\Controllers\MinhasReservasController;
 use App\Http\Controllers\ReservaController;
 use App\Http\Controllers\SenhaController;
+use App\Http\Controllers\SolicitacaoController;
 use App\Http\Controllers\TermosController;
 use App\Http\Controllers\VersaoDisponibilidadeController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,7 @@ Route::get('/disponibilidade/versao', VersaoDisponibilidadeController::class)->m
 Route::get('/espacos', [EspacoController::class, 'ativos']);
 Route::get('/espacos/{espaco}/equipamentos', [EquipamentoController::class, 'ativos']);
 Route::get('/espacos/{espaco}/equipamentos/disponibilidade', [EquipamentoController::class, 'disponibilidade'])->middleware('throttle:60,1');
+Route::get('/espacos/{espaco}/equipamentos/solicitaveis', [EquipamentoController::class, 'solicitaveis'])->middleware('throttle:60,1');
 Route::get('/espacos/{espaco}/disponibilidade', [EspacoController::class, 'disponibilidade'])->middleware('throttle:60,1');
 Route::post('/espacos/{espaco}/disponibilidade/curso', [EspacoController::class, 'disponibilidadeDoCurso'])->middleware('throttle:20,1');
 
@@ -90,5 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/reservas/registro-posterior', [ReservaController::class, 'registrarUsoPosterior']);
         Route::post('/reservas/{reserva}/revogar', [ReservaController::class, 'revogar']);
         Route::post('/reservas/{reserva}/devolucao', [ReservaController::class, 'registrarDevolucao']);
+        Route::post('/reservas/{reserva}/solicitacoes/{equipamento}/aprovar', [SolicitacaoController::class, 'aprovar']);
+        Route::post('/reservas/{reserva}/solicitacoes/{equipamento}/recusar', [SolicitacaoController::class, 'recusar']);
     });
 });

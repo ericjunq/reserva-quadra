@@ -7,6 +7,7 @@ use App\Constants\OrigemReservaConstant;
 use App\Constants\PeriodoConstant;
 use App\Constants\SituacaoConfirmacaoConstant;
 use App\Constants\SituacaoDevolucaoConstant;
+use App\Constants\SituacaoSolicitacaoConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoEspacoConstant;
 use App\Constants\TipoReservaConstant;
@@ -36,6 +37,7 @@ class ListarReservasRequest extends FormRequest
             'devolucao'   => ['nullable', Rule::enum(SituacaoDevolucaoConstant::class)],
             'confirmacao' => ['nullable', Rule::enum(SituacaoConfirmacaoConstant::class)],
             'origem'      => ['nullable', Rule::enum(OrigemReservaConstant::class)],
+            'solicitacao' => ['nullable', Rule::enum(SituacaoSolicitacaoConstant::class)],
             'ordem'       => ['nullable', 'in:asc,desc'],
             'per_page'    => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

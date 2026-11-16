@@ -38,6 +38,28 @@ class EquipamentoService
         ])->values()->all();
     }
 
+    public function solicitaveisNoIntervalo(Espaco $espaco, string $data, string $inicio, string $fim): array
+    {
+        $equipamentos = Equipamento::query()
+            ->with('espaco:id,nome')
+            ->where('ativo', true)
+            ->where('aceita_solicitacao', true)
+            ->whereHas('espaco', fn ($q) => $q->where('ativo', true))
+            ->whereNotIn('id', Equipamento::query()->usavelNoEspaco($espaco->id)->select('id'))
+            ->orderBy('nome')
+            ->get();
+
+        $disponiveis = $this->disponibilidade->disponiveis($equipamentos, $data, $inicio, $fim);
+
+        return $equipamentos->map(fn (Equipamento $equipamento) => [
+            'id'         => $equipamento->id,
+            'nome'       => $equipamento->nome,
+            'espaco'     => $equipamento->espaco->nome,
+            'total'      => $equipamento->quantidade_total,
+            'disponivel' => $disponiveis[$equipamento->id],
+        ])->values()->all();
+    }
+
     public function listarPaginado(
         int $porPagina = 15,
         ?int $espacoId = null,

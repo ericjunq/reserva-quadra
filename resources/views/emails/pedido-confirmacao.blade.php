@@ -17,7 +17,7 @@ Sua reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_r
 **Equipamentos:**
 
 @foreach ($reserva->equipamentos as $equipamento)
-- {{ $equipamento->nome }} x{{ $equipamento->pivot->quantidade }}
+- {{ $equipamento->nome }} x{{ $equipamento->pivot->quantidade }}@if ($equipamento->pivot->situacao_solicitacao) ({{ $equipamento->pivot->situacao_solicitacao->label() }})@endif
 @endforeach
 @endif
 

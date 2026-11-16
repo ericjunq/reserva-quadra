@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Constants\OrigemReservaConstant;
 use App\Constants\SituacaoConfirmacaoConstant;
+use App\Constants\SituacaoSolicitacaoConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Models\Reserva;
@@ -28,7 +29,13 @@ class ReservaRepository
             ->when($filtros['devolucao'] ?? null, fn ($q, $situacao) => $q
                 ->where('status', StatusConstant::RESERVADO)
                 ->jaIniciadas()
-                ->whereHas('equipamentos', fn ($e) => $e->where('item_reservas.situacao_devolucao', $situacao)))
+                ->whereHas('equipamentos', fn ($e) => $e
+                    ->where('item_reservas.situacao_devolucao', $situacao)
+                    ->where(fn ($s) => $s
+                        ->whereNull('item_reservas.situacao_solicitacao')
+                        ->orWhere('item_reservas.situacao_solicitacao', SituacaoSolicitacaoConstant::APROVADA))))
+            ->when($filtros['solicitacao'] ?? null, fn ($q, $situacao) => $q
+                ->whereHas('equipamentos', fn ($e) => $e->where('item_reservas.situacao_solicitacao', $situacao)))
             ->when($filtros['confirmacao'] ?? null, fn ($q, $situacao) => $this->filtrarConfirmacao(
                 $q->where('tipo', TipoReservaConstant::ALUNO)->where('origem', '!=', OrigemReservaConstant::REGISTRO_POSTERIOR),
                 SituacaoConfirmacaoConstant::from($situacao),

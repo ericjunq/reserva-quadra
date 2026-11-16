@@ -21,6 +21,7 @@ class StoreEquipamentoRequest extends FormRequest
                 'required', 'string', 'max:100', new NomeUnico('equipamentos', escopo: ['espaco_id' => $this->input('espaco_id')]),
             ],
             'quantidade_total'         => ['required', 'integer', 'min:1'],
+            'aceita_solicitacao'       => ['sometimes', 'boolean'],
             'espacos_compartilhados'   => ['sometimes', 'array'],
             'espacos_compartilhados.*' => [
                 'integer', 'distinct', 'exists:espacos,id', Rule::notIn([(int) $this->input('espaco_id')]),

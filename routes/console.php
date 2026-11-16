@@ -16,6 +16,11 @@ Schedule::command('reservas:revogar-nao-confirmadas')
     ->withoutOverlapping()
     ->onFailure($alertarSeFalhar('Revogação das reservas não confirmadas'));
 
+Schedule::command('reservas:vencer-solicitacoes')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onFailure($alertarSeFalhar('Encerramento dos pedidos de equipamento sem resposta'));
+
 Schedule::command('feriados:importar', array_filter([
     now()->addYear()->year,
     config('reservas.feriados_facultativos') ? '--facultativos' : null,

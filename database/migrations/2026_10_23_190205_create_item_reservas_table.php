@@ -18,6 +18,10 @@ return new class extends Migration
             $table->string('observacao_devolucao', 500)->nullable();
             $table->timestamp('devolvido_em')->nullable();
             $table->foreignId('devolvido_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('situacao_solicitacao', 20)->nullable();
+            $table->timestamp('respondida_em')->nullable();
+            $table->foreignId('respondida_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('justificativa_recusa', 500)->nullable();
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
@@ -25,6 +29,7 @@ return new class extends Migration
             $table->unique(['reserva_id', 'equipamento_id']);
             $table->index(['equipamento_id', 'reserva_id']);
             $table->index(['situacao_devolucao', 'reserva_id']);
+            $table->index(['situacao_solicitacao', 'reserva_id']);
         });
     }
 

@@ -22,6 +22,8 @@ return [
 
     'horario_pedido_reconfirmacao' => env('RESERVA_HORARIO_PEDIDO_RECONFIRMACAO', '08:00'),
 
+    'solicitacao_vence_horas_antes' => (int) env('RESERVA_SOLICITACAO_VENCE_HORAS_ANTES', 2),
+
     'termos_versao' => env('RESERVA_TERMOS_VERSAO', '2026-11'),
 
     'feriados_facultativos' => (bool) env('RESERVA_FERIADOS_FACULTATIVOS', false),

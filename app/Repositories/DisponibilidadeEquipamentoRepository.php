@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Constants\SituacaoSolicitacaoConstant;
 use App\Constants\StatusConstant;
 use App\Models\Equipamento;
 use Illuminate\Database\Query\Builder;
@@ -100,6 +101,9 @@ class DisponibilidadeEquipamentoRepository
     {
         return DB::table('item_reservas')
             ->join('reservas', 'reservas.id', '=', 'item_reservas.reserva_id')
-            ->where('reservas.status', StatusConstant::RESERVADO->value);
+            ->where('reservas.status', StatusConstant::RESERVADO->value)
+            ->where(fn ($q) => $q
+                ->whereNull('item_reservas.situacao_solicitacao')
+                ->orWhereNotIn('item_reservas.situacao_solicitacao', SituacaoSolicitacaoConstant::semEfeito()));
     }
 }

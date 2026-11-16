@@ -3,13 +3,15 @@
 namespace App\Models;
 
 use App\Constants\SituacaoDevolucaoConstant;
+use App\Constants\SituacaoSolicitacaoConstant;
+use App\Models\Concerns\AtualizaDisponibilidade;
 use App\Models\Concerns\Auditavel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class ItemReserva extends Pivot
 {
-    use Auditavel;
+    use AtualizaDisponibilidade, Auditavel;
 
     public const COLUNAS = [
         'id',
@@ -19,6 +21,10 @@ class ItemReserva extends Pivot
         'observacao_devolucao',
         'devolvido_em',
         'devolvido_por',
+        'situacao_solicitacao',
+        'respondida_em',
+        'respondida_por',
+        'justificativa_recusa',
     ];
 
     protected $table = 'item_reservas';
@@ -32,8 +38,10 @@ class ItemReserva extends Pivot
     protected function casts(): array
     {
         return [
-            'situacao_devolucao' => SituacaoDevolucaoConstant::class,
-            'devolvido_em'       => 'datetime',
+            'situacao_devolucao'   => SituacaoDevolucaoConstant::class,
+            'devolvido_em'         => 'datetime',
+            'situacao_solicitacao' => SituacaoSolicitacaoConstant::class,
+            'respondida_em'        => 'datetime',
         ];
     }
 

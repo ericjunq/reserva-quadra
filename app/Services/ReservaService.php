@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Constants\OrigemReservaConstant;
+use App\Constants\SituacaoSolicitacaoConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Exceptions\RegraNegocioException;
@@ -54,7 +55,10 @@ class ReservaService
             $espaco = $this->travarEspaco($data['espaco_id']);
             $this->verificarConflitoDeEspaco($data);
             $this->verificarLimiteSemanalDoCurso($aluno, $espaco, $data);
-            $this->verificarDisponibilidadeEquipamentos($data);
+            $this->verificarDisponibilidadeEquipamentos([
+                ...$data,
+                'equipamentos' => [...($data['equipamentos'] ?? []), ...($data['solicitacoes'] ?? [])],
+            ]);
 
             $reserva = $aluno->reservas()->create([
                 'data_reserva' => $data['data_reserva'],
@@ -66,6 +70,7 @@ class ReservaService
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
+            $this->anexarSolicitacoes($reserva, $data['solicitacoes'] ?? []);
             $this->confirmacao->pedirNaCriacao($reserva, $aluno);
 
             return $reserva->load('equipamentos');
@@ -325,6 +330,18 @@ class ReservaService
     {
         $itens = collect($data['equipamentos'] ?? [])
             ->mapWithKeys(fn ($item) => [$item['id'] => ['quantidade' => $item['quantidade']]]);
+
+        if ($itens->isNotEmpty()) {
+            $reserva->equipamentos()->attach($itens->all());
+        }
+    }
+
+    private function anexarSolicitacoes(Reserva $reserva, array $solicitacoes): void
+    {
+        $itens = collect($solicitacoes)->mapWithKeys(fn ($item) => [$item['id'] => [
+            'quantidade'           => $item['quantidade'],
+            'situacao_solicitacao' => SituacaoSolicitacaoConstant::AGUARDANDO,
+        ]]);
 
         if ($itens->isNotEmpty()) {
             $reserva->equipamentos()->attach($itens->all());

@@ -30,6 +30,7 @@ class AgendadorTest extends TestCase
         $esperado = [
             'reservas:pedir-reconfirmacao'     => '0 8 * * *',
             'reservas:revogar-nao-confirmadas' => '*/15 * * * *',
+            'reservas:vencer-solicitacoes'     => '*/15 * * * *',
             'feriados:importar'                => '0 3 1 12 *',
             'reservas:limpar-tokens'           => '10 3 * * *',
             'model:prune'                      => '15 3 * * *',

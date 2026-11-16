@@ -16,13 +16,14 @@ class Equipamento extends Model
 
     public const RELACOES_ADMIN = [...Auditoria::RELACOES, 'espacosCompartilhados:id,nome'];
 
-    protected $fillable = ['espaco_id', 'nome', 'quantidade_total', 'ativo'];
+    protected $fillable = ['espaco_id', 'nome', 'quantidade_total', 'ativo', 'aceita_solicitacao'];
 
     public function casts(): array
     {
         return [
-            'quantidade_total' => 'integer',
-            'ativo'            => 'boolean',
+            'quantidade_total'   => 'integer',
+            'ativo'              => 'boolean',
+            'aceita_solicitacao' => 'boolean',
         ];
     }
 
