@@ -113,6 +113,8 @@ erDiagram
         string status "RESERVADO, CANCELADO, REVOGADO"
         string tipo "ALUNO, EVENTO"
         string origem "SITE, ADMIN, REGISTRO_POSTERIOR"
+        timestamp manter_ate "pedido não liberado: prazo para o aluno manter"
+        timestamp mantida_em
         string descricao "eventos"
         text justificativa_revogacao
         timestamp revogada_em
@@ -138,6 +140,7 @@ erDiagram
         timestamp devolvido_em
         bigint devolvido_por FK
         string situacao_solicitacao "null = item normal; AGUARDANDO, APROVADA, RECUSADA, VENCIDA"
+        timestamp responder_ate "prazo do admin"
         timestamp respondida_em
         bigint respondida_por FK
         string justificativa_recusa
@@ -314,7 +317,7 @@ A senha certa cria uma linha com o **desafio** (64 caracteres devolvidos ao fron
 `reservas.origem` diz como a reserva nasceu: `SITE` (aluno pelo site; padrão), `ADMIN` (evento criado pelo admin) ou `REGISTRO_POSTERIOR` (uso registrado pelo admin depois de acontecer). É gravada na criação e nunca editada. Um enum em vez de um booleano porque o passo 13 pode acrescentar `API`. Sem índice novo: o filtro por origem sempre vem junto do período, que já usa o índice de data. O registro posterior de aluno é `tipo = ALUNO` (conta no histórico e no limite semanal do curso); o de grupo sem RA é `tipo = EVENTO` com descrição. Registros posteriores não têm prazo de confirmação gravado, então a revogação automática e a reconfirmação os ignoram, e `situacao_confirmacao` é `null`.
 
 **39. Pedido de equipamento no próprio item da reserva (11.5d, 16/11/2026).**
-O pedido de um equipamento de outro espaço é uma linha de `item_reservas` com `situacao_solicitacao` preenchida (itens normais ficam com ela vazia), mais `respondida_em`, `respondida_por` e `justificativa_recusa`; índice `(situacao_solicitacao, reserva_id)` para a lista de pedidos aguardando. Sem tabela nova: a quantidade pedida já entra no mesmo cálculo de disponibilidade, que só passou a ignorar os itens `RECUSADA` e `VENCIDA` (uma condição na consulta central `reservasAtivas`). A aprovação vale só para aquele item daquela reserva: não vira compartilhamento (outra reserva que quiser o item pede de novo). `equipamentos.aceita_solicitacao` diz quais itens podem ser pedidos (padrão não). Pedido sem resposta vence 2 h antes do início (`RESERVA_SOLICITACAO_VENCE_HORAS_ANTES`).
+O pedido de um equipamento de outro espaço é uma linha de `item_reservas` com `situacao_solicitacao` preenchida (itens normais ficam com ela vazia), mais `respondida_em`, `respondida_por` e `justificativa_recusa`; o índice começa pela situação, para a lista de pedidos aguardando. Sem tabela nova: a quantidade pedida já entra no mesmo cálculo de disponibilidade, que só passou a ignorar os itens `RECUSADA` e `VENCIDA` (uma condição na consulta central `reservasAtivas`). A aprovação vale só para aquele item daquela reserva: não vira compartilhamento (outra reserva que quiser o item pede de novo). `equipamentos.aceita_solicitacao` diz quais itens podem ser pedidos (padrão não). Ajuste de 16/11/2026: o prazo de resposta fica gravado no item (`responder_ate`: 24 h antes, ou 3 h antes se o normal deixar menos de 2 h ao admin; sem isso, o pedido é presencial), e o índice passou a ser `(situacao_solicitacao, responder_ate)`, usado pelo vencimento. Pedido recusado ou vencido grava na reserva `manter_ate` (aviso + 12 h, nunca depois de 1 h antes do início); sem `mantida_em` até lá, a revogação automática a revoga (índice `(status, manter_ate)`).
 
 **31. `auditavel_type` guarda nomes curtos (morph map).**
 Em vez de `App\Models\Reserva`, a coluna guarda `reserva` (e `aluno`, `espaco`, `equipamento`, `curso`, `data_bloqueada`, `item_reserva`, `admin`). O mapa fica em `TipoAuditavelConstant` e é registrado com `enforceMorphMap` no `AppServiceProvider`: renomear ou mover uma classe não quebra o histórico, e um model polimórfico fora do mapa dá erro em vez de gravar um nome inesperado. Vale também para `personal_access_tokens.tokenable_type` (admins aparecem como `admin`).

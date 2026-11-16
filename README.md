@@ -138,7 +138,11 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `RESERVA_RECONFIRMACAO_DIAS_UTEIS_ANTES` | 3 | Quantos dias **úteis** antes da reserva sai o pedido de reconfirmação (prazo: 00:00 da véspera) |
 | `RESERVA_RECONFIRMACAO_DISPENSADA_DIAS_UTEIS` | 2 | Quem confirmou há menos desses dias úteis antes do pedido não recebe a reconfirmação |
 | `RESERVA_HORARIO_PEDIDO_RECONFIRMACAO` | 08:00 | Horário diário do comando que pede as reconfirmações |
-| `RESERVA_SOLICITACAO_VENCE_HORAS_ANTES` | 2 | Quantas horas antes do início um pedido de equipamento sem resposta vence (e o mínimo de antecedência para pedir) |
+| `RESERVA_SOLICITACAO_PRAZO_HORAS_ANTES` | 24 | Prazo normal de resposta do admin a um pedido de equipamento (horas antes do início) |
+| `RESERVA_SOLICITACAO_PRAZO_CURTO_HORAS_ANTES` | 3 | Prazo curto, usado quando o normal deixaria pouco tempo ao admin |
+| `RESERVA_SOLICITACAO_TEMPO_MINIMO_RESPOSTA_HORAS` | 2 | Tempo mínimo que o admin precisa ter para responder; sem ele, o pedido é presencial |
+| `RESERVA_MANTER_HORAS` | 12 | Horas que o aluno tem para manter a reserva depois de o pedido não ser liberado |
+| `RESERVA_MANTER_MINIMO_HORAS_ANTES` | 1 | O prazo para manter nunca passa deste tanto de horas antes do início |
 | `RESERVA_TERMOS_VERSAO` | 2026-11 | Versão dos termos de uso e do aviso de privacidade (gravada na reserva no aceite) |
 | `RESERVA_FERIADOS_FACULTATIVOS` | false | Se a importação automática de feriados inclui Carnaval, Quarta de Cinzas e Corpus Christi |
 | `RESERVA_TOKENS_RETENCAO_DIAS` | 30 | Depois de quantos dias os links de email usados ou vencidos são apagados |
@@ -174,8 +178,8 @@ Definidas em `routes/console.php`, no fuso `APP_TIMEZONE` (America/Sao_Paulo). N
 
 | Tarefa | Quando | O que faz |
 |---|---|---|
-| `reservas:vencer-solicitacoes` | A cada 15 minutos | Encerra os pedidos de equipamento sem resposta 2 h antes do início e avisa o aluno |
-| `reservas:revogar-nao-confirmadas` | A cada 15 minutos | Revoga as reservas que passaram do prazo de confirmação ou de reconfirmação |
+| `reservas:vencer-solicitacoes` | A cada 15 minutos | Encerra os pedidos de equipamento que passaram do prazo de resposta e pede ao aluno para manter a reserva |
+| `reservas:revogar-nao-confirmadas` | A cada 15 minutos | Revoga as reservas que passaram do prazo de confirmação, de reconfirmação ou de manter a reserva sem o equipamento |
 | `reservas:limpar-tokens` | Todo dia, 03:10 | Apaga links de email usados ou vencidos há mais de 30 dias |
 | `model:prune` (`DesafioLogin`) | Todo dia, 03:15 | Apaga os códigos de login vencidos há mais de 1 dia |
 | `sanctum:prune-expired --hours=24` | Todo dia, 03:20 | Apaga tokens de login vencidos |
@@ -266,6 +270,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/admin/acesso/` | Acesso do admin (11.4 e 11.4b): `AcessoService` (login em duas etapas com o código por email — o desafio fica só na memória da tela —, reenvio do código, `/me` uma vez por sessão, sair, sair de todos, esqueci, redefinir, aceitar convite, trocar senha), guardas `exigirLogin` (manda para `/admin/entrar?voltar=`) e `somenteSemLogin`, `LayoutAcesso` (layout simples), telas `entrar`, `esqueci-senha`, `definir-senha` (redefinir e convite, modo pela rota) e `minha-conta`, regras da senha (`regras-senha.ts` + componente) e `acesso.routes.ts` (rotas `/redefinir-senha` e `/aceitar-convite`, carregadas só quando abertas) |
 | `app/admin/reservas/` | Reservas do admin (11.5a): `ReservasAdminService` (consulta e exportação por POST, detalhe, revogar, devolução), `filtros.ts` (filtros da URL validados, atalhos de período, limite de 366 dias na exportação), `linha-do-tempo.ts` (criada, prazos, confirmação com a versão dos termos, reconfirmação, cancelamento, revogação), `selos.ts` (cores do status e da confirmação, sempre com texto), `lista-reservas/` (`/admin/reservas?periodo=&de=&ate=&espaco=&curso=&tipo=&status=&confirmacao=&devolucao=&pagina=`: filtros, totais por status que filtram, tabela no computador e cartões no celular, nome e curso sem RA/email), `detalhe-reserva/` (`/admin/reservas/:id`: aluno com RA e email, linha do tempo, equipamentos, revogar e registrar devolução) e `exportar-reservas/` (CSV com colunas a escolher e aviso de dados pessoais) |
 | `app/admin/calendario/` | Calendário do admin (11.5b): `/admin/calendario?espaco=&semana=`, semana de segunda a domingo pela rota do admin, com quem reservou (nome · curso), o selo da confirmação, eventos com quem criou, bloqueios e "Criar evento aqui" nos horários livres; `itens-do-dia.ts` junta ocupados e livres de cada dia (fixo e livre) e monta o link do evento; `CalendarioAdminService` (espaços do admin, inclusive desativados, calendário e criar evento) |
+| `app/publico/manter-reserva/` | `/reservas/manter/:token`: tira o token da barra, mostra a reserva e o prazo, e mantém a reserva sem o equipamento |
 | `app/publico/reservar/pedidos-de-equipamento.ts` | Seção recolhida "Pedir equipamento de outro espaço" (11.5d): busca os itens só quando o aluno abre, mostra o espaço de origem e o disponível, zera os pedidos quando o horário muda |
 | `app/admin/reservas/detalhe-reserva/responder-solicitacao.ts` | Aprovar ou recusar (com motivo) um pedido de equipamento no detalhe da reserva |
 | `app/admin/compartilhado/campos-do-uso.ts` | Campos de espaço, data, horário (fixo ou início/fim) e equipamentos com o disponível no intervalo, usados pelo novo evento e pelo registro de uso; funções `horarioDoUso`, `horarioDaUrl` e `equipamentosEscolhidos` |
@@ -426,6 +431,7 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 | GET | `/api/admin/reservas` | Lista reservas com filtros (ver abaixo) |
 | GET | `/api/admin/espacos/{id}/disponibilidade?de=&ate=` | Calendário do admin (11.5b): o mesmo do público, mais `reservado_por` (nome e curso do aluno, ou o admin do evento) e `situacao_confirmacao`; sem o limite do fim do semestre (passado e futuro), até 31 dias; vale para espaço desativado; no horário livre, o bloqueio do dia inteiro aparece em `ocupados` |
 | POST | `/api/admin/reservas/consulta` | A mesma lista, com os filtros no corpo: usada pelo front para a **busca por nome ou RA não ir na URL** (LGPD; desde 16/11/2026) |
+| GET/POST | `/api/reservas/manter/{token}` | Pública: resumo (`pode_manter`) e manter a reserva sem o equipamento pedido (link do email) |
 | POST | `/api/admin/reservas/{id}/solicitacoes/{equipamento}/aprovar` | Aprova o pedido de equipamento (11.5d) |
 | POST | `/api/admin/reservas/{id}/solicitacoes/{equipamento}/recusar` | Recusa o pedido, com `justificativa` (11.5d) |
 | POST | `/api/admin/reservas/registro-posterior` | Registra um uso que já aconteceu ou está acontecendo (aluno pelo RA ou grupo); responde a reserva e `aviso` (limite semanal) |
@@ -478,13 +484,14 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 - **Eventos** em espaço LIVRE: horários arredondados da mesma forma, podendo sair da janela e sem duração máxima.
 - **Configuração:** o admin define no cadastro/edição do espaço (no LIVRE, os três campos são obrigatórios, alinhados ao bloco, fechamento depois da abertura, duração máxima múltipla do bloco e que caiba na janela). **Trocar o modo** com reservas futuras é recusado (409). Mudar a janela ou a duração não afeta as reservas já feitas.
 
-### Pedido de equipamento de outro espaço (11.5d)
+### Pedido de equipamento de outro espaço (11.5d, com o ajuste de 16/11/2026)
 
-- Na reserva, além dos equipamentos do espaço (e dos compartilhados), o aluno pode **pedir** um equipamento de outro espaço, se o admin marcou o item como `aceita_solicitacao`. Lista: `GET /api/espacos/{id}/equipamentos/solicitaveis?data=&hora_inicio=&hora_fim=` (item, espaço de origem e disponível no intervalo). O pedido vai no `POST /api/reservas`, no campo `solicitacoes` (`[{id, quantidade}]`), com pelo menos 2 h de antecedência.
-- O pedido **segura a quantidade** enquanto aguarda (conta na disponibilidade para todos); recusado ou vencido, libera na hora. A aprovação vale **só para aquela reserva**: não vira compartilhamento, e outra reserva que quiser o item precisa pedir também (decisão do usuário, 16/11/2026).
-- O admin responde no detalhe: `POST /api/admin/reservas/{id}/solicitacoes/{equipamento}/aprovar` ou `/recusar` (com `justificativa` de 10 a 500 caracteres); 409 se já foi respondido ou a reserva não está ativa. Sem resposta, o pedido **vence 2 h antes do início** (`reservas:vencer-solicitacoes`, a cada 15 min).
-- **A reserva do espaço continua valendo** em qualquer caso. O aluno recebe email da resposta; na recusa e no vencimento, o email traz o botão **"Cancelar reserva"** (opção A, escolhida pelo usuário em 16/11/2026), para liberar o horário se sem o equipamento a reserva não servir mais.
-- Só itens normais e pedidos aprovados entram na devolução. Lista do admin: filtro `solicitacao` e selo "Pedido de equipamento"; painel com o contador de pedidos aguardando. Exportação: a coluna "Equipamentos" mostra a situação do pedido.
+- Na reserva, além dos equipamentos do espaço (e dos compartilhados), o aluno pode **pedir** um equipamento de outro espaço, se o admin marcou o item como `aceita_solicitacao`. Lista: `GET /api/espacos/{id}/equipamentos/solicitaveis?data=&hora_inicio=&hora_fim=` (item, espaço de origem, disponível e `responder_ate`). O pedido vai no `POST /api/reservas`, no campo `solicitacoes` (`[{id, quantidade}]`).
+- **Prazo de resposta do admin**, gravado no item (`responder_ate`): **24 h antes do início**; se isso deixar ao admin menos de **2 h**, o **prazo curto** é **3 h antes do início**; se nem assim houver 2 h, o pedido online é recusado com "Faltam poucas horas para a reserva: peça o equipamento diretamente na coordenação" (a lista vem vazia com `responder_ate` nulo). Valores em `RESERVA_SOLICITACAO_*`.
+- O pedido **segura a quantidade** enquanto aguarda (conta na disponibilidade para todos); recusado ou vencido, libera na hora. A aprovação vale **só para aquela reserva**: não vira compartilhamento (outra reserva que quiser o item pede de novo).
+- O admin responde no detalhe: `POST /api/admin/reservas/{id}/solicitacoes/{equipamento}/aprovar` ou `/recusar` (com `justificativa`); 409 se já respondido ou a reserva não está ativa. Sem resposta, vence no `responder_ate` (`reservas:vencer-solicitacoes`, a cada 15 min).
+- **Recusado ou sem resposta: a reserva será cancelada, a menos que o aluno a mantenha** (lógica pedida pelo usuário em 16/11/2026; substituiu a opção A). A reserva recebe `manter_ate` = aviso + **12 h**, nunca depois de **1 h antes do início** (se já faltar menos de 1 h, não pergunta e a reserva continua). O email "Equipamento não liberado: confirme se quer manter a reserva" traz **"Manter a reserva sem o equipamento"** (link com token, página `/reservas/manter`) e o link de cancelar. `GET/POST /api/reservas/manter/{token}`. Sem clicar, a revogação automática (a cada 15 min) revoga com "Equipamento não liberado e a reserva não foi mantida." Se outro pedido da mesma reserva for recusado depois, não pergunta de novo.
+- "Minhas reservas" mostra o aviso com o prazo; o admin vê o selo "Aguardando o aluno manter" e a linha do tempo. Só itens normais e pedidos aprovados entram na devolução. Lista: filtro `solicitacao` e selo "Pedido de equipamento"; painel com o contador. Exportação: a coluna "Equipamentos" mostra a situação do pedido.
 
 ### Equipamentos na reserva
 
@@ -698,9 +705,11 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Disponibilidade como **calendário** (até 31 dias) | O front navega por semanas/meses; reservas continuam limitadas a 10 dias úteis, e os dias fora da janela vêm com o motivo |
 | ~~Consulta mostra **quem reservou** (nome e curso)~~ (substituída em 13/11/2026) | Facilitava o mapeamento do uso |
 | Calendário público **não identifica quem reservou**; só os admins veem nome e curso | Pedido do usuário (13/11): mínima exposição (LGPD); para o aluno basta saber que o horário está ocupado |
+| Prazo de resposta do pedido gravado no item: 24 h antes, prazo curto 3 h antes, mínimo de 2 h ao admin, senão presencial | Pedido do usuário (16/11/2026): 2 h era em cima da hora para quem vem de outra cidade; reservas próximas ainda podem pedir com prazo curto |
+| Pedido recusado ou sem resposta: a reserva é cancelada se o aluno não clicar em "Manter" em até 12 h (nunca depois de 1 h antes do início) | Pedido do usuário (16/11/2026, "lógica invertida"): libera o espaço de quem só queria com o equipamento; segue o padrão da confirmação por email |
 | Pedido de equipamento no próprio item da reserva, segurando a quantidade | Sem tabela nova; a aprovação vale só para aquela reserva (decisão do usuário: outra reserva pede de novo) (16/11/2026) |
-| Pedido recusado ou sem resposta: a reserva continua e o email traz "Cancelar reserva" (opção A) | Escolha do usuário (16/11/2026); a opção B (perguntar e esperar resposta) foi descartada por exigir um estado novo com prazo, e a C (reserva condicionada) ficou como ideia para depois |
-| Pedido vence 2 h antes do início, e precisa de 2 h de antecedência | Dá tempo ao aluno de decidir e ao horário de ser aproveitado se ele cancelar (16/11/2026) |
+| ~~Pedido recusado ou sem resposta: a reserva continua e o email traz "Cancelar reserva" (opção A)~~ (substituída em 16/11/2026 pela lógica invertida) | Escolha do usuário (16/11/2026); a opção B (perguntar e esperar resposta) foi descartada por exigir um estado novo com prazo, e a C (reserva condicionada) ficou como ideia para depois |
+| ~~Pedido vence 2 h antes do início, e precisa de 2 h de antecedência~~ (substituída em 16/11/2026) | Dá tempo ao aluno de decidir e ao horário de ser aproveitado se ele cancelar (16/11/2026) |
 | Origem da reserva em coluna própria (`SITE`, `ADMIN`, `REGISTRO_POSTERIOR`) | Pedido do usuário (13/11): marcar e colorir o registro feito depois do uso; enum em vez de booleano por causa do passo 13 (16/11/2026) |
 | Registro posterior: aluno pelo RA ou grupo sem RA (tipo EVENTO) | Não muda as regras de quem é aluno e quem é evento; conflito não revoga nada (o uso já aconteceu) (16/11/2026) |
 | Login do admin com **senha + código por email** (dois fatores) | Ideia do usuário (16/11/2026), opção A recomendada: roubar só a senha ou só o email não basta; só o código deixaria a segurança inteira no email e o login dependente do envio |
@@ -787,7 +796,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (16/11/2026):** 311 testes da API, 142 testes de unidade do front (Vitest) e 34 testes no navegador (Playwright, computador e celular).
+**Hoje (16/11/2026):** 313 testes da API, 144 testes de unidade do front (Vitest) e 36 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -810,7 +819,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
-| `SolicitacaoTest` | Lista de itens que podem ser pedidos, pedido aguardando segura a quantidade para todos, aprovação não vira compartilhamento, item que não aceita ou do próprio espaço, 2 h de antecedência, aprovar (email sem link), recusar (libera, mantém a reserva, email com o link de cancelar), vencer 2 h antes, filtro e devolução só dos que valem, exportação, marcar `aceita_solicitacao` |
+| `SolicitacaoTest` | Lista de itens que podem ser pedidos, pedido aguardando segura a quantidade para todos, aprovação não vira compartilhamento, item que não aceita ou do próprio espaço, prazo normal, curto e presencial, aprovar (email sem link), recusar (libera e pede para manter em 12 h, com os links), manter pelo link e revogação de quem não manteve, prazo para manter limitado a 1 h antes, vencer no prazo gravado, filtro e devolução só dos que valem, exportação, marcar `aceita_solicitacao` |
 | `RegistroPosteriorTest` | Login, uso passado do aluno sem confirmação e com email, grupo sem RA e sem email, RA ou descrição, 30 dias e hoje só o que começou, fim de semana e fora da janela aceitos, bloqueio recusado, conflito 409 sem revogar, limite semanal só avisa, estoque, fora da revogação automática e do filtro de confirmação, filtro e exportação por origem, calendário público só "Reservado" |
 | `LoginCodigoTest` | Senha certa manda o código na hora (sem fila) e não entrega token; senha errada não manda; código certo entra uma vez só; vencido; 5 tentativas; login novo invalida o anterior; admin desativado no meio; reenvio com espera de 60 s e limite de 3; desafio inválido genérico; falha no envio (503, nada guardado); formato do código; nada no log; configuração desligada; limpeza diária |
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
@@ -873,7 +882,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `admin/acesso/acesso.spec.ts`, `regras-senha.spec.ts` | Guardas (volta com o caminho, passa com login, quem já entrou não vê o login), service (sessão no login, `/me` uma vez, sair apaga mesmo com erro), entrar (volta só para caminho interno, erro genérico, aviso de sessão), esqueci (resposta genérica), convite (token fora do endereço, regras, corpo enviado), sem token, minha conta (troca de senha e sair de todos), layout (sessão acabou x sair) |
 | `admin/reservas/reservas.spec.ts` | Filtros da URL (valores inválidos ignorados, período antes das datas), dias do período, linha do tempo (prazo, versão dos termos, prazo da reconfirmação às 23:59, revogação), lista por POST com os filtros e os selos sem RA/email, busca só no corpo, totais que filtram, detalhe com RA e email, revogação com justificativa, devolução com erro do item, exportação com as colunas e o nome do arquivo, limite de 366 dias |
 | `admin/calendario/calendario.spec.ts` | Itens do dia (fixo: livre para evento no fim de semana, não no passado; livre: ocupados e intervalos em ordem), link do evento, calendário pela rota do admin de segunda a domingo com quem reservou e espaço desativado, novo evento preenchido, conflito com justificativa e reenvio |
-| `e2e/pedido-equipamento.spec.ts` | No navegador: aluno abre "Pedir equipamento de outro espaço", pede, vê no resumo e na tela de sucesso; o corpo leva `solicitacoes` |
+| `e2e/pedido-equipamento.spec.ts` | No navegador: aluno abre "Pedir equipamento de outro espaço", vê o prazo da resposta, pede, vê no resumo e na tela de sucesso (o corpo leva `solicitacoes`); e mantém a reserva pelo link do email |
 | `e2e/registro-posterior.spec.ts` | No navegador: "Registrar uso" pela lista, formulário, detalhe com o selo e "Registrado depois do uso por", RA só no corpo |
 | `e2e/calendario-admin.spec.ts` | No navegador: calendário com quem reservou e o selo, "Criar evento aqui", formulário preenchido, evento criado e detalhe |
 | `e2e/reservas-admin.spec.ts` | No navegador: login, lista sem RA, filtro de confirmação na URL, busca fora da URL, detalhe com RA e email, revogação e volta à lista com os filtros |
@@ -908,6 +917,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
+| Ajuste do pedido de equipamento (16/11/2026) | Prazo de resposta gravado (24 h / curto 3 h / mínimo 2 h / presencial) e lógica invertida (reserva cancelada se o aluno não mantiver em 12 h); página "Manter a reserva" |
 | Pedido de equipamento (passo 11.5d, 16/11/2026) | API: `aceita_solicitacao`, pedido no item da reserva, rota de itens solicitáveis, aprovar/recusar, vencimento 2 h antes, emails com o link de cancelar, filtro e exportação. Front: seção de pedido na reserva, situação em minhas reservas, resposta no detalhe do admin, selo, filtro e contador no painel |
 | Registro de uso posterior (passo 11.5c, 16/11/2026) | API: `reservas.origem`, `POST /admin/reservas/registro-posterior`, email ao aluno, filtro e coluna de origem, origem no calendário do admin. Front: tela Registrar uso, selo e filtro, "Registrar uso aqui" no calendário e campos de uso compartilhados com o novo evento. Achado: email de revogação quebrava nas reservas de horário livre (corrigido) |
 | Login com código (passo 11.4b, 16/11/2026) | API: `desafios_login`, `/login` em duas etapas, `/login/codigo`, `/login/reenviar`, email "Seu código de acesso" sem fila, `LOGIN_COM_CODIGO`, limpeza diária e conferência no `verificar-producao`. Front: segunda etapa na tela Entrar, com reenvio e contagem |
@@ -985,7 +995,7 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 
 - **✅ Feito em 16/11/2026 (11.4b). Login do admin com senha + código por email (ideia do usuário em 16/11/2026, opção A escolhida no mesmo dia):** recomendação do Claude, aceita: **senha + código de 6 dígitos por email** (dois fatores; validade de 10 min, uso único, até 5 tentativas, guardado com hash, resposta genérica). Alternativas: só o código (depende inteiramente do email e do serviço de envio, que está pendente) ou senha + aplicativo autenticador (TOTP). Ver o passo 11.4b do CHECKLIST.
 
-- **Reserva condicionada ao equipamento pedido (ideia de 16/11/2026, para depois):** uma caixa opcional no pedido de equipamento, "só quero o espaço se o equipamento for aprovado", que cancela a reserva sozinha se o pedido for recusado ou vencer. Por ora vale a opção A (a reserva continua e o email traz o botão de cancelar). Avaliação: resolve o mesmo que perguntar ao aluno depois (opção B, descartada por exigir um estado novo com prazo), mas libera o horário mais tarde.
+- ~~**Reserva condicionada ao equipamento pedido (ideia de 16/11/2026, para depois):**~~ (absorvida em 16/11/2026: com a lógica invertida, a reserva já é cancelada se o aluno não a mantiver) uma caixa opcional no pedido de equipamento, "só quero o espaço se o equipamento for aprovado", que cancela a reserva sozinha se o pedido for recusado ou vencer. Por ora vale a opção A (a reserva continua e o email traz o botão de cancelar). Avaliação: resolve o mesmo que perguntar ao aluno depois (opção B, descartada por exigir um estado novo com prazo), mas libera o horário mais tarde.
 
 - **Monitor externo da API:** um serviço gratuito (UptimeRobot ou Healthchecks.io) consulta `GET /up` a cada poucos minutos e avisa por outro canal (app, SMS, Telegram) quando a API não responde. Cobre o caso em que o próprio serviço de email cai e os alertas por email não saem. É configurado fora do código, na hora do deploy.
 - **Backup do banco:** definido na hora do deploy, conforme a plataforma. Regra 3-2-1; banco gerenciado com backup automático **ou** `spatie/laravel-backup` com armazenamento externo (Backblaze B2, Cloudflare R2, S3); retenção de 7 diários, 4 semanais e 6 mensais; teste mensal de restauração; `.env` guardado à parte num gerenciador de senhas. LGPD: backup criptografado, acesso restrito, e refazer as anonimizações depois de uma restauração.
@@ -994,7 +1004,7 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 
 | Email | Para quem | Quando | Situação |
 |---|---|---|---|
-| Pedido de equipamento aprovado / recusado / sem resposta | Aluno | Admin responde o pedido ou ele vence 2 h antes (11.5d); recusa e vencimento trazem "Cancelar reserva" | ✅ Pronto |
+| Pedido de equipamento aprovado / "Equipamento não liberado: confirme se quer manter a reserva" | Aluno | Admin responde o pedido ou ele vence no prazo (11.5d); recusa e vencimento trazem "Manter a reserva sem o equipamento" e o link de cancelar | ✅ Pronto |
 | Registramos um uso de espaço em seu nome | Aluno | Admin registra um uso posterior pelo RA (11.5c) | ✅ Pronto |
 | Reserva revogada | Aluno | Admin revoga, evento ocupa o horário ou data é bloqueada | ✅ Pronto |
 | Pendência na devolução | Aluno | Item registrado como devolvido com avaria ou não devolvido | ✅ Pronto |

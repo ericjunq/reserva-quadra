@@ -2703,3 +2703,55 @@ Testes: reservar.spec (+1), situacao-reserva.spec (+1), reservas.spec (+3), e2e
   pedido-equipamento.spec.ts; api-falsa com a lista de solicitáveis e o filtro.
 
 Totais: 311 da API, 142 do front, 34 no navegador. Build: inicial 313,9 kB (82,7 kB transferidos).
+
+========================================================================
+64. AJUSTE DO 11.5d: PRAZO DO PEDIDO E MANTER A RESERVA (16/11/2026)
+========================================================================
+Pedidos do usuário: 2 h antes era "muito em cima da hora" para quem vem de outra cidade; prazo de
+um dia, com prazo curto para reservas próximas e pedido presencial quando não há tempo
+("tempo x" e "tempo y"); e a lógica invertida no email: "se não fizer nada, vai ser cancelada".
+Aprovado com "Ok, aprovo" (24 h / 3 h / 2 h / presencial; 12 h para manter, nunca depois de 1 h
+antes do início).
+
+API
+migrations (no lugar): item_reservas.responder_ate e índice (situacao_solicitacao, responder_ate);
+  reservas.manter_ate, mantida_em e índice (status, manter_ate).
+config/reservas.php e .env de exemplo: RESERVA_SOLICITACAO_PRAZO_HORAS_ANTES (24),
+  _PRAZO_CURTO_HORAS_ANTES (3), _TEMPO_MINIMO_RESPOSTA_HORAS (2), RESERVA_MANTER_HORAS (12),
+  RESERVA_MANTER_MINIMO_HORAS_ANTES (1); saiu RESERVA_SOLICITACAO_VENCE_HORAS_ANTES.
+app/Services/SolicitacaoService.php: prazoDeResposta(inicio) tenta o prazo normal e o curto e só
+  aceita o que deixar o tempo mínimo ao admin (senão null = presencial); vencerPendentes usa o
+  responder_ate gravado; avisar() grava manter_ate (pedirParaManter: aviso + 12 h, no máximo até 1 h
+  antes; não pergunta de novo nem quando já falta menos de 1 h) e gera os links de MANTER e
+  CANCELAR; resumoParaManter, podeManter e manter (token, trava de linha, 409 fora do prazo).
+app/Constants/FinalidadeTokenConstant.php (MANTER) e TokenReservaService (link /reservas/manter).
+app/Http/Controllers/ManterReservaController.php e GET/POST /api/reservas/manter/{token} (10/min).
+app/Services/ReservaService.php: anexarSolicitacoes grava responder_ate; revogarNaoConfirmadas
+  também revoga quem passou do manter_ate sem mantida_em ("Equipamento não liberado e a reserva
+  não foi mantida."), antes das outras revogações e sem repetir a mesma reserva.
+app/Http/Requests/StoreReservaRequest.php: sem prazo possível → "Faltam poucas horas para a
+  reserva: peça o equipamento diretamente na coordenação."
+app/Services/EquipamentoService.php e EquipamentoController: solicitáveis respondem
+  {data, responder_ate}; sem prazo, lista vazia.
+app/Mail/SolicitacaoRespondidaMail.php e a view: assunto "Equipamento não liberado: confirme se
+  quer manter a reserva", "a reserva será cancelada em ... às ...", botão "Manter a reserva sem o
+  equipamento" e link de cancelar; sem pergunta, "a sua reserva do espaço continua valendo".
+app/Http/Resources/ReservaResource.php: manter_ate, mantida_em e solicitacao.responder_ate.
+tests/Feature/SolicitacaoTest.php: prazo normal/curto/presencial, recusa com pedido para manter,
+  manter pelo link e revogação de quem não manteve, prazo limitado a 1 h antes, vencimento no
+  prazo gravado (13 testes).
+
+FRONT
+publico: modelos (Solicitaveis, ResumoParaManter, manter_ate/mantida_em, responder_ate),
+  api-publica.service (consultarSolicitaveis com o prazo, resumoParaManter, manter),
+  manter-reserva/manter-reserva.ts (novo, rota /reservas/manter[/:token]; tira o token da barra),
+  pedidos-de-equipamento (texto novo, "A resposta chega até ...", aviso do pedido presencial),
+  reservar.html (texto da tela de sucesso), situacao-reserva (avisoParaManter) e minhas-reservas
+  (aviso com o prazo).
+admin: modelos (manter_ate/mantida_em), linha-do-tempo (prazo para manter e mantida), selos
+  ("Aguardando o aluno manter") na lista e no detalhe.
+Testes: reservar.spec (+1, presencial; o de pedido confere o prazo), situacao-reserva.spec (+1),
+  e2e pedido-equipamento (+1, manter pela página do link); api-falsa com responder_ate e a rota
+  de manter.
+
+Totais: 313 da API, 144 do front, 36 no navegador. Build: inicial 313,9 kB (82,6 kB transferidos).
