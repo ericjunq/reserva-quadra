@@ -1,12 +1,19 @@
 <div class="flex flex-wrap items-center justify-between gap-3">
   <h1 class="text-2xl font-semibold text-slate-900">Reservas</h1>
-  <button
-    type="button"
-    class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 hover:bg-azul/5"
-    (click)="atualizar()"
-  >
-    Atualizar
-  </button>
+  <div class="flex flex-wrap gap-2">
+    <a
+      routerLink="/admin/eventos/novo"
+      class="rounded-full bg-azul px-4 py-2 font-semibold text-white hover:bg-azul-medio"
+      >Novo evento</a
+    >
+    <button
+      type="button"
+      class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 hover:bg-azul/5"
+      (click)="atualizar()"
+    >
+      Atualizar
+    </button>
+  </div>
 </div>
 
 <section class="mt-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200" aria-label="Filtros">
@@ -60,7 +67,9 @@
       >
         <option value="">Todos</option>
         @for (espaco of espacos(); track espaco.id) {
-          <option [value]="espaco.id">{{ espaco.nome }}</option>
+          <option [value]="espaco.id" [selected]="espaco.id === filtrosDaUrl().espaco_id">
+            {{ espaco.nome }}
+          </option>
         }
       </select>
     </div>
@@ -75,7 +84,9 @@
       >
         <option value="">Todos</option>
         @for (curso of cursos(); track curso.id) {
-          <option [value]="curso.id">{{ curso.nome }}</option>
+          <option [value]="curso.id" [selected]="curso.id === filtrosDaUrl().curso_id">
+            {{ curso.nome }}
+          </option>
         }
       </select>
     </div>
