@@ -78,7 +78,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/datas-bloqueadas/{dataBloqueada}', [DataBloqueadaController::class, 'destroy']);
 
         Route::get('/reservas', [ReservaController::class, 'index']);
-        Route::get('/reservas/exportar', [ExportacaoReservasController::class, 'exportar']);
+        Route::post('/reservas/consulta', [ReservaController::class, 'index']);
+        Route::match(['get', 'post'], '/reservas/exportar', [ExportacaoReservasController::class, 'exportar']);
         Route::get('/reservas/exportar/colunas', [ExportacaoReservasController::class, 'colunas']);
         Route::get('/reservas/{reserva}', [ReservaController::class, 'show']);
         Route::post('/reservas/eventos', [ReservaController::class, 'storeEvento']);

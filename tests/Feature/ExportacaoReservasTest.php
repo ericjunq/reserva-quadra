@@ -54,6 +54,23 @@ class ExportacaoReservasTest extends TestCase
         ], $this->linhas($resposta));
     }
 
+    public function test_exporta_por_post_com_a_busca_fora_da_url(): void
+    {
+        $this->comoAdmin();
+
+        $maria = Aluno::factory()->create(['nome_completo' => 'Maria Souza']);
+        Reserva::factory()->create(['data_reserva' => '2026-11-10', 'aluno_id' => $maria->id]);
+        Reserva::factory()->create(['data_reserva' => '2026-11-10']);
+
+        $resposta = $this->post('/api/admin/reservas/exportar', ['busca' => 'souza', 'colunas' => ['curso']], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertDownload();
+
+        $linhas = $this->linhas($resposta);
+        $this->assertCount(2, $linhas);
+        $this->assertSame('Maria Souza', $linhas[1][6]);
+    }
+
     public function test_exporta_colunas_opcionais_escolhidas(): void
     {
         $admin = $this->comoAdmin();

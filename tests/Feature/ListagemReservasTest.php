@@ -114,6 +114,45 @@ class ListagemReservasTest extends TestCase
             ->assertJsonPath('data.0.revogada_por.id', $admin->id);
     }
 
+    public function test_busca_por_post_mantem_nome_e_ra_fora_da_url(): void
+    {
+        $this->comoAdmin();
+
+        $maria = Aluno::factory()->create(['nome_completo' => 'Maria Souza', 'registro_academico' => '2024000001']);
+        $daMaria = Reserva::factory()->create(['aluno_id' => $maria->id]);
+        Reserva::factory()->create();
+
+        $resposta = $this->postJson('/api/admin/reservas/consulta', ['busca' => 'souza', 'per_page' => 5])->assertOk()
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonStructure(['totais_por_status']);
+
+        $this->assertSame([$daMaria->id], $this->ids($resposta));
+        $this->postJson('/api/admin/reservas/consulta', ['status' => 'INVALIDO'])->assertUnprocessable();
+    }
+
+    public function test_situacao_da_confirmacao_vem_calculada(): void
+    {
+        $this->comoAdmin();
+
+        $aguardando = Reserva::factory()->create(['data_reserva' => '2026-11-10']);
+        $confirmada = Reserva::factory()->create(['data_reserva' => '2026-11-11', 'confirmada_em' => now()]);
+        $aguardandoDeNovo = Reserva::factory()->create(['data_reserva' => '2026-11-12', 'confirmada_em' => now(), 'reconfirmacao_pedida_em' => now()]);
+        $reconfirmada = Reserva::factory()->create(['data_reserva' => '2026-11-13', 'confirmada_em' => now(), 'reconfirmacao_pedida_em' => now(), 'reconfirmada_em' => now()]);
+        $evento = Reserva::factory()->evento()->create(['data_reserva' => '2026-11-16']);
+
+        $situacoes = collect($this->listar()->assertOk()->json('data'))->pluck('situacao_confirmacao', 'id');
+
+        $this->assertSame('AGUARDANDO_CONFIRMACAO', $situacoes[$aguardando->id]);
+        $this->assertSame('CONFIRMADA', $situacoes[$confirmada->id]);
+        $this->assertSame('AGUARDANDO_RECONFIRMACAO', $situacoes[$aguardandoDeNovo->id]);
+        $this->assertSame('RECONFIRMADA', $situacoes[$reconfirmada->id]);
+        $this->assertNull($situacoes[$evento->id]);
+
+        foreach (['AGUARDANDO_CONFIRMACAO' => $aguardando, 'RECONFIRMADA' => $reconfirmada] as $filtro => $reserva) {
+            $this->assertSame([$reserva->id], $this->ids($this->listar(['confirmacao' => $filtro])));
+        }
+    }
+
     public function test_evento_traz_quem_criou(): void
     {
         $this->comoAdmin();

@@ -56,6 +56,7 @@ class ReservaResource extends JsonResource
             'justificativa_revogacao' => $this->when($revogada, $this->justificativa_revogacao),
             'revogada_em'             => $this->when($revogada, $this->revogada_em),
             'cancelada_em'            => $this->when($this->status === StatusConstant::CANCELADO, $this->cancelada_em),
+            'situacao_confirmacao'    => $this->situacaoConfirmacao()?->value,
             'confirmar_ate'           => $this->confirmar_ate,
             'confirmada_em'           => $this->confirmada_em,
             'termos_aceitos_em'       => $this->termos_aceitos_em,

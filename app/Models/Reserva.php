@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Constants\HorarioReservaConstant;
+use App\Constants\SituacaoConfirmacaoConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Models\Concerns\AtualizaDisponibilidade;
@@ -99,6 +100,20 @@ class Reserva extends Model
     public function iniciada(): bool
     {
         return $this->inicio()->lte(now());
+    }
+
+    public function situacaoConfirmacao(): ?SituacaoConfirmacaoConstant
+    {
+        if ($this->tipo !== TipoReservaConstant::ALUNO) {
+            return null;
+        }
+
+        return match (true) {
+            $this->confirmada_em === null           => SituacaoConfirmacaoConstant::AGUARDANDO_CONFIRMACAO,
+            $this->reconfirmada_em !== null         => SituacaoConfirmacaoConstant::RECONFIRMADA,
+            $this->reconfirmacao_pedida_em !== null => SituacaoConfirmacaoConstant::AGUARDANDO_RECONFIRMACAO,
+            default                                 => SituacaoConfirmacaoConstant::CONFIRMADA,
+        };
     }
 
     public function tokens(): HasMany
