@@ -282,6 +282,19 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
     if (caminho === '/espacos/4/disponibilidade') {
       return json({ data: calendarioLivre(url.searchParams.get('de')!) });
     }
+    if (caminho === '/espacos/1/equipamentos/solicitaveis') {
+      return json({
+        data: [
+          {
+            id: 5,
+            nome: 'Microscópio',
+            espaco: 'Laboratório de Informática',
+            total: 2,
+            disponivel: 2,
+          },
+        ],
+      });
+    }
     if (caminho === '/espacos/4/equipamentos/disponibilidade') {
       return json({ data: [{ id: 5, nome: 'Microscópio', total: 2, disponivel: 2 }] });
     }
@@ -411,7 +424,10 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
     }
     if (caminho === '/admin/reservas/consulta') {
       const corpo = requisicao.postDataJSON();
-      const lista = corpo.busca && !'Carla Dias'.includes(corpo.busca) ? [] : [reservaDoAdmin];
+      const lista =
+        (corpo.busca && !'Carla Dias'.includes(corpo.busca)) || corpo.solicitacao
+          ? []
+          : [reservaDoAdmin];
       return json({
         data: lista,
         meta: { current_page: 1, last_page: 1, total: lista.length, per_page: 15 },
