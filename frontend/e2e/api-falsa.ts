@@ -15,6 +15,7 @@ const segundaSeguinte = somarDias(segundaAtual, 7);
 
 export const datas = {
   hoje: paraIso(hoje),
+  ontem: paraIso(somarDias(hoje, -1)),
   segundaAtual: paraIso(segundaAtual),
   sextaAtual: paraIso(somarDias(segundaAtual, 4)),
   segundaSeguinte: paraIso(segundaSeguinte),
@@ -213,6 +214,7 @@ const reservaDoAluno = {
 
 const reservaDoAdmin = {
   ...reservaDoAluno,
+  origem: 'SITE',
   descricao: null,
   aluno: {
     id: 3,
@@ -251,6 +253,7 @@ export async function entrarComoAdmin(page: Page): Promise<void> {
 export async function prepararApi(page: Page): Promise<Chamada[]> {
   const chamadas: Chamada[] = [];
   let eventoCriado: Record<string, unknown> | null = null;
+  let usoRegistrado: Record<string, unknown> | null = null;
 
   await page.route('**/api/**', async (route: Route) => {
     const requisicao = route.request();
@@ -384,6 +387,24 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         criado_por: { id: 1, nome: 'Eric' },
       };
       return json({ data: eventoCriado }, 201);
+    }
+    if (caminho === '/admin/reservas/registro-posterior') {
+      const corpo = requisicao.postDataJSON();
+      usoRegistrado = {
+        ...reservaDoAdmin,
+        id: 41,
+        origem: 'REGISTRO_POSTERIOR',
+        data_reserva: corpo.data_reserva,
+        hora_inicio: corpo.hora_inicio,
+        hora_fim: corpo.hora_fim,
+        situacao_confirmacao: null,
+        confirmar_ate: null,
+        criado_por: { id: 1, nome: 'Eric' },
+      };
+      return json({ data: usoRegistrado, aviso: null }, 201);
+    }
+    if (caminho === '/admin/reservas/41' && usoRegistrado) {
+      return json({ data: usoRegistrado });
     }
     if (caminho === '/admin/reservas/31' && eventoCriado) {
       return json({ data: eventoCriado });
