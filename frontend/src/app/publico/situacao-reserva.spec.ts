@@ -18,6 +18,33 @@ function reserva(dados: Partial<ReservaDoAluno> = {}): ReservaDoAluno {
   };
 }
 
+describe('pedidos de equipamento', () => {
+  it('descreve cada situação e diz se o item vale na reserva', async () => {
+    const { descreverSolicitacao, itemValeNaReserva } = await import('./situacao-reserva');
+    expect(descreverSolicitacao(null)).toBeNull();
+    expect(
+      descreverSolicitacao({ situacao: 'AGUARDANDO', justificativa: null, respondida_em: null }),
+    ).toBe('pedido aguardando aprovação');
+    expect(
+      descreverSolicitacao({
+        situacao: 'RECUSADA',
+        justificativa: 'Em manutenção.',
+        respondida_em: null,
+      }),
+    ).toBe('pedido recusado: Em manutenção.');
+    expect(
+      descreverSolicitacao({ situacao: 'VENCIDA', justificativa: null, respondida_em: null }),
+    ).toBe('pedido sem resposta');
+    expect(itemValeNaReserva(null)).toBe(true);
+    expect(
+      itemValeNaReserva({ situacao: 'APROVADA', justificativa: null, respondida_em: null }),
+    ).toBe(true);
+    expect(
+      itemValeNaReserva({ situacao: 'RECUSADA', justificativa: null, respondida_em: null }),
+    ).toBe(false);
+  });
+});
+
 describe('situação da reserva', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });

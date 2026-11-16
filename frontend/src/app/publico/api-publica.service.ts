@@ -6,6 +6,7 @@ import {
   Calendario,
   Curso,
   EquipamentoDisponivel,
+  EquipamentoSolicitavel,
   Espaco,
   NovaReserva,
   NovoAluno,
@@ -102,6 +103,25 @@ export class ApiPublicaService {
     return this.http
       .get<Resposta<EquipamentoDisponivel[]>>(
         `${this.url}/espacos/${espacoId}/equipamentos/disponibilidade`,
+        {
+          params: new HttpParams()
+            .set('data', data)
+            .set('hora_inicio', inicio)
+            .set('hora_fim', fim),
+        },
+      )
+      .pipe(map((resposta) => resposta.data));
+  }
+
+  consultarSolicitaveis(
+    espacoId: number,
+    data: string,
+    inicio: string,
+    fim: string,
+  ): Observable<EquipamentoSolicitavel[]> {
+    return this.http
+      .get<Resposta<EquipamentoSolicitavel[]>>(
+        `${this.url}/espacos/${espacoId}/equipamentos/solicitaveis`,
         {
           params: new HttpParams()
             .set('data', data)

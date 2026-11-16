@@ -32,6 +32,12 @@
           Na confirmação, você lê e aceita os termos de uso e o aviso de privacidade. Sem ela, a
           reserva é cancelada e o horário fica livre.
         </p>
+        @if (comPedidos()) {
+          <p class="mt-2">
+            O pedido de equipamento de outro espaço depende da aprovação da administração. Você
+            recebe a resposta por email; a reserva do espaço vale de qualquer jeito.
+          </p>
+        }
       </div>
       <p class="mt-2 text-sm text-slate-600">
         Não vai mais usar? Cancele pelo link do email, até o horário de início.
@@ -172,6 +178,12 @@
           }
         </section>
 
+        <app-pedidos-de-equipamento
+          [intervalo]="intervaloDosPedidos()"
+          [(pedidos)]="pedidos"
+          [(nomes)]="nomesDosPedidos"
+        />
+
         <button
           type="submit"
           class="w-full rounded-full bg-azul px-6 py-3 font-semibold text-white hover:bg-azul-medio disabled:opacity-60 sm:w-auto"
@@ -216,6 +228,16 @@
               }
             </dd>
           </div>
+          @if (pedidosEscolhidos().length) {
+            <div>
+              <dt class="text-slate-300">Pedidos (dependem de aprovação)</dt>
+              <dd class="font-semibold">
+                @for (pedido of pedidosEscolhidos(); track pedido.id) {
+                  <span class="block">{{ pedido.quantidade }}× {{ pedido.nome }}</span>
+                }
+              </dd>
+            </div>
+          }
         </dl>
         <div class="mt-4 h-1 w-12 -skew-x-12 rounded-sm bg-amarelo" aria-hidden="true"></div>
       </aside>

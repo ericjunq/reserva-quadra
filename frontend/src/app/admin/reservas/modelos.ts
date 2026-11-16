@@ -1,4 +1,10 @@
-import { SituacaoDevolucao, StatusReserva, TipoEspaco } from '../../publico/modelos';
+import {
+  SituacaoDevolucao,
+  SituacaoSolicitacao,
+  Solicitacao,
+  StatusReserva,
+  TipoEspaco,
+} from '../../publico/modelos';
 
 export type SituacaoConfirmacao =
   'AGUARDANDO_CONFIRMACAO' | 'CONFIRMADA' | 'AGUARDANDO_RECONFIRMACAO' | 'RECONFIRMADA';
@@ -25,6 +31,7 @@ export interface EquipamentoDaReserva {
     observacao: string | null;
     devolvido_em: string | null;
   };
+  solicitacao?: Solicitacao | null;
 }
 
 export interface ReservaAdmin {
@@ -74,6 +81,7 @@ export interface FiltrosReservas {
   confirmacao?: SituacaoConfirmacao;
   devolucao?: SituacaoDevolucao;
   origem?: OrigemReserva;
+  solicitacao?: SituacaoSolicitacao;
   busca?: string;
 }
 

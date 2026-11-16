@@ -6,11 +6,13 @@ import { Observable, catchError, map, of, startWith, switchMap } from 'rxjs';
 import { AvisoErro } from '../../../compartilhado/aviso-erro/aviso-erro';
 import { ErroApi } from '../../../nucleo/erro-api';
 import { formatarDia } from '../../../publico/datas';
+import { descreverSolicitacao, itemValeNaReserva } from '../../../publico/situacao-reserva';
 import { jaComecou, linhaDoTempo } from '../linha-do-tempo';
 import { ReservaAdmin } from '../modelos';
 import { ReservasAdminService } from '../reservas-admin.service';
 import { NOMES_DAS_DEVOLUCOES, SelosReserva } from '../selos';
 import { RegistrarDevolucao } from './registrar-devolucao';
+import { ResponderSolicitacao } from './responder-solicitacao';
 import { RevogarReserva } from './revogar-reserva';
 
 type Resultado =
@@ -20,7 +22,7 @@ type Resultado =
 
 @Component({
   selector: 'app-detalhe-reserva',
-  imports: [AvisoErro, SelosReserva, RevogarReserva, RegistrarDevolucao],
+  imports: [AvisoErro, SelosReserva, RevogarReserva, RegistrarDevolucao, ResponderSolicitacao],
   templateUrl: './detalhe-reserva.html',
 })
 export class DetalheReserva {
@@ -35,6 +37,8 @@ export class DetalheReserva {
 
   protected readonly formatarDia = formatarDia;
   protected readonly nomesDasDevolucoes = NOMES_DAS_DEVOLUCOES;
+  protected readonly descreverSolicitacao = descreverSolicitacao;
+  protected readonly itemValeNaReserva = itemValeNaReserva;
 
   private readonly carregado = toSignal(
     toObservable(this.id).pipe(switchMap((id) => this.buscar(id))),
@@ -60,7 +64,7 @@ export class DetalheReserva {
     return (
       !!reserva &&
       reserva.status === 'RESERVADO' &&
-      !!reserva.equipamentos?.length &&
+      !!reserva.equipamentos?.some((e) => itemValeNaReserva(e.solicitacao)) &&
       jaComecou(reserva)
     );
   });

@@ -143,6 +143,23 @@
     </div>
 
     <div>
+      <label for="filtro-solicitacao" class="block text-sm font-semibold text-slate-900"
+        >Pedido de equipamento</label
+      >
+      <select
+        id="filtro-solicitacao"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtrosDaUrl().solicitacao ?? ''"
+        (change)="filtrar({ solicitacao: $any($event.target).value })"
+      >
+        <option value="">Qualquer</option>
+        @for (situacao of solicitacoes; track situacao) {
+          <option [value]="situacao">{{ nomesDasSolicitacoes[situacao] }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
       <label for="filtro-devolucao" class="block text-sm font-semibold text-slate-900"
         >Devolução</label
       >
@@ -262,6 +279,8 @@
                       [status]="reserva.status"
                       [confirmacao]="reserva.situacao_confirmacao"
                       [origem]="reserva.origem"
+                      [pedidoAguardando]="temPedidoAguardando(reserva)"
+                      [pedidoAguardando]="temPedidoAguardando(reserva)"
                     />
                   </td>
                 </tr>

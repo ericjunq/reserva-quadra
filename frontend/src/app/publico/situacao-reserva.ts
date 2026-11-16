@@ -1,5 +1,5 @@
 import { formatarDataHora, paraIso } from './datas';
-import { ReservaDoAluno, SituacaoDevolucao, StatusReserva } from './modelos';
+import { ReservaDoAluno, SituacaoDevolucao, Solicitacao, StatusReserva } from './modelos';
 
 const NOMES_DOS_STATUS: Record<StatusReserva, string> = {
   RESERVADO: 'Reservada',
@@ -33,6 +33,27 @@ export function descreverConfirmacao(reserva: ReservaDoAluno): string | null {
       : 'Confirme de novo pelo email';
   }
   return reserva.reconfirmada_em ? 'Confirmada de novo' : 'Confirmada';
+}
+
+export function descreverSolicitacao(solicitacao: Solicitacao | null | undefined): string | null {
+  switch (solicitacao?.situacao) {
+    case 'AGUARDANDO':
+      return 'pedido aguardando aprovação';
+    case 'APROVADA':
+      return 'pedido aprovado';
+    case 'RECUSADA':
+      return solicitacao.justificativa
+        ? `pedido recusado: ${solicitacao.justificativa}`
+        : 'pedido recusado';
+    case 'VENCIDA':
+      return 'pedido sem resposta';
+    default:
+      return null;
+  }
+}
+
+export function itemValeNaReserva(solicitacao: Solicitacao | null | undefined): boolean {
+  return !solicitacao || solicitacao.situacao === 'APROVADA';
 }
 
 export function descreverDevolucao(

@@ -193,6 +193,65 @@ describe('Reservar', () => {
     expect(pagina.querySelector('#ra')).toBeNull();
   });
 
+  it('pede equipamento de outro espaço, mostra no resumo e manda em solicitacoes', async () => {
+    await abrir(quadra, { data: '2026-11-12', horario: 'PRIMEIRO_HORARIO' }, [horarioFixo()]);
+
+    const detalhes = pagina.querySelectorAll('details');
+    const pedidos = detalhes[detalhes.length - 1] as HTMLDetailsElement;
+    expect(pedidos.textContent).toContain('Pedir equipamento de outro espaço');
+    expect(pedidos.textContent).toContain('A reserva do espaço vale de qualquer jeito.');
+    pedidos.open = true;
+    pedidos.dispatchEvent(new Event('toggle'));
+    await responder(
+      `${url}/espacos/1/equipamentos/solicitaveis?data=2026-11-12&hora_inicio=19:00&hora_fim=20:30`,
+      {
+        data: [
+          {
+            id: 7,
+            nome: 'Projetor',
+            espaco: 'Laboratório de Informática',
+            total: 2,
+            disponivel: 1,
+          },
+        ],
+      },
+    );
+    expect(pedidos.textContent).toContain('Do espaço Laboratório de Informática');
+
+    clicar('Pedir mais Projetor');
+    clicar('Pedir mais Projetor');
+    await estabilizar();
+    expect(pagina.querySelector('aside')?.textContent).toContain('Pedidos (dependem de aprovação)');
+    expect(pagina.querySelector('aside')?.textContent).toContain('1× Projetor');
+
+    digitarRa('2024000001');
+    enviar();
+    const corpo = await responder(
+      `${url}/reservas`,
+      {
+        data: {
+          id: 9,
+          data_reserva: '2026-11-12',
+          hora_inicio: '19:00',
+          hora_fim: '20:30',
+          confirmar_ate: '2026-11-11T13:00:00.000000Z',
+          confirmada_em: null,
+        },
+      },
+      201,
+    );
+    expect(corpo).toEqual({
+      registro_academico: '2024000001',
+      espaco_id: 1,
+      data_reserva: '2026-11-12',
+      horario: 'PRIMEIRO_HORARIO',
+      solicitacoes: [{ id: 7, quantidade: 1 }],
+    });
+    expect(pagina.textContent).toContain(
+      'O pedido de equipamento de outro espaço depende da aprovação',
+    );
+  });
+
   it('usa o RA já informado no calendário e o esquece depois de reservar', async () => {
     const memoria = TestBed.inject(RaEmMemoriaService);
     memoria.lembrar('2024000001');

@@ -12,6 +12,7 @@ import { diasDoPeriodo, filtrosDaUrl } from './filtros';
 import { jaComecou, linhaDoTempo } from './linha-do-tempo';
 import { ListaReservas } from './lista-reservas/lista-reservas';
 import { RegistrarUso } from './registrar-uso/registrar-uso';
+import { Painel } from '../painel/painel';
 import { PaginaReservasAdmin, ReservaAdmin } from './modelos';
 
 const url = ambiente.urlApi;
@@ -498,6 +499,191 @@ describe('reservas do admin', () => {
       const texto = fixture.nativeElement.textContent as string;
       expect(texto).toContain('Registro posterior');
       expect(texto).toContain('Grupo: Turma de Enfermagem');
+    });
+
+    it('admin recusa um pedido no detalhe e a devolução mostra só os itens que valem', async () => {
+      const comPedidos = reserva({
+        data_reserva: ontem,
+        equipamentos: [
+          {
+            id: 5,
+            nome: 'Bola de futsal',
+            quantidade: 1,
+            devolucao: {
+              situacao: 'PENDENTE',
+              quantidade_devolvida: null,
+              observacao: null,
+              devolvido_em: null,
+            },
+            solicitacao: null,
+          },
+          {
+            id: 7,
+            nome: 'Projetor',
+            quantidade: 1,
+            devolucao: {
+              situacao: 'PENDENTE',
+              quantidade_devolvida: null,
+              observacao: null,
+              devolvido_em: null,
+            },
+            solicitacao: { situacao: 'AGUARDANDO', justificativa: null, respondida_em: null },
+          },
+          {
+            id: 8,
+            nome: 'Caixa de som',
+            quantidade: 1,
+            devolucao: {
+              situacao: 'PENDENTE',
+              quantidade_devolvida: null,
+              observacao: null,
+              devolvido_em: null,
+            },
+            solicitacao: {
+              situacao: 'RECUSADA',
+              justificativa: 'Em manutenção.',
+              respondida_em: null,
+            },
+          },
+        ],
+      });
+      const fixture = TestBed.createComponent(DetalheReserva);
+      fixture.componentRef.setInput('id', '7');
+      await estabilizar(fixture);
+      controle.expectOne(`${url}/admin/reservas/7`).flush({ data: comPedidos });
+      await estabilizar(fixture);
+
+      const elemento = fixture.nativeElement as HTMLElement;
+      expect(elemento.textContent).toContain('De outro espaço: pedido aguardando aprovação');
+      expect(elemento.textContent).toContain('De outro espaço: pedido recusado: Em manutenção.');
+      expect(elemento.querySelector('#situacao-5')).not.toBeNull();
+      expect(elemento.querySelector('#situacao-7')).toBeNull();
+      expect(elemento.querySelector('#situacao-8')).toBeNull();
+
+      [...elemento.querySelectorAll('button')]
+        .find((b) => b.textContent?.includes('Recusar pedido'))!
+        .click();
+      await estabilizar(fixture);
+      const motivo = elemento.querySelector('#motivo-7') as HTMLTextAreaElement;
+      motivo.value = 'Projetor reservado para a coordenação.';
+      motivo.dispatchEvent(new Event('input'));
+      await estabilizar(fixture);
+      [...elemento.querySelectorAll('form')]
+        .find((f) => f.textContent?.includes('Confirmar recusa'))!
+        .dispatchEvent(new Event('submit'));
+      const recusa = controle.expectOne(`${url}/admin/reservas/7/solicitacoes/7/recusar`);
+      expect(recusa.request.body).toEqual({
+        justificativa: 'Projetor reservado para a coordenação.',
+      });
+      recusa.flush({
+        data: {
+          ...comPedidos,
+          equipamentos: comPedidos.equipamentos!.map((e) =>
+            e.id === 7
+              ? {
+                  ...e,
+                  solicitacao: {
+                    situacao: 'RECUSADA',
+                    justificativa: 'Projetor reservado para a coordenação.',
+                    respondida_em: null,
+                  },
+                }
+              : e,
+          ),
+        },
+      });
+      await estabilizar(fixture);
+      expect(elemento.textContent).toContain(
+        'De outro espaço: pedido recusado: Projetor reservado para a coordenação.',
+      );
+      expect(elemento.textContent).not.toContain('Aprovar pedido');
+    });
+
+    it('admin aprova um pedido e o item passa a valer na devolução', async () => {
+      const comPedido = reserva({
+        data_reserva: ontem,
+        equipamentos: [
+          {
+            id: 7,
+            nome: 'Projetor',
+            quantidade: 1,
+            devolucao: {
+              situacao: 'PENDENTE',
+              quantidade_devolvida: null,
+              observacao: null,
+              devolvido_em: null,
+            },
+            solicitacao: { situacao: 'AGUARDANDO', justificativa: null, respondida_em: null },
+          },
+        ],
+      });
+      const fixture = TestBed.createComponent(DetalheReserva);
+      fixture.componentRef.setInput('id', '7');
+      await estabilizar(fixture);
+      controle.expectOne(`${url}/admin/reservas/7`).flush({ data: comPedido });
+      await estabilizar(fixture);
+      const elemento = fixture.nativeElement as HTMLElement;
+      expect(elemento.textContent).not.toContain('Registrar a devolução');
+
+      [...elemento.querySelectorAll('button')]
+        .find((b) => b.textContent?.includes('Aprovar pedido'))!
+        .click();
+      controle.expectOne(`${url}/admin/reservas/7/solicitacoes/7/aprovar`).flush({
+        data: {
+          ...comPedido,
+          equipamentos: comPedido.equipamentos!.map((e) => ({
+            ...e,
+            solicitacao: { situacao: 'APROVADA', justificativa: null, respondida_em: null },
+          })),
+        },
+      });
+      await estabilizar(fixture);
+      expect(elemento.textContent).toContain('De outro espaço: pedido aprovado');
+      expect(elemento.textContent).toContain('Registrar a devolução');
+      expect(elemento.querySelector('#situacao-7')).not.toBeNull();
+    });
+
+    it('lista mostra o selo de pedido aguardando e o painel conta os pedidos', async () => {
+      const fixture = TestBed.createComponent(ListaReservas);
+      fixture.componentRef.setInput('solicitacao', 'AGUARDANDO');
+      await estabilizar(fixture);
+      controle.expectOne(`${url}/espacos`).flush({ data: [] });
+      controle.expectOne(`${url}/cursos`).flush({ data: [] });
+      const consulta = controle.expectOne(`${url}/admin/reservas/consulta`);
+      expect(consulta.request.body).toEqual({ solicitacao: 'AGUARDANDO', page: 1 });
+      consulta.flush(
+        pagina([
+          reserva({
+            equipamentos: [
+              {
+                id: 7,
+                nome: 'Projetor',
+                quantidade: 1,
+                devolucao: {
+                  situacao: 'PENDENTE',
+                  quantidade_devolvida: null,
+                  observacao: null,
+                  devolvido_em: null,
+                },
+                solicitacao: { situacao: 'AGUARDANDO', justificativa: null, respondida_em: null },
+              },
+            ],
+          }),
+        ]),
+      );
+      await estabilizar(fixture);
+      expect(fixture.nativeElement.textContent).toContain('Pedido de equipamento');
+
+      const painel = TestBed.createComponent(Painel);
+      await estabilizar(painel);
+      const contagem = controle.expectOne(`${url}/admin/reservas/consulta`);
+      expect(contagem.request.body).toEqual({ solicitacao: 'AGUARDANDO', page: 1, per_page: 1 });
+      contagem.flush({
+        ...pagina([]),
+        meta: { current_page: 1, last_page: 3, total: 3, per_page: 1 },
+      });
+      await estabilizar(painel);
+      expect(painel.nativeElement.textContent).toContain('3 pedidos de equipamento aguardando');
     });
 
     it('não exporta mais de 366 dias', async () => {

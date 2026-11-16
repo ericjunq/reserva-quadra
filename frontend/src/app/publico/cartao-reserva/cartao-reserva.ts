@@ -1,7 +1,7 @@
 import { Component, input } from '@angular/core';
 import { formatarDia } from '../datas';
 import { ReservaDoAluno } from '../modelos';
-import { descreverDevolucao } from '../situacao-reserva';
+import { descreverDevolucao, descreverSolicitacao, itemValeNaReserva } from '../situacao-reserva';
 
 @Component({
   selector: 'app-cartao-reserva',
@@ -16,8 +16,13 @@ import { descreverDevolucao } from '../situacao-reserva';
         @for (equipamento of item.equipamentos; track equipamento.id) {
           <li>
             {{ equipamento.nome }} × {{ equipamento.quantidade }}
-            @if (descreverDevolucao(item, equipamento.devolucao.situacao); as devolucao) {
-              <span class="text-slate-600">· {{ devolucao }}</span>
+            @if (descreverSolicitacao(equipamento.solicitacao); as pedido) {
+              <span class="text-slate-600">· {{ pedido }}</span>
+            }
+            @if (itemValeNaReserva(equipamento.solicitacao)) {
+              @if (descreverDevolucao(item, equipamento.devolucao.situacao); as devolucao) {
+                <span class="text-slate-600">· {{ devolucao }}</span>
+              }
             }
           </li>
         }
@@ -31,4 +36,6 @@ export class CartaoReserva {
 
   protected readonly formatarDia = formatarDia;
   protected readonly descreverDevolucao = descreverDevolucao;
+  protected readonly descreverSolicitacao = descreverSolicitacao;
+  protected readonly itemValeNaReserva = itemValeNaReserva;
 }

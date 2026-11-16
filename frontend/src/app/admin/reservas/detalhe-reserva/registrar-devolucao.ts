@@ -5,6 +5,7 @@ import { ErroApi } from '../../../nucleo/erro-api';
 import { ItemDevolucao, ReservaAdmin } from '../modelos';
 import { ReservasAdminService } from '../reservas-admin.service';
 import { NOMES_DAS_DEVOLUCOES } from '../selos';
+import { itemValeNaReserva } from '../../../publico/situacao-reserva';
 
 type Situacao = ItemDevolucao['situacao'];
 
@@ -106,8 +107,12 @@ export class RegistrarDevolucao {
   protected readonly erro = signal<ErroApi | null>(null);
   protected readonly mensagem = signal<string | null>(null);
 
+  private readonly equipamentosDaDevolucao = computed(() =>
+    (this.reserva().equipamentos ?? []).filter((e) => itemValeNaReserva(e.solicitacao)),
+  );
+
   protected readonly itens = linkedSignal<ItemDevolucao[]>(() =>
-    (this.reserva().equipamentos ?? []).map((equipamento) => ({
+    this.equipamentosDaDevolucao().map((equipamento) => ({
       equipamento_id: equipamento.id,
       situacao:
         equipamento.devolucao.situacao && equipamento.devolucao.situacao !== 'PENDENTE'
@@ -119,11 +124,11 @@ export class RegistrarDevolucao {
   );
 
   protected readonly nomes = computed(() =>
-    Object.fromEntries((this.reserva().equipamentos ?? []).map((e) => [e.id, e.nome])),
+    Object.fromEntries(this.equipamentosDaDevolucao().map((e) => [e.id, e.nome])),
   );
 
   protected readonly quantidades = computed(() =>
-    Object.fromEntries((this.reserva().equipamentos ?? []).map((e) => [e.id, e.quantidade])),
+    Object.fromEntries(this.equipamentosDaDevolucao().map((e) => [e.id, e.quantidade])),
   );
 
   protected mudar(indice: number, mudanca: Partial<ItemDevolucao>): void {

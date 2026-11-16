@@ -23,15 +23,17 @@ import {
   DEVOLUCOES,
   ORIGENS,
   PERIODOS,
+  SOLICITACOES,
   ParametrosDaUrl,
   STATUS,
   filtrosDaUrl,
 } from '../filtros';
-import { FiltrosReservas, PaginaReservasAdmin } from '../modelos';
+import { FiltrosReservas, PaginaReservasAdmin, ReservaAdmin } from '../modelos';
 import { ReservasAdminService } from '../reservas-admin.service';
 import {
   NOMES_DAS_DEVOLUCOES,
   NOMES_DAS_ORIGENS,
+  NOMES_DAS_SOLICITACOES,
   SELOS_DE_CONFIRMACAO,
   SELOS_DE_STATUS,
   SelosReserva,
@@ -68,6 +70,7 @@ export class ListaReservas {
   readonly confirmacao = input<string>();
   readonly devolucao = input<string>();
   readonly origem = input<string>();
+  readonly solicitacao = input<string>();
   readonly pagina = input<string>();
 
   protected readonly busca = signal('');
@@ -83,6 +86,12 @@ export class ListaReservas {
   protected readonly nomesDasDevolucoes = NOMES_DAS_DEVOLUCOES;
   protected readonly origens = ORIGENS;
   protected readonly nomesDasOrigens = NOMES_DAS_ORIGENS;
+  protected readonly solicitacoes = SOLICITACOES;
+  protected readonly nomesDasSolicitacoes = NOMES_DAS_SOLICITACOES;
+
+  protected temPedidoAguardando(reserva: ReservaAdmin): boolean {
+    return !!reserva.equipamentos?.some((e) => e.solicitacao?.situacao === 'AGUARDANDO');
+  }
   protected readonly formatarDia = formatarDia;
 
   protected readonly espacos = toSignal(
@@ -107,6 +116,7 @@ export class ListaReservas {
       confirmacao: this.confirmacao(),
       devolucao: this.devolucao(),
       origem: this.origem(),
+      solicitacao: this.solicitacao(),
     }),
   );
 

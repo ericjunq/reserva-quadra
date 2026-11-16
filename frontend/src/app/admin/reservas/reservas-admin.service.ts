@@ -22,11 +22,34 @@ export class ReservasAdminService {
   private readonly http = inject(HttpClient);
   private readonly url = `${ambiente.urlApi}/admin/reservas`;
 
-  consultar(filtros: FiltrosReservas, pagina: number): Observable<PaginaReservasAdmin> {
+  consultar(
+    filtros: FiltrosReservas,
+    pagina: number,
+    porPagina?: number,
+  ): Observable<PaginaReservasAdmin> {
     return this.http.post<PaginaReservasAdmin>(`${this.url}/consulta`, {
       ...filtros,
       page: pagina,
+      ...(porPagina ? { per_page: porPagina } : {}),
     });
+  }
+
+  aprovarSolicitacao(id: number, equipamentoId: number): Observable<ReservaAdmin> {
+    return this.http
+      .post<Resposta<ReservaAdmin>>(`${this.url}/${id}/solicitacoes/${equipamentoId}/aprovar`, {})
+      .pipe(map((resposta) => resposta.data));
+  }
+
+  recusarSolicitacao(
+    id: number,
+    equipamentoId: number,
+    justificativa: string,
+  ): Observable<ReservaAdmin> {
+    return this.http
+      .post<Resposta<ReservaAdmin>>(`${this.url}/${id}/solicitacoes/${equipamentoId}/recusar`, {
+        justificativa,
+      })
+      .pipe(map((resposta) => resposta.data));
   }
 
   detalhar(id: number): Observable<ReservaAdmin> {

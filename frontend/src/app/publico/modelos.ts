@@ -13,6 +13,22 @@ export interface Espaco {
   duracao_maxima_minutos: number | null;
 }
 
+export interface EquipamentoSolicitavel {
+  id: number;
+  nome: string;
+  espaco: string;
+  total: number;
+  disponivel: number;
+}
+
+export type SituacaoSolicitacao = 'AGUARDANDO' | 'APROVADA' | 'RECUSADA' | 'VENCIDA';
+
+export interface Solicitacao {
+  situacao: SituacaoSolicitacao;
+  justificativa: string | null;
+  respondida_em: string | null;
+}
+
 export interface Curso {
   id: number;
   nome: string;
@@ -95,6 +111,7 @@ export interface NovaReserva {
   hora_inicio?: string;
   hora_fim?: string;
   equipamentos?: { id: number; quantidade: number }[];
+  solicitacoes?: { id: number; quantidade: number }[];
 }
 
 export interface ReservaCriada {
@@ -129,6 +146,7 @@ export interface ReservaDoAluno {
     nome: string;
     quantidade: number;
     devolucao: { situacao: SituacaoDevolucao | null; observacao: string | null };
+    solicitacao?: Solicitacao | null;
   }[];
   justificativa_revogacao?: string | null;
   confirmar_ate: string | null;

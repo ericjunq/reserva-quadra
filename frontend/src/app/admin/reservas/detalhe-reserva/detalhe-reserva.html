@@ -136,7 +136,25 @@
                   <p class="text-slate-900">
                     {{ equipamento.nome }} × {{ equipamento.quantidade }}
                   </p>
-                  @if (equipamento.devolucao.situacao; as situacao) {
+                  @if (descreverSolicitacao(equipamento.solicitacao); as pedido) {
+                    <p class="text-sm font-semibold text-violet-900">
+                      De outro espaço: {{ pedido }}
+                    </p>
+                  }
+                  @if (
+                    equipamento.solicitacao?.situacao === 'AGUARDANDO' &&
+                    reserva.status === 'RESERVADO'
+                  ) {
+                    <app-responder-solicitacao
+                      [reservaId]="reserva.id"
+                      [equipamentoId]="equipamento.id"
+                      (respondida)="atualizar($event)"
+                    />
+                  }
+                  @if (
+                    itemValeNaReserva(equipamento.solicitacao) && equipamento.devolucao.situacao;
+                    as situacao
+                  ) {
                     <p class="text-sm text-slate-700">
                       {{ nomesDasDevolucoes[situacao] }}
                       @if (equipamento.devolucao.quantidade_devolvida !== null) {

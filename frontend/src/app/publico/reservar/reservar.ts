@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  linkedSignal,
   signal,
   untracked,
 } from '@angular/core';
@@ -29,6 +30,7 @@ import {
   switchMap,
 } from 'rxjs';
 import { AvisoErro } from '../../compartilhado/aviso-erro/aviso-erro';
+import { Intervalo, PedidosDeEquipamento, pedidosEscolhidos } from './pedidos-de-equipamento';
 import { ErroApi } from '../../nucleo/erro-api';
 import { ApiPublicaService } from '../api-publica.service';
 import { AtualizacaoDisponibilidadeService } from '../atualizacao-disponibilidade.service';
@@ -75,6 +77,7 @@ const HORARIOS: Horario[] = ['PRIMEIRO_HORARIO', 'SEGUNDO_HORARIO'];
 @Component({
   selector: 'app-reservar',
   imports: [
+    PedidosDeEquipamento,
     FormsModule,
     RouterLink,
     AvisoErro,
@@ -106,6 +109,7 @@ export class Reservar {
   protected readonly enviando = signal(false);
   protected readonly erro = signal<ErroApi | null>(null);
   protected readonly reservaCriada = signal<ReservaCriada | null>(null);
+  protected readonly comPedidos = signal(false);
   private readonly recarregar = signal(0);
 
   private readonly espacos = toSignal(
@@ -252,6 +256,28 @@ export class Reservar {
     return horario.equipamentos ?? this.equipamentosDoIntervalo() ?? [];
   });
 
+  protected readonly intervaloDosPedidos = computed<Intervalo | null>(() => {
+    const escolha = this.escolha();
+    const horario = this.horarioEscolhido();
+    return escolha && horario
+      ? {
+          espacoId: escolha.espaco.id,
+          data: escolha.data,
+          inicio: horario.inicio,
+          fim: horario.fim,
+        }
+      : null;
+  });
+
+  protected readonly pedidos = linkedSignal<Record<number, number>>(() => {
+    this.intervaloDosPedidos();
+    return {};
+  });
+  protected readonly nomesDosPedidos = signal<Record<number, string>>({});
+  protected readonly pedidosEscolhidos = computed(() =>
+    pedidosEscolhidos(this.pedidos(), this.nomesDosPedidos()),
+  );
+
   protected readonly itensEscolhidos = computed(() =>
     this.equipamentos()
       .map((equipamento) => ({ equipamento, quantidade: this.quantidades()[equipamento.id] ?? 0 }))
@@ -326,15 +352,21 @@ export class Reservar {
     if (itens.length) {
       reserva.equipamentos = itens;
     }
+    const pedidos = this.pedidosEscolhidos().map(({ id, quantidade }) => ({ id, quantidade }));
+    if (pedidos.length) {
+      reserva.solicitacoes = pedidos;
+    }
 
     this.enviando.set(true);
     this.erro.set(null);
     this.api.reservar(reserva).subscribe({
       next: (criada) => {
         this.enviando.set(false);
+        this.comPedidos.set(pedidos.length > 0);
         this.reservaCriada.set(criada);
         this.ra.set('');
         this.quantidades.set({});
+        this.pedidos.set({});
         this.raEmMemoria.esquecer();
       },
       error: (erro: ErroApi) => {

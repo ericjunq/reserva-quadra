@@ -1,11 +1,30 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { catchError, map, of } from 'rxjs';
+import { ReservasAdminService } from '../reservas/reservas-admin.service';
 
 @Component({
   selector: 'app-painel',
   imports: [RouterLink],
   template: `
     <h1 class="text-2xl font-semibold text-slate-900">Painel</h1>
+    @if (pedidosAguardando(); as total) {
+      <a
+        routerLink="/admin/reservas"
+        [queryParams]="{ solicitacao: 'AGUARDANDO' }"
+        class="mt-6 flex items-center justify-between rounded-2xl bg-violet-50 p-4 font-semibold text-violet-900 ring-1 ring-violet-200 hover:ring-violet-400"
+      >
+        <span
+          >{{ total }}
+          {{
+            total === 1 ? 'pedido de equipamento aguardando' : 'pedidos de equipamento aguardando'
+          }}
+          resposta</span
+        >
+        <span class="underline">Ver</span>
+      </a>
+    }
     <ul class="mt-6 grid gap-4 sm:grid-cols-2">
       <li>
         <a
@@ -33,4 +52,14 @@ import { RouterLink } from '@angular/router';
     <p class="mt-6 text-slate-600">Cadastros e histórico chegam nos próximos passos.</p>
   `,
 })
-export class Painel {}
+export class Painel {
+  private readonly reservas = inject(ReservasAdminService);
+
+  protected readonly pedidosAguardando = toSignal(
+    this.reservas.consultar({ solicitacao: 'AGUARDANDO' }, 1, 1).pipe(
+      map((pagina) => pagina.meta.total),
+      catchError(() => of(0)),
+    ),
+    { initialValue: 0 },
+  );
+}
