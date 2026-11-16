@@ -50,6 +50,16 @@ export const rotasAdmin: Routes = [
           import('./reservas/detalhe-reserva/detalhe-reserva').then((m) => m.DetalheReserva),
       },
       {
+        path: 'calendario',
+        title: 'Calendário · Administração',
+        loadComponent: () => import('./calendario/calendario-admin').then((m) => m.CalendarioAdmin),
+      },
+      {
+        path: 'eventos/novo',
+        title: 'Novo evento · Administração',
+        loadComponent: () => import('./eventos/novo-evento').then((m) => m.NovoEvento),
+      },
+      {
         path: 'minha-conta',
         title: 'Minha conta · Administração',
         loadComponent: () => import('./acesso/minha-conta').then((m) => m.MinhaConta),

@@ -18,8 +18,19 @@ import { RouterLink } from '@angular/router';
           >
         </a>
       </li>
+      <li>
+        <a
+          routerLink="/admin/calendario"
+          class="block rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 hover:ring-azul"
+        >
+          <span class="block text-lg font-semibold text-azul">Calendário</span>
+          <span class="text-slate-700"
+            >Ver a semana de cada espaço com quem reservou e criar eventos.</span
+          >
+        </a>
+      </li>
     </ul>
-    <p class="mt-6 text-slate-600">Calendário, cadastros e histórico chegam nos próximos passos.</p>
+    <p class="mt-6 text-slate-600">Cadastros e histórico chegam nos próximos passos.</p>
   `,
 })
 export class Painel {}

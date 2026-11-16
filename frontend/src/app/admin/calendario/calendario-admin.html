@@ -1,0 +1,171 @@
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-2xl font-semibold text-slate-900">Calendário</h1>
+  <div class="flex flex-wrap gap-2">
+    <a
+      routerLink="/admin/eventos/novo"
+      [queryParams]="{ espaco: espacoId() }"
+      class="rounded-full bg-azul px-4 py-2 font-semibold text-white hover:bg-azul-medio"
+      >Novo evento</a
+    >
+    <button
+      type="button"
+      class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 hover:bg-azul/5"
+      (click)="atualizar()"
+    >
+      Atualizar
+    </button>
+  </div>
+</div>
+
+<section
+  class="mt-6 flex flex-wrap items-end gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200"
+  aria-label="Espaço e semana"
+>
+  <div>
+    <label for="calendario-espaco" class="block text-sm font-semibold text-slate-900">Espaço</label>
+    <select
+      id="calendario-espaco"
+      class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+      [value]="espacoId() ?? ''"
+      (change)="trocarEspaco($any($event.target).value)"
+    >
+      @for (espaco of espacos() ?? []; track espaco.id) {
+        <option [value]="espaco.id" [selected]="espaco.id === espacoId()">
+          {{ espaco.nome }}{{ espaco.ativo ? '' : ' (desativado)' }}
+        </option>
+      }
+    </select>
+  </div>
+  <div class="flex items-center gap-2">
+    <button
+      type="button"
+      class="rounded-full px-3 py-2 font-semibold text-azul ring-1 ring-azul/40"
+      (click)="mudarSemana(-1)"
+    >
+      Semana anterior
+    </button>
+    <button
+      type="button"
+      class="rounded-full px-3 py-2 font-semibold text-azul ring-1 ring-azul/40"
+      (click)="mudarSemana(1)"
+    >
+      Próxima semana
+    </button>
+  </div>
+  <div>
+    <label for="calendario-dia" class="block text-sm font-semibold text-slate-900"
+      >Ir para o dia</label
+    >
+    <input
+      id="calendario-dia"
+      type="date"
+      class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+      [value]="segunda()"
+      (change)="irParaDia($any($event.target).value)"
+    />
+  </div>
+</section>
+
+<section class="mt-6" aria-live="polite" aria-label="Semana">
+  <h2 class="text-lg font-semibold text-slate-900">
+    @if (nomeDoEspaco(); as nome) {
+      {{ nome }}:
+    }
+    semana de {{ formatarDiaCurto(segunda()) }} a {{ formatarDiaCurto(domingo()) }}
+  </h2>
+
+  @switch (resultado()?.tipo) {
+    @case ('carregando') {
+      <p class="mt-4 text-slate-600">Carregando a semana…</p>
+    }
+    @case ('erro') {
+      <div class="mt-4">
+        <app-aviso-erro [mensagem]="$any(resultado()).erro.mensagem" />
+      </div>
+    }
+    @case ('pronto') {
+      <div class="mt-4 grid gap-3 lg:grid-cols-7">
+        @for (dia of dias(); track dia.data) {
+          <article
+            class="rounded-2xl bg-white p-3 shadow-sm ring-1"
+            [class]="dia.data === hoje ? 'ring-2 ring-azul' : 'ring-slate-200'"
+            [attr.aria-label]="
+              formatarDiaDaSemanaCurto(dia.data) + ', ' + formatarDiaCurto(dia.data)
+            "
+          >
+            <h3 class="font-semibold text-slate-900">
+              <span class="capitalize">{{ formatarDiaDaSemanaCurto(dia.data) }}</span
+              >,
+              {{ formatarDiaCurto(dia.data) }}
+            </h3>
+            @if (dia.aviso) {
+              <p class="text-xs text-slate-600">{{ dia.aviso }}</p>
+            }
+            <ul class="mt-2 space-y-2 text-sm">
+              @for (item of dia.itens; track item.inicio + item.tipo) {
+                <li
+                  class="rounded-lg border p-2"
+                  [class]="
+                    item.tipo === 'LIVRE'
+                      ? 'border-emerald-200 bg-emerald-50'
+                      : item.tipo === 'BLOQUEIO'
+                        ? 'border-slate-300 bg-slate-100'
+                        : item.tipo === 'EVENTO'
+                          ? 'border-violet-200 bg-violet-50'
+                          : 'border-sky-200 bg-sky-50'
+                  "
+                >
+                  <p class="font-semibold text-slate-800">{{ item.inicio }}–{{ item.fim }}</p>
+                  @switch (item.tipo) {
+                    @case ('LIVRE') {
+                      <p class="text-emerald-900">Livre</p>
+                      @if (item.podeCriarEvento) {
+                        <a
+                          routerLink="/admin/eventos/novo"
+                          [queryParams]="linkDoEvento(espacoId()!, dia.data, item)"
+                          class="text-xs font-semibold text-azul underline"
+                          >Criar evento aqui</a
+                        >
+                      }
+                    }
+                    @case ('BLOQUEIO') {
+                      <p class="text-slate-800">
+                        Bloqueado{{ item.motivo ? ': ' + item.motivo : '' }}
+                      </p>
+                    }
+                    @default {
+                      <a
+                        [routerLink]="['/admin/reservas', item.reserva!.id]"
+                        class="font-semibold text-azul underline"
+                      >
+                        @if (item.tipo === 'EVENTO') {
+                          Evento: {{ item.reserva!.descricao || 'sem descrição' }}
+                        } @else {
+                          {{ descreverQuem(item) }}
+                        }
+                      </a>
+                      @if (item.tipo === 'EVENTO' && item.reserva!.reservado_por.nome) {
+                        <p class="text-xs text-slate-600">
+                          por {{ item.reserva!.reservado_por.nome }}
+                        </p>
+                      }
+                      @if (item.reserva!.situacao_confirmacao; as situacao) {
+                        <span
+                          class="mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+                          [class]="selos[situacao].classes"
+                          >{{ selos[situacao].texto }}</span
+                        >
+                      }
+                    }
+                  }
+                </li>
+              } @empty {
+                <li class="text-slate-600">Sem horários.</li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+    }
+  }
+</section>
