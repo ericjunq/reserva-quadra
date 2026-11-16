@@ -293,6 +293,21 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
             disponivel: 2,
           },
         ],
+        responder_ate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+    if (caminho === `/reservas/manter/${tokenDoEmail}`) {
+      if (requisicao.method() === 'POST') {
+        return json({ data: { ...reservaDoAluno, mantida_em: new Date().toISOString() } });
+      }
+      return json({
+        data: {
+          ...reservaDoAluno,
+          confirmada_em: new Date().toISOString(),
+          manter_ate: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+          mantida_em: null,
+        },
+        pode_manter: true,
       });
     }
     if (caminho === '/espacos/4/equipamentos/disponibilidade') {
