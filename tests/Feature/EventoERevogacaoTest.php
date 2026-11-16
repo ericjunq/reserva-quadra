@@ -95,4 +95,19 @@ class EventoERevogacaoTest extends TestCase
         $this->assertStringContainsString('Manutenção da quadra', $html);
         $this->assertStringContainsString('10/11/2026', $html);
     }
+
+    public function test_email_de_revogacao_de_horario_livre_mostra_inicio_e_fim(): void
+    {
+        $reserva = Reserva::factory()->create([
+            'horario'                 => null,
+            'hora_inicio'             => '14:00:00',
+            'hora_fim'                => '15:30:00',
+            'justificativa_revogacao' => 'Laboratório em manutenção',
+        ]);
+
+        $html = (new ReservaRevogadaMail($reserva->load('aluno', 'espaco')))->render();
+
+        $this->assertStringContainsString('14:00', $html);
+        $this->assertStringContainsString('15:30', $html);
+    }
 }
