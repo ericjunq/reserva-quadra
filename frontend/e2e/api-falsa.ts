@@ -174,6 +174,25 @@ const reservaDoAluno = {
   reconfirmada_em: null,
 };
 
+const reservaDoAdmin = {
+  ...reservaDoAluno,
+  descricao: null,
+  aluno: {
+    id: 3,
+    nome_completo: 'Carla Dias',
+    registro_academico: '2024000009',
+    email: 'carla@email.com',
+    curso: { id: 2, nome: 'Enfermagem' },
+  },
+  situacao_confirmacao: 'AGUARDANDO_CONFIRMACAO',
+  termos_aceitos_em: null,
+  termos_versao: null,
+  criado_por: null,
+  atualizado_por: null,
+  criado_em: new Date().toISOString(),
+  atualizado_em: null,
+};
+
 const termos = {
   versao: '2026-11',
   rascunho: true,
@@ -283,6 +302,29 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         return json({ data: { ...reservaDoAluno, status: 'CANCELADO' } });
       }
       return json({ data: reservaDoAluno, pode_cancelar: true });
+    }
+    if (caminho === '/admin/reservas/consulta') {
+      const corpo = requisicao.postDataJSON();
+      const lista = corpo.busca && !'Carla Dias'.includes(corpo.busca) ? [] : [reservaDoAdmin];
+      return json({
+        data: lista,
+        meta: { current_page: 1, last_page: 1, total: lista.length, per_page: 15 },
+        totais_por_status: { RESERVADO: lista.length, CANCELADO: 0, REVOGADO: 0 },
+      });
+    }
+    if (caminho === '/admin/reservas/77') {
+      return json({ data: reservaDoAdmin });
+    }
+    if (caminho === '/admin/reservas/77/revogar') {
+      return json({
+        data: {
+          ...reservaDoAdmin,
+          status: 'REVOGADO',
+          justificativa_revogacao: requisicao.postDataJSON().justificativa,
+          revogada_em: new Date().toISOString(),
+          revogada_por: { id: 1, nome: 'Eric' },
+        },
+      });
     }
     if (caminho === '/alunos' && requisicao.method() === 'POST') {
       return json({ data: {} }, 201);
