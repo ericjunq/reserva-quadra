@@ -75,6 +75,7 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - **Comandos do front** (dentro de `frontend/`): `npx prettier --write src e2e` antes de commitar (equivale ao Pint), `npx ng test --watch=false`, `npx ng build` (o build confere o orçamento de tamanho) e `npx playwright test` (testes no navegador). Arquivos gerados pelo Angular CLI também perdem os comentários.
 - **Testes no navegador (Playwright):** todo fluxo de tela novo ganha um teste em `frontend/e2e` que clica como uma pessoa. A API é simulada com `page.route` em `e2e/api-falsa.ts`, com datas relativas ao dia real (sem `page.clock`, que trava a atualização do Angular). Rodam no build de produção, na porta 4300.
 - **Servidores para testes ou capturas:** nunca nas portas 8000 e 4200, que são as do usuário; usar outras (ex.: API 8123, front 4300) e desligar ao terminar.
+- **`<select>` com opções que chegam da API:** marcar a opção com `[selected]` (além do `[value]` do select), senão o valor escolhido se perde quando a lista chega depois (defeito achado pelo teste no navegador em 16/11/2026).
 - **Padrões do front:** chamadas à API sempre com `ambiente.urlApi` (o `interceptorApi` só põe o token nessas URLs); erros chegam às telas como `ErroApi`; token só pelo `SessaoService` (`sessionStorage`); RA e email só no corpo das requisições e na memória da tela; dependência nova só quando uma tela a usar.
 
 ### Compatibilidade entre bancos (SQLite, MySQL e Postgres)
@@ -197,7 +198,7 @@ O usuário pediu: "descreva seu comportamento completo no arquivo do claude pra 
 
 ### 10. Linha de contexto do projeto (resumo para se situar; os detalhes estão no CHECKLIST)
 - Sistema de reservas de espaços (quadra, laboratórios, salas) e equipamentos da UniFG. Aluno sem login (RA, e confirmação pelo email com aceite dos termos); admin com login (Sanctum).
-- Ordem seguida: API completa (passos 1–10, com produção e CI) → front em Angular (passo 11: base, área pública completa, acesso do admin, reservas do admin 11.5a em 16/11/2026) → em seguida 11.5b (calendário do admin + criar evento), 11.5c (registro posterior), 11.5d (solicitação de equipamento), 11.6 (cadastros), 11.7 (histórico), 11.8 (acabamento) → passo 12 (grade de aulas, aprovado com ajustes, reimportação em discussão) → passo 13 (API para terceiros).
+- Ordem seguida: API completa (passos 1–10, com produção e CI) → front em Angular (passo 11: base, área pública completa, acesso do admin, reservas do admin 11.5a e calendário do admin 11.5b em 16/11/2026) → em seguida 11.4b (login com senha + código por email), 11.5c (registro posterior), 11.5d (solicitação de equipamento), 11.6 (cadastros), 11.7 (histórico), 11.8 (acabamento) → passo 12 (grade de aulas, aprovado com ajustes, reimportação em discussão) → passo 13 (API para terceiros).
 - Pendências que dependem do usuário: reimportação da grade, serviço de disparo de emails (parado por decisão dele em 16/11/2026), termos com a faculdade, hospedagem, backup.
 - O usuário alterna entre PCs; tudo o que importa precisa estar nos guias do repositório.
 

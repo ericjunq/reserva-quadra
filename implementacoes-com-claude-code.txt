@@ -2474,3 +2474,55 @@ CHECKLIST.md / README.md
   - Ideia do login com código por email registrada com a avaliação (depende do serviço de emails,
     que está pendente) e as opções A (senha + código, recomendada), B (só código) e C (senha +
     autenticador); passo 11.4b no plano, aguardando escolha.
+
+========================================================================
+60. PASSO 11.5b: CALENDÁRIO DO ADMIN E CRIAR EVENTO (16/11/2026)
+========================================================================
+Aprovação: "aprovo as decisões, pode seguir com elas" (8 decisões da proposta).
+
+API
+app/Services/DisponibilidadeService.php
+  - consultar(..., paraAdmin: bool): guarda o modo numa propriedade usada por montarReserva e
+    reservasDoPeriodo. No modo admin: carrega aluno (id, nome, curso_id), curso (id, nome) e
+    criador (id, name) numa consulta cada; a reserva ganha reservado_por (ALUNO com nome e curso,
+    ou ADMIN com o nome de quem criou o evento) e situacao_confirmacao. Fora do modo admin nada muda.
+  - montarDiaLivre: no modo admin, o bloqueio do dia inteiro entra em "ocupados" com a janela
+    inteira do espaço (abre_as–fecha_as), para a tela mostrar "Bloqueado: motivo" sem depender
+    do texto do motivo do dia.
+app/Http/Requests/ConsultarDisponibilidadeAdminRequest.php (novo): de obrigatório, ate opcional,
+  no máximo 31 dias (mesma constante da rota pública), sem o limite do fim do semestre.
+app/Http/Controllers/EspacoController.php: disponibilidadeAdmin (sem exigir espaço ativo).
+routes/api.php: GET /api/admin/espacos/{espaco}/disponibilidade.
+tests/Feature/CalendarioAdminTest.php: login, quem reservou e a confirmação (sem RA e email),
+  horário livre, bloqueio do dia inteiro só no admin, passado e depois do semestre, limite de 31
+  dias, espaço desativado, número de consultas constante.
+
+FRONT
+admin/calendario/modelos.ts: tipos do calendário do admin, item do dia e NovoEvento.
+admin/calendario/calendario-admin.service.ts: espaços do admin (per_page=100, guardados enquanto
+  a página estiver aberta), calendário da semana e criar evento.
+admin/calendario/itens-do-dia.ts: transforma o dia em itens (RESERVA, EVENTO, BLOQUEIO, LIVRE);
+  no fixo, horário sem reserva nem bloqueio é livre para evento se a data não passou (mesmo no
+  fim de semana e antes de abrir para alunos) e o horário de hoje não encerrou; no livre, junta
+  os ocupados com os intervalos livres de horariosLivres e só libera hoje a partir do fim_minimo.
+  linkDoEvento monta os parâmetros do formulário (horario no fixo; inicio e fim no livre).
+admin/calendario/calendario-admin.ts/.html: espaço e semana na URL (espaco, semana), semana de
+  segunda a domingo, setas, "Ir para o dia", Atualizar, Novo evento, cartões por dia com cores por
+  tipo, link para o detalhe da reserva, selo da confirmação e aviso do dia (fim de semana, abre em).
+admin/eventos/novo-evento.ts/.html: valores iniciais pelos parâmetros da URL (linkedSignal), espaço
+  ativo, data (mínimo hoje), horário fixo em botões de opção ou início/fim (type=time, passo de 15
+  min), descrição com aviso para não escrever dados pessoais, equipamentos com o disponível no
+  intervalo (rota pública de disponibilidade de equipamentos), conflito 409 → link da reserva
+  conflitante e justificativa obrigatória (10 a 500) → reenvio; sucesso abre o detalhe do evento.
+admin.routes.ts: calendario e eventos/novo sob demanda. layout-admin.html: menu Calendário.
+  painel: atalho. lista-reservas.html: botão Novo evento.
+
+CORREÇÃO
+lista-reservas.html, calendario-admin.html, novo-evento.html: opções dos <select> com [selected].
+  O teste no navegador mostrou que o select perdia o valor quando as opções chegavam da API depois
+  do valor; afetava também os filtros de espaço e curso da lista de reservas (11.5a).
+
+TESTES
+admin/calendario/calendario.spec.ts (4) e e2e/calendario-admin.spec.ts; api-falsa.ts com espaços
+do admin, calendário do admin e criação de evento.
+Totais: 273 da API, 130 do front, 30 no navegador. Build: inicial 311,5 kB (82,2 kB transferidos).
