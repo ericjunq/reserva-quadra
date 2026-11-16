@@ -2,6 +2,11 @@
   <h1 class="text-2xl font-semibold text-slate-900">Reservas</h1>
   <div class="flex flex-wrap gap-2">
     <a
+      routerLink="/admin/reservas/registrar"
+      class="rounded-full px-4 py-2 font-semibold text-fuchsia-800 ring-1 ring-fuchsia-300 hover:bg-fuchsia-50"
+      >Registrar uso</a
+    >
+    <a
       routerLink="/admin/eventos/novo"
       class="rounded-full bg-azul px-4 py-2 font-semibold text-white hover:bg-azul-medio"
       >Novo evento</a
@@ -123,6 +128,21 @@
     </div>
 
     <div>
+      <label for="filtro-origem" class="block text-sm font-semibold text-slate-900">Origem</label>
+      <select
+        id="filtro-origem"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtrosDaUrl().origem ?? ''"
+        (change)="filtrar({ origem: $any($event.target).value })"
+      >
+        <option value="">Qualquer</option>
+        @for (origem of origens; track origem) {
+          <option [value]="origem">{{ nomesDasOrigens[origem] }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
       <label for="filtro-devolucao" class="block text-sm font-semibold text-slate-900"
         >Devolução</label
       >
@@ -228,7 +248,8 @@
                   <td class="px-4 py-3">{{ reserva.espaco?.nome }}</td>
                   <td class="px-4 py-3">
                     @if (reserva.tipo === 'EVENTO') {
-                      Evento: {{ reserva.descricao || 'sem descrição' }}
+                      {{ reserva.origem === 'REGISTRO_POSTERIOR' ? 'Grupo' : 'Evento' }}:
+                      {{ reserva.descricao || 'sem descrição' }}
                     } @else if (reserva.aluno) {
                       {{ reserva.aluno.nome_completo }}
                       @if (reserva.aluno.curso) {
@@ -240,6 +261,7 @@
                     <app-selos-reserva
                       [status]="reserva.status"
                       [confirmacao]="reserva.situacao_confirmacao"
+                      [origem]="reserva.origem"
                     />
                   </td>
                 </tr>
@@ -261,7 +283,8 @@
                 <p class="text-slate-800">{{ reserva.espaco?.nome }}</p>
                 <p class="text-slate-700">
                   @if (reserva.tipo === 'EVENTO') {
-                    Evento: {{ reserva.descricao || 'sem descrição' }}
+                    {{ reserva.origem === 'REGISTRO_POSTERIOR' ? 'Grupo' : 'Evento' }}:
+                    {{ reserva.descricao || 'sem descrição' }}
                   } @else if (reserva.aluno) {
                     {{ reserva.aluno.nome_completo }}
                     @if (reserva.aluno.curso) {
@@ -273,6 +296,7 @@
                   <app-selos-reserva
                     [status]="reserva.status"
                     [confirmacao]="reserva.situacao_confirmacao"
+                    [origem]="reserva.origem"
                   />
                 </div>
               </li>

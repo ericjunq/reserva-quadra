@@ -1,6 +1,12 @@
 import { deIso, ehDataIso } from '../../publico/datas';
 import { SituacaoDevolucao, StatusReserva } from '../../publico/modelos';
-import { FiltrosReservas, PeriodoAdmin, SituacaoConfirmacao, TipoReserva } from './modelos';
+import {
+  FiltrosReservas,
+  OrigemReserva,
+  PeriodoAdmin,
+  SituacaoConfirmacao,
+  TipoReserva,
+} from './modelos';
 
 export interface ParametrosDaUrl {
   periodo?: string;
@@ -12,6 +18,7 @@ export interface ParametrosDaUrl {
   tipo?: string;
   confirmacao?: string;
   devolucao?: string;
+  origem?: string;
 }
 
 export const PERIODOS: { valor: PeriodoAdmin; nome: string }[] = [
@@ -41,6 +48,8 @@ export const DEVOLUCOES: SituacaoDevolucao[] = [
 
 const TIPOS: TipoReserva[] = ['ALUNO', 'EVENTO'];
 
+export const ORIGENS: OrigemReserva[] = ['SITE', 'ADMIN', 'REGISTRO_POSTERIOR'];
+
 export const MAXIMO_DIAS_EXPORTACAO = 366;
 
 export function filtrosDaUrl(parametros: ParametrosDaUrl): FiltrosReservas {
@@ -62,6 +71,7 @@ export function filtrosDaUrl(parametros: ParametrosDaUrl): FiltrosReservas {
     tipo: umDe(TIPOS, parametros.tipo),
     confirmacao: umDe(CONFIRMACOES, parametros.confirmacao),
     devolucao: umDe(DEVOLUCOES, parametros.devolucao),
+    origem: umDe(ORIGENS, parametros.origem),
   });
 }
 

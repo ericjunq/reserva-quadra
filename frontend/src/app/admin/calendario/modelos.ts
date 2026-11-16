@@ -1,5 +1,5 @@
 import { Calendario, Horario } from '../../publico/modelos';
-import { SituacaoConfirmacao } from '../reservas/modelos';
+import { OrigemReserva, SituacaoConfirmacao } from '../reservas/modelos';
 
 export interface ReservaNoCalendarioAdmin {
   id: number;
@@ -7,6 +7,7 @@ export interface ReservaNoCalendarioAdmin {
   descricao: string | null;
   reservado_por: { tipo: 'ALUNO' | 'ADMIN'; nome: string | null; curso: string | null };
   situacao_confirmacao: SituacaoConfirmacao | null;
+  origem: OrigemReserva;
 }
 
 export interface OcupacaoAdmin {
@@ -53,6 +54,7 @@ export interface ItemDoDia {
   reserva: ReservaNoCalendarioAdmin | null;
   motivo: string | null;
   podeCriarEvento: boolean;
+  podeRegistrarUso: boolean;
 }
 
 export interface NovoEvento {

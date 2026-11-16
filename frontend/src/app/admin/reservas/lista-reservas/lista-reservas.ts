@@ -21,6 +21,7 @@ import { ExportarReservas } from '../exportar-reservas/exportar-reservas';
 import {
   CONFIRMACOES,
   DEVOLUCOES,
+  ORIGENS,
   PERIODOS,
   ParametrosDaUrl,
   STATUS,
@@ -30,6 +31,7 @@ import { FiltrosReservas, PaginaReservasAdmin } from '../modelos';
 import { ReservasAdminService } from '../reservas-admin.service';
 import {
   NOMES_DAS_DEVOLUCOES,
+  NOMES_DAS_ORIGENS,
   SELOS_DE_CONFIRMACAO,
   SELOS_DE_STATUS,
   SelosReserva,
@@ -65,6 +67,7 @@ export class ListaReservas {
   readonly tipo = input<string>();
   readonly confirmacao = input<string>();
   readonly devolucao = input<string>();
+  readonly origem = input<string>();
   readonly pagina = input<string>();
 
   protected readonly busca = signal('');
@@ -78,6 +81,8 @@ export class ListaReservas {
   protected readonly selosDeStatus = SELOS_DE_STATUS;
   protected readonly selosDeConfirmacao = SELOS_DE_CONFIRMACAO;
   protected readonly nomesDasDevolucoes = NOMES_DAS_DEVOLUCOES;
+  protected readonly origens = ORIGENS;
+  protected readonly nomesDasOrigens = NOMES_DAS_ORIGENS;
   protected readonly formatarDia = formatarDia;
 
   protected readonly espacos = toSignal(
@@ -101,6 +106,7 @@ export class ListaReservas {
       tipo: this.tipo(),
       confirmacao: this.confirmacao(),
       devolucao: this.devolucao(),
+      origem: this.origem(),
     }),
   );
 

@@ -18,103 +18,18 @@
     <app-aviso-erro [mensagem]="erro.mensagem" />
   }
 
-  <div>
-    <label for="evento-espaco" class="block font-semibold text-slate-900">Espaço</label>
-    <select
-      id="evento-espaco"
-      name="espaco"
-      class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-      [value]="espacoId() ?? ''"
-      (change)="trocarEspaco($any($event.target).value)"
-    >
-      <option value="">Escolha o espaço</option>
-      @for (espaco of espacos(); track espaco.id) {
-        <option [value]="espaco.id" [selected]="espaco.id === espacoId()">{{ espaco.nome }}</option>
-      }
-    </select>
-    @if (erroDoCampo('espaco_id'); as mensagem) {
-      <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
-    }
-  </div>
-
-  <div>
-    <label for="evento-data" class="block font-semibold text-slate-900">Data</label>
-    <input
-      id="evento-data"
-      name="data"
-      type="date"
-      [min]="hoje"
-      class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
-      [ngModel]="dataEscolhida()"
-      (ngModelChange)="dataEscolhida.set($event)"
-    />
-    @if (erroDoCampo('data_reserva'); as mensagem) {
-      <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
-    }
-  </div>
-
-  @if (espacoEscolhido(); as espaco) {
-    @if (livre()) {
-      <div class="flex flex-wrap gap-4">
-        <div>
-          <label for="evento-inicio" class="block font-semibold text-slate-900">Início</label>
-          <input
-            id="evento-inicio"
-            name="inicio"
-            type="time"
-            step="900"
-            [min]="espaco.abre_as ?? ''"
-            [max]="espaco.fecha_as ?? ''"
-            class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
-            [ngModel]="inicioEscolhido()"
-            (ngModelChange)="inicioEscolhido.set($event)"
-          />
-        </div>
-        <div>
-          <label for="evento-fim" class="block font-semibold text-slate-900">Fim</label>
-          <input
-            id="evento-fim"
-            name="fim"
-            type="time"
-            step="900"
-            [min]="espaco.abre_as ?? ''"
-            [max]="espaco.fecha_as ?? ''"
-            class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
-            [ngModel]="fimEscolhido()"
-            (ngModelChange)="fimEscolhido.set($event)"
-          />
-        </div>
-      </div>
-      <p class="text-sm text-slate-600">
-        Janela do espaço: {{ espaco.abre_as }} às {{ espaco.fecha_as }}. Os horários são
-        arredondados a cada 15 minutos.
-      </p>
-      @if (erroDoCampo('hora_inicio', 'hora_fim'); as mensagem) {
-        <p class="text-sm text-red-700">{{ mensagem }}</p>
-      }
-    } @else {
-      <fieldset>
-        <legend class="font-semibold text-slate-900">Horário</legend>
-        <div class="mt-2 flex flex-wrap gap-4">
-          @for (opcao of ['PRIMEIRO_HORARIO', 'SEGUNDO_HORARIO']; track opcao) {
-            <label class="flex items-center gap-2">
-              <input
-                type="radio"
-                name="horario"
-                [value]="opcao"
-                [ngModel]="horarioEscolhido()"
-                (ngModelChange)="horarioEscolhido.set($event)"
-              />
-              {{ $any(horariosFixos)[opcao][0] }}–{{ $any(horariosFixos)[opcao][1] }}
-            </label>
-          }
-        </div>
-        @if (erroDoCampo('horario'); as mensagem) {
-          <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
-        }
-      </fieldset>
-    }
-  }
+  <app-campos-do-uso
+    class="block space-y-5"
+    [espacos]="espacos()"
+    [dataMinima]="hoje"
+    [erro]="erro()"
+    [(espacoId)]="espacoId"
+    [(data)]="dataEscolhida"
+    [(horario)]="horarioEscolhido"
+    [(inicio)]="inicioEscolhido"
+    [(fim)]="fimEscolhido"
+    [(quantidades)]="quantidades"
+  />
 
   <div>
     <label for="evento-descricao" class="block font-semibold text-slate-900">Descrição</label>
@@ -134,35 +49,6 @@
       <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
     }
   </div>
-
-  @if (equipamentos().length) {
-    <fieldset>
-      <legend class="font-semibold text-slate-900">Equipamentos (opcional)</legend>
-      <ul class="mt-2 space-y-2">
-        @for (equipamento of equipamentos(); track equipamento.id) {
-          <li class="flex flex-wrap items-center gap-3">
-            <label [for]="'equipamento-' + equipamento.id" class="min-w-40 text-slate-800">
-              {{ equipamento.nome }}
-              <span class="text-sm text-slate-600">({{ equipamento.disponivel }} livres)</span>
-            </label>
-            <input
-              [id]="'equipamento-' + equipamento.id"
-              [name]="'equipamento-' + equipamento.id"
-              type="number"
-              min="0"
-              [max]="equipamento.disponivel"
-              class="w-24 rounded-lg border border-slate-300 px-3 py-2"
-              [ngModel]="quantidades()[equipamento.id] ?? 0"
-              (ngModelChange)="mudarQuantidade(equipamento.id, +$event)"
-            />
-          </li>
-        }
-      </ul>
-      @if (erroDoCampo('equipamentos'); as mensagem) {
-        <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
-      }
-    </fieldset>
-  }
 
   @if (conflito(); as conflitante) {
     <div class="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-4">

@@ -7,7 +7,9 @@ import { interceptorApi } from '../../nucleo/api.interceptor';
 import { SessaoService } from '../../nucleo/sessao.service';
 import { NovoEvento } from '../eventos/novo-evento';
 import { CalendarioAdmin } from './calendario-admin';
-import { itensDoDia, linkDoEvento } from './itens-do-dia';
+import { itensDoDia, linkDoHorario } from './itens-do-dia';
+
+const referencia = { hoje: '2026-11-16', agora: '10:00', registroDesde: '2026-10-17' };
 import { CalendarioAdmin as DadosDoCalendario, DiaAdmin } from './modelos';
 
 const url = ambiente.urlApi;
@@ -41,6 +43,7 @@ const reservaDaAna = {
   descricao: null,
   reservado_por: { tipo: 'ALUNO' as const, nome: 'Ana Souza', curso: 'Direito' },
   situacao_confirmacao: 'CONFIRMADA' as const,
+  origem: 'SITE' as const,
 };
 
 function diaFixo(data: string): DiaAdmin {
@@ -72,14 +75,23 @@ function diaFixo(data: string): DiaAdmin {
 describe('calendário do admin', () => {
   describe('itens do dia', () => {
     it('no horário fixo, horário sem reserva nem bloqueio fica livre para evento, mesmo no fim de semana', () => {
-      const itens = itensDoDia(diaFixo('2026-11-21'), quadra, '2026-11-16');
+      const itens = itensDoDia(diaFixo('2026-11-21'), quadra, referencia);
       expect(itens.map((item) => [item.tipo, item.podeCriarEvento])).toEqual([
         ['RESERVA', false],
         ['LIVRE', true],
       ]);
-      expect(itensDoDia(diaFixo('2026-11-14'), quadra, '2026-11-16')[1].podeCriarEvento).toBe(
-        false,
-      );
+      expect(itensDoDia(diaFixo('2026-11-14'), quadra, referencia)[1].podeCriarEvento).toBe(false);
+    });
+
+    it('libera registrar uso nos últimos 30 dias e, hoje, só no que já começou', () => {
+      const passado = itensDoDia(diaFixo('2026-11-14'), quadra, referencia)[1];
+      expect([passado.podeCriarEvento, passado.podeRegistrarUso]).toEqual([false, true]);
+      expect(itensDoDia(diaFixo('2026-10-10'), quadra, referencia)[1].podeRegistrarUso).toBe(false);
+      expect(itensDoDia(diaFixo('2026-11-16'), quadra, referencia)[1].podeRegistrarUso).toBe(false);
+      expect(
+        itensDoDia(diaFixo('2026-11-16'), quadra, { ...referencia, agora: '21:00' })[1]
+          .podeRegistrarUso,
+      ).toBe(true);
     });
 
     it('no horário livre, junta ocupados e intervalos livres em ordem', () => {
@@ -105,7 +117,7 @@ describe('calendário do admin', () => {
           },
         ],
       };
-      const itens = itensDoDia(dia, laboratorio, '2026-11-16');
+      const itens = itensDoDia(dia, laboratorio, referencia);
       expect(itens.map((item) => `${item.tipo} ${item.inicio}-${item.fim}`)).toEqual([
         'LIVRE 07:00-09:00',
         'BLOQUEIO 09:00-10:00',
@@ -114,14 +126,14 @@ describe('calendário do admin', () => {
         'LIVRE 15:30-22:00',
       ]);
       expect(itens[1].motivo).toBe('Manutenção');
-      expect(linkDoEvento(4, '2026-11-18', itens[2])).toEqual({
+      expect(linkDoHorario(4, '2026-11-18', itens[2])).toEqual({
         espaco: 4,
         data: '2026-11-18',
         inicio: '10:00',
         fim: '14:00',
       });
       expect(
-        linkDoEvento(1, '2026-11-21', itensDoDia(diaFixo('2026-11-21'), quadra, '2026-11-16')[1]),
+        linkDoHorario(1, '2026-11-21', itensDoDia(diaFixo('2026-11-21'), quadra, referencia)[1]),
       ).toEqual({
         espaco: 1,
         data: '2026-11-21',
@@ -227,7 +239,7 @@ describe('calendário do admin', () => {
       await estabilizar(fixture);
 
       const elemento = fixture.nativeElement as HTMLElement;
-      expect((elemento.querySelector('#evento-inicio') as HTMLInputElement).value).toBe('10:00');
+      expect((elemento.querySelector('#uso-inicio') as HTMLInputElement).value).toBe('10:00');
       const descricao = elemento.querySelector('#evento-descricao') as HTMLInputElement;
       descricao.value = 'Maratona de programação';
       descricao.dispatchEvent(new Event('input'));

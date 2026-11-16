@@ -8,6 +8,8 @@ export type PeriodoAdmin =
 
 export type TipoReserva = 'ALUNO' | 'EVENTO';
 
+export type OrigemReserva = 'SITE' | 'ADMIN' | 'REGISTRO_POSTERIOR';
+
 export interface Pessoa {
   id: number;
   nome: string;
@@ -32,6 +34,7 @@ export interface ReservaAdmin {
   hora_fim: string;
   status: StatusReserva;
   tipo: TipoReserva;
+  origem: OrigemReserva;
   espaco?: { id: number; nome: string; tipo: TipoEspaco };
   aluno?: {
     id: number;
@@ -70,6 +73,7 @@ export interface FiltrosReservas {
   tipo?: TipoReserva;
   confirmacao?: SituacaoConfirmacao;
   devolucao?: SituacaoDevolucao;
+  origem?: OrigemReserva;
   busca?: string;
 }
 
@@ -84,6 +88,22 @@ export interface ItemDevolucao {
   quantidade_devolvida: number;
   situacao: Exclude<SituacaoDevolucao, 'PENDENTE'>;
   observacao: string | null;
+}
+
+export interface NovoUsoPosterior {
+  espaco_id: number;
+  data_reserva: string;
+  horario?: string;
+  hora_inicio?: string;
+  hora_fim?: string;
+  registro_academico?: string;
+  descricao?: string;
+  equipamentos?: { id: number; quantidade: number }[];
+}
+
+export interface UsoRegistrado {
+  reserva: ReservaAdmin;
+  aviso: string | null;
 }
 
 export interface ColunaExportacao {

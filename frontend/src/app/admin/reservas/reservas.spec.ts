@@ -11,6 +11,7 @@ import { ExportarReservas } from './exportar-reservas/exportar-reservas';
 import { diasDoPeriodo, filtrosDaUrl } from './filtros';
 import { jaComecou, linhaDoTempo } from './linha-do-tempo';
 import { ListaReservas } from './lista-reservas/lista-reservas';
+import { RegistrarUso } from './registrar-uso/registrar-uso';
 import { PaginaReservasAdmin, ReservaAdmin } from './modelos';
 
 const url = ambiente.urlApi;
@@ -25,6 +26,7 @@ function reserva(mudancas: Partial<ReservaAdmin> = {}): ReservaAdmin {
     hora_fim: '20:30',
     status: 'RESERVADO',
     tipo: 'ALUNO',
+    origem: 'SITE',
     espaco: { id: 1, nome: 'Quadra Poliesportiva', tipo: 'QUADRA' },
     aluno: {
       id: 3,
@@ -366,6 +368,136 @@ describe('reservas do admin', () => {
       });
       expect(criar).toHaveBeenCalled();
       expect(clicar).toHaveBeenCalled();
+    });
+
+    it('registra o uso de um aluno pelo RA no corpo e abre o detalhe com o aviso do limite', async () => {
+      const navegar = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      const fixture = TestBed.createComponent(RegistrarUso);
+      fixture.componentRef.setInput('espaco', '1');
+      fixture.componentRef.setInput('data', ontem);
+      fixture.componentRef.setInput('horario', 'PRIMEIRO_HORARIO');
+      await estabilizar(fixture);
+      controle.expectOne(`${url}/espacos`).flush({
+        data: [
+          {
+            id: 1,
+            nome: 'Quadra Poliesportiva',
+            tipo: 'QUADRA',
+            limite_semanal_por_curso: 3,
+            modo_horario: 'FIXO',
+            abre_as: null,
+            fecha_as: null,
+            duracao_maxima_minutos: null,
+          },
+        ],
+      });
+      await estabilizar(fixture);
+      controle
+        .expectOne((r) => r.url === `${url}/espacos/1/equipamentos/disponibilidade`)
+        .flush({ data: [] });
+      await estabilizar(fixture);
+
+      const elemento = fixture.nativeElement as HTMLElement;
+      const ra = elemento.querySelector('#uso-ra') as HTMLInputElement;
+      ra.value = '2024000001';
+      ra.dispatchEvent(new Event('input'));
+      await estabilizar(fixture);
+      elemento.querySelector('form')!.dispatchEvent(new Event('submit'));
+      await estabilizar(fixture);
+
+      const envio = controle.expectOne(`${url}/admin/reservas/registro-posterior`);
+      expect(envio.request.body).toEqual({
+        espaco_id: 1,
+        data_reserva: ontem,
+        horario: 'PRIMEIRO_HORARIO',
+        registro_academico: '2024000001',
+      });
+      envio.flush(
+        { data: reserva({ id: 40, origem: 'REGISTRO_POSTERIOR' }), aviso: 'Passou do limite.' },
+        { status: 201, statusText: 'criado' },
+      );
+      expect(navegar).toHaveBeenCalledWith(['/admin/reservas', 40], {
+        state: { aviso: 'Passou do limite.' },
+      });
+    });
+
+    it('registro de grupo manda a descrição e mostra o conflito com link', async () => {
+      const fixture = TestBed.createComponent(RegistrarUso);
+      fixture.componentRef.setInput('espaco', '4');
+      fixture.componentRef.setInput('data', ontem);
+      fixture.componentRef.setInput('inicio', '14:00');
+      fixture.componentRef.setInput('fim', '15:30');
+      await estabilizar(fixture);
+      controle.expectOne(`${url}/espacos`).flush({
+        data: [
+          {
+            id: 4,
+            nome: 'Laboratório de Informática',
+            tipo: 'LABORATORIO',
+            limite_semanal_por_curso: null,
+            modo_horario: 'LIVRE',
+            abre_as: '07:00',
+            fecha_as: '22:00',
+            duracao_maxima_minutos: 180,
+          },
+        ],
+      });
+      await estabilizar(fixture);
+      controle
+        .expectOne((r) => r.url === `${url}/espacos/4/equipamentos/disponibilidade`)
+        .flush({ data: [] });
+      await estabilizar(fixture);
+
+      const elemento = fixture.nativeElement as HTMLElement;
+      const grupo = elemento.querySelector('input[value=GRUPO]') as HTMLInputElement;
+      grupo.click();
+      await estabilizar(fixture);
+      const descricao = elemento.querySelector('#uso-descricao') as HTMLInputElement;
+      descricao.value = 'Turma de Enfermagem';
+      descricao.dispatchEvent(new Event('input'));
+      await estabilizar(fixture);
+      elemento.querySelector('form')!.dispatchEvent(new Event('submit'));
+      await estabilizar(fixture);
+
+      const envio = controle.expectOne(`${url}/admin/reservas/registro-posterior`);
+      expect(envio.request.body).toEqual({
+        espaco_id: 4,
+        data_reserva: ontem,
+        hora_inicio: '14:00',
+        hora_fim: '15:30',
+        descricao: 'Turma de Enfermagem',
+      });
+      envio.flush(
+        {
+          message: 'Já existe uma reserva ou evento nesse horário. Confira o registro existente.',
+          dados: { reserva_conflitante_id: 12 },
+        },
+        { status: 409, statusText: 'conflito' },
+      );
+      await estabilizar(fixture);
+      expect(elemento.textContent).toContain('Ver o registro nº 12');
+    });
+
+    it('lista mostra o selo de registro posterior e o grupo', async () => {
+      const fixture = TestBed.createComponent(ListaReservas);
+      await estabilizar(fixture);
+      controle.expectOne(`${url}/espacos`).flush({ data: [] });
+      controle.expectOne(`${url}/cursos`).flush({ data: [] });
+      controle.expectOne(`${url}/admin/reservas/consulta`).flush(
+        pagina([
+          reserva({
+            tipo: 'EVENTO',
+            aluno: null,
+            origem: 'REGISTRO_POSTERIOR',
+            descricao: 'Turma de Enfermagem',
+            situacao_confirmacao: null,
+          }),
+        ]),
+      );
+      await estabilizar(fixture);
+      const texto = fixture.nativeElement.textContent as string;
+      expect(texto).toContain('Registro posterior');
+      expect(texto).toContain('Grupo: Turma de Enfermagem');
     });
 
     it('não exporta mais de 366 dias', async () => {

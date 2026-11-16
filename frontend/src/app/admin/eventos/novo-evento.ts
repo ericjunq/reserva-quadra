@@ -1,24 +1,24 @@
 import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, of, switchMap } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { AvisoErro } from '../../compartilhado/aviso-erro/aviso-erro';
 import { ErroApi } from '../../nucleo/erro-api';
 import { ApiPublicaService } from '../../publico/api-publica.service';
 import { ehDataIso, ehHora, paraIso } from '../../publico/datas';
-import { Horario } from '../../publico/modelos';
 import { CalendarioAdminService } from '../calendario/calendario-admin.service';
 import { NovoEvento as DadosDoEvento } from '../calendario/modelos';
-
-const HORARIOS_FIXOS: Record<Horario, [string, string]> = {
-  PRIMEIRO_HORARIO: ['19:00', '20:30'],
-  SEGUNDO_HORARIO: ['20:30', '22:00'],
-};
+import {
+  CamposDoUso,
+  equipamentosEscolhidos,
+  horarioDaUrl,
+  horarioDoUso,
+} from '../compartilhado/campos-do-uso';
 
 @Component({
   selector: 'app-novo-evento',
-  imports: [FormsModule, RouterLink, AvisoErro],
+  imports: [FormsModule, RouterLink, AvisoErro, CamposDoUso],
   templateUrl: './novo-evento.html',
 })
 export class NovoEvento {
@@ -33,7 +33,6 @@ export class NovoEvento {
   readonly fim = input<string>();
 
   protected readonly hoje = paraIso(new Date());
-  protected readonly horariosFixos = HORARIOS_FIXOS;
 
   protected readonly espacos = toSignal(
     this.publica.listarEspacos().pipe(catchError(() => of([]))),
@@ -47,92 +46,44 @@ export class NovoEvento {
   protected readonly dataEscolhida = linkedSignal(() =>
     ehDataIso(this.data()) ? this.data()! : '',
   );
-  protected readonly horarioEscolhido = linkedSignal<Horario | ''>(() => {
-    const horario = this.horario();
-    return horario === 'PRIMEIRO_HORARIO' || horario === 'SEGUNDO_HORARIO' ? horario : '';
-  });
+  protected readonly horarioEscolhido = linkedSignal(() => horarioDaUrl(this.horario()));
   protected readonly inicioEscolhido = linkedSignal(() =>
     ehHora(this.inicio()) ? this.inicio()! : '',
   );
   protected readonly fimEscolhido = linkedSignal(() => (ehHora(this.fim()) ? this.fim()! : ''));
-  protected readonly descricao = signal('');
   protected readonly quantidades = signal<Record<number, number>>({});
+  protected readonly descricao = signal('');
   protected readonly justificativa = signal('');
-  protected readonly conflito = signal<number | null>(null);
   protected readonly enviando = signal(false);
   protected readonly erro = signal<ErroApi | null>(null);
 
-  protected readonly espacoEscolhido = computed(
-    () => this.espacos().find((espaco) => espaco.id === this.espacoId()) ?? null,
-  );
-
-  protected readonly livre = computed(() => this.espacoEscolhido()?.modo_horario === 'LIVRE');
-
-  protected readonly intervalo = computed<[string, string] | null>(() => {
-    if (!this.espacoEscolhido()) {
-      return null;
-    }
-    if (!this.livre()) {
-      const horario = this.horarioEscolhido();
-      return horario ? HORARIOS_FIXOS[horario] : null;
-    }
-    const inicio = this.inicioEscolhido();
-    const fim = this.fimEscolhido();
-    return ehHora(inicio) && ehHora(fim) && inicio < fim ? [inicio, fim] : null;
-  });
-
-  private readonly consultaDeEquipamentos = computed(() => {
-    const espacoId = this.espacoId();
-    const data = this.dataEscolhida();
-    const intervalo = this.intervalo();
-    return espacoId && ehDataIso(data) && intervalo ? { espacoId, data, intervalo } : null;
-  });
-
-  protected readonly equipamentos = toSignal(
-    toObservable(this.consultaDeEquipamentos).pipe(
-      switchMap((consulta) =>
-        consulta
-          ? this.publica
-              .consultarEquipamentos(
-                consulta.espacoId,
-                consulta.data,
-                consulta.intervalo[0],
-                consulta.intervalo[1],
-              )
-              .pipe(catchError(() => of([])))
-          : of([]),
-      ),
+  private readonly escolhido = computed(() =>
+    horarioDoUso(
+      this.espacos().find((espaco) => espaco.id === this.espacoId()) ?? null,
+      this.horarioEscolhido(),
+      this.inicioEscolhido(),
+      this.fimEscolhido(),
     ),
-    { initialValue: [] },
   );
 
-  protected trocarEspaco(id: string): void {
-    this.espacoId.set(Number(id) || null);
-    this.horarioEscolhido.set('');
-    this.inicioEscolhido.set('');
-    this.fimEscolhido.set('');
-    this.quantidades.set({});
-    this.conflito.set(null);
-  }
-
-  protected mudarQuantidade(id: number, valor: number): void {
-    this.quantidades.update((atuais) => ({ ...atuais, [id]: Math.max(0, Math.floor(valor) || 0) }));
-  }
-
-  protected erroDoCampo(...campos: string[]): string | null {
-    const lista = this.erro()?.campos ?? {};
-    for (const campo of campos) {
-      if (lista[campo]?.[0]) {
-        return lista[campo][0];
-      }
-    }
+  protected readonly conflito = linkedSignal<number | null>(() => {
+    this.espacoId();
+    this.dataEscolhida();
+    this.escolhido();
     return null;
+  });
+
+  protected erroDoCampo(campo: string): string | null {
+    return this.erro()?.campos?.[campo]?.[0] ?? null;
   }
 
   protected criar(): void {
     const espacoId = this.espacoId();
-    const intervalo = this.intervalo();
-    if (this.enviando() || !espacoId || !intervalo) {
+    const escolhido = this.escolhido();
+    if (this.enviando()) {
+      return;
+    }
+    if (!espacoId || !escolhido || !ehDataIso(this.dataEscolhida())) {
       this.erro.set({
         status: 0,
         mensagem: 'Escolha o espaço, a data e o horário do evento.',
@@ -141,23 +92,16 @@ export class NovoEvento {
       });
       return;
     }
+    const { intervalo, ...horario } = escolhido;
+    const equipamentos = equipamentosEscolhidos(this.quantidades());
     const evento: DadosDoEvento = {
       espaco_id: espacoId,
       data_reserva: this.dataEscolhida(),
       descricao: this.descricao().trim(),
-      ...(this.livre()
-        ? { hora_inicio: intervalo[0], hora_fim: intervalo[1] }
-        : { horario: this.horarioEscolhido() as Horario }),
+      ...horario,
+      ...(equipamentos.length ? { equipamentos } : {}),
+      ...(this.conflito() ? { justificativa: this.justificativa().trim() } : {}),
     };
-    const equipamentos = Object.entries(this.quantidades())
-      .filter(([, quantidade]) => quantidade > 0)
-      .map(([id, quantidade]) => ({ id: Number(id), quantidade }));
-    if (equipamentos.length) {
-      evento.equipamentos = equipamentos;
-    }
-    if (this.conflito()) {
-      evento.justificativa = this.justificativa().trim();
-    }
 
     this.enviando.set(true);
     this.erro.set(null);

@@ -1,0 +1,114 @@
+<a routerLink="/admin/reservas" class="text-sm font-semibold text-azul underline"
+  >Voltar às reservas</a
+>
+<h1 class="mt-4 text-2xl font-semibold text-slate-900">Registrar uso</h1>
+<p class="mt-1 text-slate-600">
+  Para quando alguém usou um espaço sem reservar pelo site (está usando agora ou usou nos últimos 30
+  dias). Não pede confirmação e fica marcado como "Registro posterior".
+</p>
+
+<form
+  class="mt-6 max-w-2xl space-y-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+  (ngSubmit)="registrar()"
+  novalidate
+>
+  @if (erro(); as erro) {
+    <app-aviso-erro [mensagem]="erro.mensagem">
+      @if (conflito(); as conflitante) {
+        <a class="font-semibold underline" [routerLink]="['/admin/reservas', conflitante]"
+          >Ver o registro nº {{ conflitante }}</a
+        >
+      }
+    </app-aviso-erro>
+  }
+
+  <app-campos-do-uso
+    class="block space-y-5"
+    [espacos]="espacos()"
+    [dataMinima]="desde"
+    [dataMaxima]="hoje"
+    [erro]="erro()"
+    [(espacoId)]="espacoId"
+    [(data)]="dataEscolhida"
+    [(horario)]="horarioEscolhido"
+    [(inicio)]="inicioEscolhido"
+    [(fim)]="fimEscolhido"
+    [(quantidades)]="quantidades"
+  />
+
+  <fieldset>
+    <legend class="font-semibold text-slate-900">Quem usou</legend>
+    <div class="mt-2 flex flex-wrap gap-4">
+      <label class="flex items-center gap-2">
+        <input
+          type="radio"
+          name="quem"
+          value="ALUNO"
+          [ngModel]="quem()"
+          (ngModelChange)="quem.set($event)"
+        />
+        Um aluno (pelo RA)
+      </label>
+      <label class="flex items-center gap-2">
+        <input
+          type="radio"
+          name="quem"
+          value="GRUPO"
+          [ngModel]="quem()"
+          (ngModelChange)="quem.set($event)"
+        />
+        Um grupo ou turma
+      </label>
+    </div>
+  </fieldset>
+
+  @if (quem() === 'ALUNO') {
+    <div>
+      <label for="uso-ra" class="block font-semibold text-slate-900">RA do aluno</label>
+      <input
+        id="uso-ra"
+        name="ra"
+        inputmode="numeric"
+        maxlength="10"
+        autocomplete="off"
+        class="mt-1 w-48 rounded-lg border border-slate-300 px-3 py-2"
+        aria-describedby="ajuda-ra"
+        [ngModel]="registroAcademico()"
+        (ngModelChange)="registroAcademico.set($event)"
+      />
+      <p id="ajuda-ra" class="mt-1 text-sm text-slate-600">
+        O aluno recebe um email avisando do registro.
+      </p>
+      @if (erroDoCampo('registro_academico'); as mensagem) {
+        <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
+      }
+    </div>
+  } @else {
+    <div>
+      <label for="uso-descricao" class="block font-semibold text-slate-900">Grupo</label>
+      <input
+        id="uso-descricao"
+        name="descricao"
+        maxlength="255"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        aria-describedby="ajuda-descricao"
+        [ngModel]="descricao()"
+        (ngModelChange)="descricao.set($event)"
+      />
+      <p id="ajuda-descricao" class="mt-1 text-sm text-slate-600">
+        Ex.: "Turma do 3º período de Enfermagem". Não escreva nomes de pessoas.
+      </p>
+      @if (erroDoCampo('descricao'); as mensagem) {
+        <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
+      }
+    </div>
+  }
+
+  <button
+    type="submit"
+    class="rounded-full bg-fuchsia-800 px-6 py-2 font-semibold text-white hover:bg-fuchsia-900 disabled:opacity-50"
+    [disabled]="enviando()"
+  >
+    {{ enviando() ? 'Registrando…' : 'Registrar uso' }}
+  </button>
+</form>

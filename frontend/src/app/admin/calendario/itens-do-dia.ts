@@ -8,12 +8,23 @@ const TIPOS: Record<string, TipoDoItem> = {
   BLOQUEADO: 'BLOQUEIO',
 };
 
+export interface Referencia {
+  hoje: string;
+  agora: string;
+  registroDesde: string;
+}
+
 export function itensDoDia(
   dia: DiaAdmin,
   espaco: CalendarioAdmin['espaco'],
-  hoje: string,
+  referencia: Referencia,
 ): ItemDoDia[] {
+  const { hoje } = referencia;
   const futuro = dia.data >= hoje;
+  const podeRegistrar = (inicio: string) =>
+    dia.data >= referencia.registroDesde &&
+    dia.data <= hoje &&
+    (dia.data < hoje || inicio <= referencia.agora);
 
   if (espaco.modo_horario !== 'LIVRE') {
     return (dia.horarios ?? []).map((horario) => {
@@ -22,6 +33,7 @@ export function itensDoDia(
         ...item,
         horario: horario.horario,
         podeCriarEvento: item.tipo === 'LIVRE' && futuro && horario.situacao !== 'ENCERRADO',
+        podeRegistrarUso: item.tipo === 'LIVRE' && podeRegistrar(horario.inicio),
       };
     });
   }
@@ -39,6 +51,7 @@ export function itensDoDia(
     reserva: null,
     motivo: null,
     podeCriarEvento: futuro && podeHoje,
+    podeRegistrarUso: podeRegistrar(livre.inicio),
   }));
 
   return [...(dia.ocupados ?? []).map(deOcupacao), ...livres].sort(
@@ -55,10 +68,11 @@ function deOcupacao(ocupacao: OcupacaoAdmin): ItemDoDia {
     reserva: ocupacao.reserva,
     motivo: ocupacao.situacao === 'BLOQUEADO' ? ocupacao.motivo : null,
     podeCriarEvento: false,
+    podeRegistrarUso: false,
   };
 }
 
-export function linkDoEvento(
+export function linkDoHorario(
   espacoId: number,
   data: string,
   item: ItemDoDia,

@@ -7,8 +7,10 @@ import {
   ColunasExportacao,
   FiltrosReservas,
   ItemDevolucao,
+  NovoUsoPosterior,
   PaginaReservasAdmin,
   ReservaAdmin,
+  UsoRegistrado,
 } from './modelos';
 
 interface Resposta<T> {
@@ -43,6 +45,15 @@ export class ReservasAdminService {
     return this.http
       .post<Resposta<ReservaAdmin>>(`${this.url}/${id}/devolucao`, { itens })
       .pipe(map((resposta) => resposta.data));
+  }
+
+  registrarUsoPosterior(uso: NovoUsoPosterior): Observable<UsoRegistrado> {
+    return this.http
+      .post<Resposta<ReservaAdmin> & { aviso: string | null }>(
+        `${this.url}/registro-posterior`,
+        uso,
+      )
+      .pipe(map((resposta) => ({ reserva: resposta.data, aviso: resposta.aviso })));
   }
 
   colunasDaExportacao(): Observable<ColunasExportacao> {

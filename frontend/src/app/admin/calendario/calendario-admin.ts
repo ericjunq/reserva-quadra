@@ -13,9 +13,9 @@ import {
   segundaDaSemana,
   somarDias,
 } from '../../publico/datas';
-import { SELOS_DE_CONFIRMACAO } from '../reservas/selos';
+import { SELOS_DE_CONFIRMACAO, SELO_DE_REGISTRO_POSTERIOR } from '../reservas/selos';
 import { CalendarioAdminService } from './calendario-admin.service';
-import { itensDoDia, linkDoEvento } from './itens-do-dia';
+import { itensDoDia, linkDoHorario } from './itens-do-dia';
 import { CalendarioAdmin as DadosDoCalendario, ItemDoDia } from './modelos';
 
 type Resultado =
@@ -47,7 +47,8 @@ export class CalendarioAdmin {
   protected readonly selos = SELOS_DE_CONFIRMACAO;
   protected readonly formatarDiaCurto = formatarDiaCurto;
   protected readonly formatarDiaDaSemanaCurto = formatarDiaDaSemanaCurto;
-  protected readonly linkDoEvento = linkDoEvento;
+  protected readonly linkDoHorario = linkDoHorario;
+  protected readonly registroPosterior = SELO_DE_REGISTRO_POSTERIOR;
 
   protected readonly espacos = toSignal(this.api.listarEspacos().pipe(catchError(() => of([]))), {
     initialValue: null,
@@ -91,7 +92,11 @@ export class CalendarioAdmin {
     return calendario.dias.map((dia) => ({
       data: dia.data,
       aviso: dia.motivo && dia.motivo !== 'Data passada.' ? dia.motivo : null,
-      itens: itensDoDia(dia, calendario.espaco, this.hoje),
+      itens: itensDoDia(dia, calendario.espaco, {
+        hoje: this.hoje,
+        agora: horaAgora(),
+        registroDesde: paraIso(somarDias(new Date(), -30)),
+      }),
     }));
   });
 
@@ -137,4 +142,9 @@ export class CalendarioAdmin {
       startWith<Resultado>({ tipo: 'carregando' }),
     );
   }
+}
+
+function horaAgora(): string {
+  const agora = new Date();
+  return `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
 }

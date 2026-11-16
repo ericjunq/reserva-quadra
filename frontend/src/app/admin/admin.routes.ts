@@ -44,6 +44,12 @@ export const rotasAdmin: Routes = [
           import('./reservas/lista-reservas/lista-reservas').then((m) => m.ListaReservas),
       },
       {
+        path: 'reservas/registrar',
+        title: 'Registrar uso · Administração',
+        loadComponent: () =>
+          import('./reservas/registrar-uso/registrar-uso').then((m) => m.RegistrarUso),
+      },
+      {
         path: 'reservas/:id',
         title: 'Reserva · Administração',
         loadComponent: () =>

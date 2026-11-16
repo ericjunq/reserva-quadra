@@ -28,6 +28,8 @@ export class DetalheReserva {
   private readonly location = inject(Location);
   private readonly router = inject(Router);
   private readonly veioDaLista = history.state?.daLista === true;
+  protected readonly aviso: string | null =
+    typeof history.state?.aviso === 'string' ? history.state.aviso : null;
 
   readonly id = input.required<string>();
 

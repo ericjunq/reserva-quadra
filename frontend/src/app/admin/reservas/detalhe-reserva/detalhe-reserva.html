@@ -15,8 +15,17 @@
     @if (reserva(); as reserva) {
       <div class="mt-4 flex flex-wrap items-center gap-3">
         <h1 class="text-2xl font-semibold text-slate-900">Reserva nº {{ reserva.id }}</h1>
-        <app-selos-reserva [status]="reserva.status" [confirmacao]="reserva.situacao_confirmacao" />
+        <app-selos-reserva
+          [status]="reserva.status"
+          [confirmacao]="reserva.situacao_confirmacao"
+          [origem]="reserva.origem"
+        />
       </div>
+      @if (aviso) {
+        <p class="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-amber-900" role="status">
+          {{ aviso }}
+        </p>
+      }
 
       <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <section
@@ -36,9 +45,21 @@
                 {{ reserva.hora_fim }}
               </dd>
             </div>
+            @if (reserva.origem === 'REGISTRO_POSTERIOR') {
+              <div>
+                <dt class="text-sm text-slate-600">Origem</dt>
+                <dd class="text-slate-900">
+                  Registrado depois do uso{{
+                    reserva.criado_por ? ' por ' + reserva.criado_por.nome : ''
+                  }}
+                </dd>
+              </div>
+            }
             @if (reserva.tipo === 'EVENTO') {
               <div>
-                <dt class="text-sm text-slate-600">Evento</dt>
+                <dt class="text-sm text-slate-600">
+                  {{ reserva.origem === 'REGISTRO_POSTERIOR' ? 'Grupo' : 'Evento' }}
+                </dt>
                 <dd class="text-slate-900">{{ reserva.descricao || 'Sem descrição' }}</dd>
               </div>
             }

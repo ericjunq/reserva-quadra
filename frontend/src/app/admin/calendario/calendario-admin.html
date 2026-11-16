@@ -7,6 +7,12 @@
       class="rounded-full bg-azul px-4 py-2 font-semibold text-white hover:bg-azul-medio"
       >Novo evento</a
     >
+    <a
+      routerLink="/admin/reservas/registrar"
+      [queryParams]="{ espaco: espacoId() }"
+      class="rounded-full px-4 py-2 font-semibold text-fuchsia-800 ring-1 ring-fuchsia-300 hover:bg-fuchsia-50"
+      >Registrar uso</a
+    >
     <button
       type="button"
       class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 hover:bg-azul/5"
@@ -106,13 +112,15 @@
                 <li
                   class="rounded-lg border p-2"
                   [class]="
-                    item.tipo === 'LIVRE'
-                      ? 'border-emerald-200 bg-emerald-50'
-                      : item.tipo === 'BLOQUEIO'
-                        ? 'border-slate-300 bg-slate-100'
-                        : item.tipo === 'EVENTO'
-                          ? 'border-violet-200 bg-violet-50'
-                          : 'border-sky-200 bg-sky-50'
+                    item.reserva?.origem === 'REGISTRO_POSTERIOR'
+                      ? 'border-2 border-dashed border-fuchsia-500 bg-fuchsia-50'
+                      : item.tipo === 'LIVRE'
+                        ? 'border-emerald-200 bg-emerald-50'
+                        : item.tipo === 'BLOQUEIO'
+                          ? 'border-slate-300 bg-slate-100'
+                          : item.tipo === 'EVENTO'
+                            ? 'border-violet-200 bg-violet-50'
+                            : 'border-sky-200 bg-sky-50'
                   "
                 >
                   <p class="font-semibold text-slate-800">{{ item.inicio }}–{{ item.fim }}</p>
@@ -122,9 +130,17 @@
                       @if (item.podeCriarEvento) {
                         <a
                           routerLink="/admin/eventos/novo"
-                          [queryParams]="linkDoEvento(espacoId()!, dia.data, item)"
+                          [queryParams]="linkDoHorario(espacoId()!, dia.data, item)"
                           class="text-xs font-semibold text-azul underline"
                           >Criar evento aqui</a
+                        >
+                      }
+                      @if (item.podeRegistrarUso) {
+                        <a
+                          routerLink="/admin/reservas/registrar"
+                          [queryParams]="linkDoHorario(espacoId()!, dia.data, item)"
+                          class="block text-xs font-semibold text-fuchsia-800 underline"
+                          >Registrar uso aqui</a
                         >
                       }
                     }
@@ -139,15 +155,26 @@
                         class="font-semibold text-azul underline"
                       >
                         @if (item.tipo === 'EVENTO') {
-                          Evento: {{ item.reserva!.descricao || 'sem descrição' }}
+                          {{ item.reserva!.origem === 'REGISTRO_POSTERIOR' ? 'Grupo' : 'Evento' }}:
+                          {{ item.reserva!.descricao || 'sem descrição' }}
                         } @else {
                           {{ descreverQuem(item) }}
                         }
                       </a>
                       @if (item.tipo === 'EVENTO' && item.reserva!.reservado_por.nome) {
                         <p class="text-xs text-slate-600">
-                          por {{ item.reserva!.reservado_por.nome }}
+                          {{
+                            item.reserva!.origem === 'REGISTRO_POSTERIOR' ? 'registrado por' : 'por'
+                          }}
+                          {{ item.reserva!.reservado_por.nome }}
                         </p>
+                      }
+                      @if (item.reserva!.origem === 'REGISTRO_POSTERIOR') {
+                        <span
+                          class="mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+                          [class]="registroPosterior.classes"
+                          >{{ registroPosterior.texto }}</span
+                        >
                       }
                       @if (item.reserva!.situacao_confirmacao; as situacao) {
                         <span
