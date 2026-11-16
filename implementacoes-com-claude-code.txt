@@ -2398,3 +2398,57 @@ README.md
 CHECKLIST.md: "Onde paramos" com o Mailtrap, o queue:work no passo a passo e as linhas velhas
   dos emails no log reescritas; conceitos explicados (senha de app, FRONTEND_URL).
 
+
+========================================================================
+58. PASSO 11.5a: RESERVAS NO PAINEL DO ADMIN (16/11/2026)
+========================================================================
+Pedido do usuário: "vamos seguindo com o frontend"; proposta do 11.5a aprovada com "pode seguir
+com as implementações de acordo com suas sugestões". Também pediu que o serviço de disparo de
+emails fique marcado como pendente (CHECKLIST, README e DEPLOY).
+
+API
+app/Models/Reserva.php
+  - situacaoConfirmacao(): AGUARDANDO_CONFIRMACAO (sem confirmada_em), RECONFIRMADA (com
+    reconfirmada_em), AGUARDANDO_RECONFIRMACAO (pedida e não reconfirmada) ou CONFIRMADA; null
+    para eventos. Mesma regra do filtro "confirmacao" do ReservaRepository, sem consulta extra.
+app/Http/Resources/ReservaResource.php: campo situacao_confirmacao.
+routes/api.php
+  - POST /api/admin/reservas/consulta (mesmo index da lista, filtros no corpo) e
+    /api/admin/reservas/exportar aceitando GET e POST. Motivo: a busca por nome ou RA é dado
+    pessoal e, no GET, ia na URL (logs do servidor). O front só usa POST.
+tests/Feature/ListagemReservasTest.php: busca por POST, validação, per_page e totais; situação da
+  confirmação nos quatro estados, null no evento e filtro coerente.
+tests/Feature/ExportacaoReservasTest.php: exportação por POST com busca e colunas.
+
+FRONT (frontend/src/app/admin/reservas/)
+modelos.ts: ReservaAdmin, FiltrosReservas, PaginaReservasAdmin, ItemDevolucao, colunas e arquivo.
+reservas-admin.service.ts: consultar (POST /consulta com page), detalhar, revogar,
+  registrarDevolucao, colunasDaExportacao, exportar (POST, resposta blob, nome do arquivo lido do
+  Content-Disposition e aceito só se for um nome simples terminado em .csv).
+filtros.ts: filtrosDaUrl valida cada parâmetro (enums conhecidos, ids positivos, datas ISO, até
+  depois do de); período tem prioridade sobre as datas; diasDoPeriodo e limite de 366 dias.
+linha-do-tempo.ts: marcos da reserva (criada, prazo para confirmar enquanto não confirma,
+  confirmada com a versão dos termos, reconfirmação pedida, prazo para reconfirmar mostrado como
+  23:59 da antevéspera, reconfirmada, cancelada, revogada com quem revogou) e jaComecou.
+selos.ts: SelosReserva e as cores por status e por situação da confirmação; o selo da confirmação
+  só aparece em reserva ativa; texto sempre junto da cor.
+lista-reservas/: filtros na URL (periodo, de, ate, espaco, curso, tipo, status, confirmacao,
+  devolucao, pagina) lidos como inputs da rota; busca só num signal com espera de 400 ms; uma
+  consulta por mudança (computed de filtros + página + recarga, com switchMap cancelando a
+  anterior); totais por status como botões com aria-pressed; tabela no computador e cartões no
+  celular; nome e curso na lista, sem RA e email; botão Atualizar em vez de atualização automática.
+exportar-reservas/: painel <details> que busca as colunas só ao abrir; aviso de dados pessoais;
+  confere os 366 dias antes de chamar a API; baixa com URL.createObjectURL.
+detalhe-reserva/: detalhe com aluno (RA e email), linha do tempo, equipamentos com a devolução,
+  RevogarReserva (formulário no próprio detalhe, justificativa de 10 a 500 caracteres, aviso do
+  email ao aluno) e RegistrarDevolucao (um bloco por item, com situação, quantidade e observação
+  obrigatória na avaria ou falta; erros da API mostrados no item). "Voltar à lista" usa o
+  histórico quando veio da lista (state daLista), mantendo os filtros.
+admin.routes.ts: /admin/reservas e /admin/reservas/:id, carregados sob demanda.
+layout-admin.html: item "Reservas" no menu. painel/painel.ts: atalho para Reservas.
+
+TESTES
+admin/reservas/reservas.spec.ts (11 testes) e e2e/reservas-admin.spec.ts (computador e celular);
+e2e/api-falsa.ts com consulta, detalhe e revogação do admin.
+Totais: 266 da API, 126 do front, 28 no navegador. Build: inicial 310,7 kB (81,9 kB transferidos).
+
