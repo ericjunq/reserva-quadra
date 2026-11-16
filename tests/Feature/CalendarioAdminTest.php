@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Constants\HorarioReservaConstant;
 use App\Models\Aluno;
+use App\Models\DataBloqueada;
 use App\Models\Espaco;
 use App\Models\Reserva;
 use App\Models\User;
@@ -82,6 +83,21 @@ class CalendarioAdminTest extends TestCase
         $this->consultar(['de' => '2026-11-12'], $lab)->assertOk()
             ->assertJsonPath('data.dias.0.ocupados.0.reserva.reservado_por.nome', 'João Lima')
             ->assertJsonPath('data.dias.0.ocupados.0.reserva.situacao_confirmacao', 'AGUARDANDO_CONFIRMACAO');
+    }
+
+    public function test_bloqueio_do_dia_inteiro_ocupa_a_janela_no_horario_livre(): void
+    {
+        $this->comoAdmin();
+        $lab = Espaco::factory()->laboratorio()->livre('07:00', '22:00', 180)->create();
+        DataBloqueada::factory()->entre('2026-11-12', '2026-11-12')->create(['motivo' => 'Recesso']);
+
+        $this->consultar(['de' => '2026-11-12'], $lab)->assertOk()
+            ->assertJsonPath('data.dias.0.ocupados.0.inicio', '07:00')
+            ->assertJsonPath('data.dias.0.ocupados.0.fim', '22:00')
+            ->assertJsonPath('data.dias.0.ocupados.0.motivo', 'Recesso');
+
+        $this->getJson("/api/espacos/{$lab->id}/disponibilidade?de=2026-11-12")->assertOk()
+            ->assertJsonCount(0, 'data.dias.0.ocupados');
     }
 
     public function test_ve_o_passado_e_depois_do_fim_do_semestre_ate_31_dias(): void

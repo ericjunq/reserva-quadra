@@ -118,9 +118,9 @@ class DisponibilidadeService
                 'motivo'   => null,
                 'reserva'  => $this->montarReserva($reserva, $curso),
             ])
-            ->concat($bloqueios->reject(fn (DataBloqueada $bloqueio) => $bloqueio->diaInteiro())->map(fn (DataBloqueada $bloqueio) => [
-                'inicio'   => IntervaloReserva::curta($bloqueio->hora_inicio),
-                'fim'      => IntervaloReserva::curta($bloqueio->hora_fim),
+            ->concat($bloqueios->reject(fn (DataBloqueada $bloqueio) => ! $this->paraAdmin && $bloqueio->diaInteiro())->map(fn (DataBloqueada $bloqueio) => [
+                'inicio'   => IntervaloReserva::curta($bloqueio->diaInteiro() ? $espaco->abre_as : $bloqueio->hora_inicio),
+                'fim'      => IntervaloReserva::curta($bloqueio->diaInteiro() ? $espaco->fecha_as : $bloqueio->hora_fim),
                 'situacao' => 'BLOQUEADO',
                 'motivo'   => $bloqueio->motivo,
                 'reserva'  => null,
