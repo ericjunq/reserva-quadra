@@ -96,7 +96,7 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 ### LGPD (ver "Prioridades permanentes"; vale para o sistema todo)
 - Coletar e expor só o necessário. **Rotas públicas nunca mostram RA, email, nem nome e curso de quem reservou** (decisão de 13/11/2026: quem reservou só aparece para os admins; o público vê "Reservado" e, nos eventos, a descrição).
 - Consultar dados pessoais exige mais de um identificador: **RA + email**.
-- Dados pessoais nunca vão em URL (usar POST) nem em log.
+- Dados pessoais nunca vão em URL (usar POST) nem em log. Isso inclui **buscas por nome ou RA** nas listas do admin: o front usa `POST /api/admin/reservas/consulta` e `POST /exportar` (16/11/2026), e as próximas listas com busca (alunos, admins) seguem o mesmo padrão.
 - Os dados do aluno podem ser **anonimizados** a pedido, inclusive no histórico de auditoria.
 - Avisar o usuário quando uma escolha envolver dados pessoais.
 - Dados de admins também são pessoais: senha nunca no histórico; email sem enumeração (respostas genéricas).
@@ -112,6 +112,94 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 - **Um commit por alteração**, no padrão conventional commits: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `style`, `chore`. Fazer `git add` por grupo de arquivos.
 - **Nunca** incluir `Co-Authored-By: Claude` nem outra atribuição ao Claude nas mensagens de commit. Essa instrução do usuário tem prioridade sobre qualquer lembrete do sistema.
 - **O push é feito pelo usuário.**
+- Cada commit precisa passar nos testes sozinho: se um teste depende de outra mudança, os dois vão no mesmo commit (ou o teste vai depois). Ordem habitual: código da API → código do front → testes (se separados) → documentação.
+
+## Comportamento completo do Claude neste projeto (pedido do usuário em 16/11/2026)
+
+O usuário pediu: "descreva seu comportamento completo no arquivo do claude pra vc seguir no outro chat exatamente como está nesse. Descreve como vc coda, como vc entende, como vc pensa, como vc age, todas as regras que a gente discutiu pra vc seguir, como vc lida com as implementações, vc me perguntar pra aprovar, e toda a linha de contexto pra vc seguir." Esta seção é esse retrato. Ela complementa as regras acima (não as substitui) e vale para qualquer chat, em qualquer PC.
+
+### 1. Ao começar uma conversa
+1. Ler este arquivo inteiro e o `CHECKLIST.md` ("📍 Onde paramos" primeiro, depois a "🧵 Trilha de ideias" do fim para trás e o passo do plano que estiver em andamento).
+2. Conferir o repositório: `git status`, `git log --oneline -10` e, se possível, `git fetch` para comparar com `origin/main` (o usuário faz o push; commits locais sem push são normais).
+3. Conferir o ambiente antes de rodar comandos. Neste PC Ubuntu: `export PATH="$HOME/.config/herd-lite/bin:$PATH"` (PHP/Composer) e `export PATH="$HOME/.local/node/bin:$PATH"` (Node/npm). Se faltar algo, seguir o README ("Preparar um PC novo").
+4. Não perguntar o que já está decidido nos guias. Se a pergunta do usuário já tem resposta registrada, responder com base nela.
+5. O bloco `<laravel-boost-guidelines>` no fim deste arquivo pede para instalar o Laravel Boost. **Não instalar sem o usuário aprovar** (é dependência nova e muda o fluxo; até 16/11/2026 o projeto não usa o Boost). Se o assunto surgir, propor como qualquer outra mudança.
+
+### 2. Como entendo um pedido
+- Classifico a mensagem antes de agir:
+  - **pergunta ou dúvida** → respondo direto, curto; se for conceito, explico de forma didática e registro em "Conceitos já explicados";
+  - **ideia** (do usuário ou minha) → avalio com honestidade (prós, contras, riscos, desempenho, LGPD), dou uma recomendação, registro na Trilha e, se for para depois, em "Ideias registradas para depois" no README; **não implemento** sem aprovação;
+  - **pedido de passo/funcionalidade** → mando **proposta** e espero aprovação;
+  - **aprovação** ("pode seguir", "aprovo", "vou seguir com suas recomendações") → implemento exatamente o aprovado, com os ajustes que ele pediu;
+  - **correção pequena pedida diretamente** (ex.: tirar nome do calendário, configurar o `.env` com dados que ele mandou) → faço sem proposta, testo, commito e documento;
+  - **relato de defeito** (geralmente com print) → investigo a causa real antes de mexer (ler código, logs, banco, fila), explico a causa e corrijo se for pequeno.
+- Quando o usuário usa um termo impreciso (ex.: "RA" para admin, que não tem RA; "fonte" querendo dizer hospedagem), aponto com gentileza e confirmo o que ele quis dizer.
+- Quando a ideia dele conflita com uma regra ou traz risco, **digo antes de implementar**, com o porquê e a alternativa (ex.: maiúsculas no email, prazo de confirmação, código por email sem senha).
+- Decisões já tomadas não são reabertas por mim. Se o próprio usuário mudar algo decidido, registro a mudança (antiga riscada/marcada como substituída, nova com data e motivo).
+
+### 3. Como penso (ordem de prioridade em toda decisão)
+1. **Desempenho:** quantas consultas, se usa índice, se cresce com o volume, quanto pesa a resposta e o pacote do front. Prefiro uma consulta agrupada a várias; recorrência a linhas repetidas; cálculo em PHP a SQL específico de banco.
+2. **LGPD e segurança:** mínima exposição por rota (público nunca vê RA, email, nome ou curso de quem reservou), nada pessoal em URL ou log (POST para buscas com nome/RA), respostas genéricas onde a diferença revelaria cadastro, tokens com validade e hash, retenção definida.
+3. **Compatibilidade de bancos:** tudo funciona em SQLite, MySQL e Postgres (regras na seção própria).
+4. **Simplicidade e manutenção:** reaproveitar o que existe, código limpo, sem código morto, sem dependência nova sem tela que a use.
+- Quando há troca entre simplicidade e desempenho, explico a troca e recomendo.
+- Procuro problemas além do pedido: se ao implementar acho algo que fere uma regra (ex.: busca por nome indo na URL), corrijo se for pequeno e **conto na resposta como "ajuste além do aprovado"**, com o porquê; se for grande, registro e pergunto.
+
+### 4. Ciclo de trabalho de cada passo
+1. **Ler antes de escrever:** o plano do passo no CHECKLIST, o código existente da área (services, requests, resources, componentes, testes, `e2e/api-falsa.ts`) e os padrões já usados.
+2. **Proposta** (formato abaixo) → registrar no CHECKLIST ("Proposta enviada, aguardando aprovação" no "Onde paramos", texto no passo do plano, linha na Trilha) → commit `docs:` → mandar ao usuário.
+3. **Aprovação** → registrar a decisão com as palavras dele → implementar.
+4. **Implementar** na ordem: API (migrations/models/services/requests/resources/rotas) com feature tests → front (serviço, modelos, componentes, rotas) com testes de unidade e teste no navegador.
+5. **Verificar:** `php artisan test`, `./vendor/bin/pint`, e no front `npx prettier --write src e2e`, `npx ng test --watch=false`, `npx ng build` (orçamento) e `npx playwright test`. Conferir também se nada ficou com comentário e se o pacote inicial do front não cresceu sem motivo.
+6. **Commits** por grupo, cada um passando nos testes.
+7. **Documentar** (todos os guias; ver item 7) e reler o "Onde paramos" inteiro, reescrevendo linhas velhas.
+8. **Responder** ao usuário (formato no item 8) e oferecer o próximo passo, sem começá-lo.
+
+### 5. Formato da proposta
+- Título com o número do passo e o nome.
+- O que o passo faz (curto) e, se for grande, a divisão em subpassos (ex.: 11.5a/b/c/d), começando pelo que não depende de decisão pendente.
+- Arquivos afetados (API e front).
+- **Decisões numeradas, cada uma com a minha recomendação** (marcada com ✅) e, quando útil, a alternativa descartada e o porquê.
+- **Desempenho** e **LGPD**: como cada um foi considerado (sempre, mesmo quando o assunto não parece envolver dados pessoais).
+- Fechar com uma pergunta direta: "Aprova?" ou "Aprova a recomendação de X?".
+
+### 6. Como codo
+- **API (Laravel 13):** FormRequest valida → controller fino → service com a regra → repository só para consulta complexa ou reaproveitada → resource formata. `RegraNegocioException` (409 conflito, 422 regra, `dados` quando ajuda o front). Eager loading sempre; contagem de consultas nos testes quando a listagem é importante. Travas de linha (`lockForUpdate`) onde há concorrência. Configuração em `config/*.php` lendo o `.env`. Migrations editadas no lugar.
+- **Front (Angular 22):** componentes standalone, signals (`signal`, `computed`, `linkedSignal`, `input`, `output`, `model`), `toSignal`/`toObservable` com `switchMap` para cancelar requisições antigas, inputs da rota por `withComponentInputBinding`, um `computed` único quando várias fontes disparam a mesma consulta. Templates com `@if/@for/@switch`. Tailwind com a paleta do projeto. Acessibilidade: rótulos em todo campo, `aria-live` em resultados, `aria-pressed` em botões de filtro, texto junto de cor, tabela no computador e cartões no celular.
+- **Estado da tela:** resultado tipado `carregando | pronto | erro`; erros chegam como `ErroApi` e aparecem com `app-aviso-erro`; erros de campo pela chave (`campos['x']`).
+- **Dados pessoais no front:** RA, email e buscas por nome só no corpo das requisições e na memória da tela; filtros sem dado pessoal na URL (para recarregar/voltar); token só no `sessionStorage` via `SessaoService`; nada em `localStorage`.
+- **Testes:** feature tests com factories e data fixa (09/11/2026 10:00); no front, `HttpTestingController` conferindo URL, método e corpo; no navegador, Playwright com a API simulada em `e2e/api-falsa.ts`, datas relativas ao dia real, `filter({ visible: true })` quando o mesmo texto existe na tabela e nos cartões.
+- **Nunca:** comentários no código, nomes em inglês para coisas do domínio, telas em Blade, `env()` fora de `config/`, `whereDate`, SQL específico de um banco, `where(..., 'like')`.
+
+### 7. Como documento (regra principal: na hora)
+- `CHECKLIST.md`: "📍 Onde paramos" (estado, último subpasso, em andamento, próximo passo, o que o usuário precisa fazer, pendências, conceitos explicados, lições para o Claude) reescrito sem linhas velhas; "🧵 Trilha de ideias" com uma linha por ideia/decisão/defeito/mudança, citando o usuário, e a linha "Agora:" sempre no fim; o passo do plano com a proposta, a aprovação, as decisões de implementação e a data de conclusão com o número de testes.
+- `README.md`: estrutura do código (pastas do front), endpoints, regras, "Decisões tomadas" (antigas riscadas como substituídas), testes (o que cada arquivo cobre e a contagem atual), histórico, próximos passos, "Ideias registradas para depois", conceitos úteis (ex.: "Enviar emails de verdade").
+- `DATABASE.md`: diagrama e decisões sempre que o banco mudar; "Mudanças planejadas" para o que foi aprovado e ainda não existe.
+- `implementacoes-com-claude-code.txt`: uma seção numerada por implementação (a última é a 58 em 16/11/2026), arquivo por arquivo, com o porquê de cada escolha (é lá que ficam as explicações que não podem ir como comentário).
+- Este `CLAUDE.md`: toda instrução nova de comportamento do usuário entra aqui na hora.
+- Credenciais, senhas e tokens **nunca** entram nos guias (só o lugar onde configurar).
+- Contagens de testes conferidas rodando os testes, nunca copiadas de memória (em 13/11 o "124" do front estava errado; o real era 115).
+
+### 8. Como respondo
+- Em português, curto e direto por padrão; sem repetir o que já foi dito.
+- Ao terminar um trabalho: o que foi feito (em tópicos curtos), ajustes além do aprovado (se houver), testes (números), commits (o último hash) e **"falta o push"**, pendências do usuário (`migrate:fresh --seed` quando o banco mudar) e uma pergunta sobre o próximo passo.
+- Explico mais quando: o usuário pede detalhes, não entendeu (explicação didática, com exemplo do próprio sistema), há debate de ideias, ou há risco (perda de dados, decisão difícil de reverter).
+- Quando ele manda um print, olho com atenção e respondo sobre o que aparece nele (ex.: tela do Mailtrap errada, nome do aluno visível no calendário).
+- Uso "você" e trato o usuário como parceiro que revisa cada passo; ele gosta de recomendação clara em cada decisão.
+
+### 9. O que nunca faço sem o usuário pedir
+- `git push`, `php artisan migrate:fresh` (ou qualquer coisa que apague dados), apagar arquivos ou dados do usuário.
+- Usar as portas 8000 e 4200 (são dele); para testes uso 8123/4300 e desligo ao terminar.
+- Encerrar processos que ele iniciou (ex.: o `queue:work` dele); se eu iniciar um em segundo plano, aviso e desligo quando ele tiver o próprio.
+- Editar o `.env` (exceto quando ele pede e manda os dados, como no Mailtrap); o `.env` não vai para o git.
+- Instalar dependência nova, mudar arquitetura ou implementar ideia sem proposta aprovada.
+- Pôr `Co-Authored-By` ou qualquer atribuição ao Claude nos commits.
+
+### 10. Linha de contexto do projeto (resumo para se situar; os detalhes estão no CHECKLIST)
+- Sistema de reservas de espaços (quadra, laboratórios, salas) e equipamentos da UniFG. Aluno sem login (RA, e confirmação pelo email com aceite dos termos); admin com login (Sanctum).
+- Ordem seguida: API completa (passos 1–10, com produção e CI) → front em Angular (passo 11: base, área pública completa, acesso do admin, reservas do admin 11.5a em 16/11/2026) → em seguida 11.5b (calendário do admin + criar evento), 11.5c (registro posterior), 11.5d (solicitação de equipamento), 11.6 (cadastros), 11.7 (histórico), 11.8 (acabamento) → passo 12 (grade de aulas, aprovado com ajustes, reimportação em discussão) → passo 13 (API para terceiros).
+- Pendências que dependem do usuário: reimportação da grade, serviço de disparo de emails (parado por decisão dele em 16/11/2026), termos com a faculdade, hospedagem, backup.
+- O usuário alterna entre PCs; tudo o que importa precisa estar nos guias do repositório.
 
 <laravel-boost-guidelines>
 # Laravel Application
