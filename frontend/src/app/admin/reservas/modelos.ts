@@ -64,6 +64,8 @@ export interface ReservaAdmin {
   reconfirmacao_pedida_em: string | null;
   reconfirmar_ate: string | null;
   reconfirmada_em: string | null;
+  manter_ate?: string | null;
+  mantida_em?: string | null;
   criado_por?: Pessoa | null;
   atualizado_por?: Pessoa | null;
   criado_em?: string | null;

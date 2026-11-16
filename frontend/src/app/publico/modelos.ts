@@ -27,6 +27,7 @@ export interface Solicitacao {
   situacao: SituacaoSolicitacao;
   justificativa: string | null;
   respondida_em: string | null;
+  responder_ate?: string | null;
 }
 
 export interface Curso {
@@ -154,6 +155,8 @@ export interface ReservaDoAluno {
   reconfirmacao_pedida_em: string | null;
   reconfirmar_ate: string | null;
   reconfirmada_em: string | null;
+  manter_ate?: string | null;
+  mantida_em?: string | null;
 }
 
 export interface PaginaDeReservas {
@@ -162,6 +165,16 @@ export interface PaginaDeReservas {
 }
 
 export type PeriodoMinhasReservas = 'FUTURAS' | 'TODAS';
+
+export interface ResumoParaManter {
+  data: ReservaDoAluno;
+  pode_manter: boolean;
+}
+
+export interface Solicitaveis {
+  itens: EquipamentoSolicitavel[];
+  responderAte: string | null;
+}
 
 export interface ResumoDoCancelamento {
   data: ReservaDoAluno;

@@ -10,7 +10,7 @@ import { ApiPublicaService } from '../api-publica.service';
 import { CartaoReserva } from '../cartao-reserva/cartao-reserva';
 import { paraIso } from '../datas';
 import { PaginaDeReservas, PeriodoMinhasReservas, ReservaDoAluno } from '../modelos';
-import { descreverConfirmacao, nomeDoStatus } from '../situacao-reserva';
+import { avisoParaManter, descreverConfirmacao, nomeDoStatus } from '../situacao-reserva';
 
 interface Consulta {
   ra: string;
@@ -42,6 +42,7 @@ export class MinhasReservas {
 
   protected readonly nomeDoStatus = nomeDoStatus;
   protected readonly descreverConfirmacao = descreverConfirmacao;
+  protected readonly avisoParaManter = avisoParaManter;
 
   protected readonly numeroDaPagina = computed(() => {
     const numero = Number(this.pagina());

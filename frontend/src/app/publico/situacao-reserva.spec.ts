@@ -18,6 +18,36 @@ function reserva(dados: Partial<ReservaDoAluno> = {}): ReservaDoAluno {
   };
 }
 
+describe('manter a reserva sem o equipamento', () => {
+  it('avisa só enquanto o aluno ainda não decidiu', async () => {
+    const { avisoParaManter } = await import('./situacao-reserva');
+    const base = {
+      id: 1,
+      data_reserva: '2026-11-20',
+      hora_inicio: '19:00',
+      hora_fim: '20:30',
+      status: 'RESERVADO' as const,
+      tipo: 'ALUNO' as const,
+      confirmar_ate: null,
+      confirmada_em: '2026-11-10T12:00:00Z',
+      reconfirmacao_pedida_em: null,
+      reconfirmar_ate: null,
+      reconfirmada_em: null,
+    };
+    expect(avisoParaManter(base)).toBeNull();
+    expect(avisoParaManter({ ...base, manter_ate: '2026-11-19T22:00:00Z' })).toContain(
+      'confirme pelo email até 19/11 às 19:00',
+    );
+    expect(
+      avisoParaManter({
+        ...base,
+        manter_ate: '2026-11-19T22:00:00Z',
+        mantida_em: '2026-11-19T12:00:00Z',
+      }),
+    ).toBeNull();
+  });
+});
+
 describe('pedidos de equipamento', () => {
   it('descreve cada situação e diz se o item vale na reserva', async () => {
     const { descreverSolicitacao, itemValeNaReserva } = await import('./situacao-reserva');

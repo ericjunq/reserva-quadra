@@ -42,6 +42,11 @@ export const SELO_DE_PEDIDO: Selo = {
   classes: 'bg-violet-100 text-violet-900 ring-1 ring-violet-300',
 };
 
+export const SELO_AGUARDANDO_MANTER: Selo = {
+  texto: 'Aguardando o aluno manter',
+  classes: 'bg-amber-100 text-amber-900 ring-1 ring-amber-300',
+};
+
 export const NOMES_DAS_SOLICITACOES: Record<SituacaoSolicitacao, string> = {
   AGUARDANDO: 'Aguardando resposta',
   APROVADA: 'Aprovado',
@@ -78,6 +83,11 @@ export const NOMES_DAS_DEVOLUCOES: Record<SituacaoDevolucao, string> = {
           >{{ registroPosterior.texto }}</span
         >
       }
+      @if (aguardandoManter()) {
+        <span class="rounded-full px-2 py-0.5 text-xs font-semibold" [class]="manter.classes">{{
+          manter.texto
+        }}</span>
+      }
       @if (pedidoAguardando()) {
         <span class="rounded-full px-2 py-0.5 text-xs font-semibold" [class]="pedido.classes">{{
           pedido.texto
@@ -96,6 +106,9 @@ export class SelosReserva {
   readonly confirmacao = input<SituacaoConfirmacao | null>(null);
   readonly origem = input<OrigemReserva | null>(null);
   readonly pedidoAguardando = input(false);
+  readonly aguardandoManter = input(false);
+
+  protected readonly manter = SELO_AGUARDANDO_MANTER;
 
   protected readonly pedido = SELO_DE_PEDIDO;
 

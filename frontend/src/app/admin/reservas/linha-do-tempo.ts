@@ -23,6 +23,10 @@ export function linhaDoTempo(reserva: ReservaAdmin): Marco[] {
       ? marco('Prazo para reconfirmar', umMinutoAntes(reserva.reconfirmar_ate))
       : null,
     marco('Reconfirmada pelo aluno', reserva.reconfirmada_em),
+    !reserva.mantida_em && reserva.manter_ate
+      ? marco('Prazo para o aluno manter sem o equipamento', reserva.manter_ate)
+      : null,
+    marco('Mantida pelo aluno sem o equipamento', reserva.mantida_em),
     marco('Cancelada pelo aluno', reserva.cancelada_em),
     marco('Revogada', reserva.revogada_em, reserva.revogada_por?.nome),
   ];

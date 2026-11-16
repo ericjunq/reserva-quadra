@@ -3,7 +3,8 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { LucideMinus, LucidePlus } from '@lucide/angular';
 import { catchError, of, switchMap } from 'rxjs';
 import { ApiPublicaService } from '../api-publica.service';
-import { EquipamentoSolicitavel } from '../modelos';
+import { formatarDataHora } from '../datas';
+import { EquipamentoSolicitavel, Solicitaveis } from '../modelos';
 
 export interface Intervalo {
   espacoId: number;
@@ -25,17 +26,22 @@ export interface Intervalo {
         Pedir equipamento de outro espaço (opcional)
       </summary>
       <p class="mt-2 text-sm text-slate-700">
-        O pedido depende da aprovação da administração e você recebe a resposta por email.
-        <strong>A reserva do espaço vale de qualquer jeito.</strong> Peça com pelo menos 2 horas de
-        antecedência; sem resposta até 2 horas antes do início, o pedido deixa de valer.
+        O pedido depende da aprovação da administração e você recebe a resposta por email. Se ele
+        for recusado ou ficar sem resposta, o email pede para você confirmar se mantém a reserva sem
+        o equipamento; <strong>sem essa confirmação, a reserva é cancelada</strong>.
       </p>
-      @if (opcoes() === null) {
+      @if (solicitaveis() === null) {
         <p class="mt-3 text-sm text-slate-600">Buscando os equipamentos…</p>
-      } @else if (opcoes()!.length === 0) {
+      } @else if (!solicitaveis()!.responderAte) {
+        <p class="mt-3 rounded-lg bg-amarelo/15 px-3 py-2 text-sm text-slate-800">
+          Faltam poucas horas para a reserva: peça o equipamento diretamente na coordenação.
+        </p>
+      } @else if (opcoes().length === 0) {
         <p class="mt-3 text-sm text-slate-600">
           Nenhum equipamento de outro espaço pode ser pedido neste horário.
         </p>
       } @else {
+        <p class="mt-3 text-sm font-semibold text-slate-800">A resposta chega até {{ prazo() }}.</p>
         <ul class="mt-3 divide-y divide-slate-100">
           @for (opcao of opcoes(); track opcao.id) {
             <li class="flex items-center justify-between gap-4 py-2">
@@ -97,7 +103,7 @@ export class PedidosDeEquipamento {
 
   private readonly consulta = computed(() => (this.aberto() ? this.intervalo() : null));
 
-  protected readonly opcoes = toSignal(
+  protected readonly solicitaveis = toSignal(
     toObservable(this.consulta).pipe(
       switchMap((intervalo) =>
         intervalo
@@ -108,12 +114,19 @@ export class PedidosDeEquipamento {
                 intervalo.inicio,
                 intervalo.fim,
               )
-              .pipe(catchError(() => of([] as EquipamentoSolicitavel[])))
+              .pipe(catchError(() => of<Solicitaveis>({ itens: [], responderAte: null })))
           : of(null),
       ),
     ),
     { initialValue: null },
   );
+
+  protected readonly opcoes = computed(() => this.solicitaveis()?.itens ?? []);
+
+  protected readonly prazo = computed(() => {
+    const responderAte = this.solicitaveis()?.responderAte;
+    return responderAte ? formatarDataHora(responderAte) : '';
+  });
 
   protected alterar(opcao: EquipamentoSolicitavel, variacao: number): void {
     this.nomes.update((atuais) => ({ ...atuais, [opcao.id]: opcao.nome }));

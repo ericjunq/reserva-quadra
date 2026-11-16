@@ -16,6 +16,8 @@ import {
   ReservaDoAluno,
   ResumoDaConfirmacao,
   ResumoDoCancelamento,
+  ResumoParaManter,
+  Solicitaveis,
   Termos,
 } from './modelos';
 
@@ -118,9 +120,9 @@ export class ApiPublicaService {
     data: string,
     inicio: string,
     fim: string,
-  ): Observable<EquipamentoSolicitavel[]> {
+  ): Observable<Solicitaveis> {
     return this.http
-      .get<Resposta<EquipamentoSolicitavel[]>>(
+      .get<Resposta<EquipamentoSolicitavel[]> & { responder_ate: string | null }>(
         `${this.url}/espacos/${espacoId}/equipamentos/solicitaveis`,
         {
           params: new HttpParams()
@@ -129,7 +131,7 @@ export class ApiPublicaService {
             .set('hora_fim', fim),
         },
       )
-      .pipe(map((resposta) => resposta.data));
+      .pipe(map((resposta) => ({ itens: resposta.data, responderAte: resposta.responder_ate })));
   }
 
   reservar(reserva: NovaReserva): Observable<ReservaCriada> {
@@ -163,6 +165,16 @@ export class ApiPublicaService {
   cancelar(token: string): Observable<ReservaDoAluno> {
     return this.http
       .post<Resposta<ReservaDoAluno>>(`${this.url}/reservas/cancelamento/${token}`, {})
+      .pipe(map((resposta) => resposta.data));
+  }
+
+  resumoParaManter(token: string): Observable<ResumoParaManter> {
+    return this.http.get<ResumoParaManter>(`${this.url}/reservas/manter/${token}`);
+  }
+
+  manter(token: string): Observable<ReservaDoAluno> {
+    return this.http
+      .post<Resposta<ReservaDoAluno>>(`${this.url}/reservas/manter/${token}`, {})
       .pipe(map((resposta) => resposta.data));
   }
 

@@ -129,6 +129,11 @@
                         <span class="text-slate-700">{{ confirmacao }}</span>
                       }
                     </p>
+                    @if (avisoParaManter(reserva); as aviso) {
+                      <p class="mt-1 rounded-lg bg-amarelo/15 px-3 py-2 text-sm text-slate-800">
+                        {{ aviso }}
+                      </p>
+                    }
                     @if (reserva.status === 'REVOGADO' && reserva.justificativa_revogacao) {
                       <p class="mt-1 text-sm text-slate-700">
                         Motivo: {{ reserva.justificativa_revogacao }}

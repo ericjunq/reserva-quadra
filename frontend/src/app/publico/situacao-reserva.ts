@@ -56,6 +56,13 @@ export function itemValeNaReserva(solicitacao: Solicitacao | null | undefined): 
   return !solicitacao || solicitacao.situacao === 'APROVADA';
 }
 
+export function avisoParaManter(reserva: ReservaDoAluno): string | null {
+  if (reserva.status !== 'RESERVADO' || !reserva.manter_ate || reserva.mantida_em) {
+    return null;
+  }
+  return `O equipamento pedido não foi liberado: confirme pelo email até ${formatarDataHora(reserva.manter_ate)} se mantém a reserva, senão ela será cancelada`;
+}
+
 export function descreverDevolucao(
   reserva: ReservaDoAluno,
   situacao: SituacaoDevolucao | null,

@@ -280,7 +280,17 @@
                       [confirmacao]="reserva.situacao_confirmacao"
                       [origem]="reserva.origem"
                       [pedidoAguardando]="temPedidoAguardando(reserva)"
+                      [aguardandoManter]="
+                        !!reserva.manter_ate &&
+                        !reserva.mantida_em &&
+                        reserva.status === 'RESERVADO'
+                      "
                       [pedidoAguardando]="temPedidoAguardando(reserva)"
+                      [aguardandoManter]="
+                        !!reserva.manter_ate &&
+                        !reserva.mantida_em &&
+                        reserva.status === 'RESERVADO'
+                      "
                     />
                   </td>
                 </tr>

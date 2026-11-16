@@ -40,6 +40,11 @@ export const rotasPublicas: Routes = [
           loadComponent: () => import('./link-reserva/link-reserva').then((m) => m.LinkReserva),
         })),
       ),
+      ...['reservas/manter/:token', 'reservas/manter'].map((path) => ({
+        path,
+        title: 'Manter reserva · Sistema de Reservas',
+        loadComponent: () => import('./manter-reserva/manter-reserva').then((m) => m.ManterReserva),
+      })),
       {
         path: 'privacidade',
         title: 'Termos e privacidade · Sistema de Reservas',

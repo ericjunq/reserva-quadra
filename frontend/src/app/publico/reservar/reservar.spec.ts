@@ -199,7 +199,7 @@ describe('Reservar', () => {
     const detalhes = pagina.querySelectorAll('details');
     const pedidos = detalhes[detalhes.length - 1] as HTMLDetailsElement;
     expect(pedidos.textContent).toContain('Pedir equipamento de outro espaço');
-    expect(pedidos.textContent).toContain('A reserva do espaço vale de qualquer jeito.');
+    expect(pedidos.textContent).toContain('sem essa confirmação, a reserva é cancelada');
     pedidos.open = true;
     pedidos.dispatchEvent(new Event('toggle'));
     await responder(
@@ -214,9 +214,11 @@ describe('Reservar', () => {
             disponivel: 1,
           },
         ],
+        responder_ate: '2026-11-11T22:00:00Z',
       },
     );
     expect(pedidos.textContent).toContain('Do espaço Laboratório de Informática');
+    expect(pedidos.textContent).toContain('A resposta chega até 11/11 às 19:00');
 
     clicar('Pedir mais Projetor');
     clicar('Pedir mais Projetor');
@@ -250,6 +252,20 @@ describe('Reservar', () => {
     expect(pagina.textContent).toContain(
       'O pedido de equipamento de outro espaço depende da aprovação',
     );
+  });
+
+  it('sem tempo para o admin responder, manda pedir o equipamento na coordenação', async () => {
+    await abrir(quadra, { data: '2026-11-12', horario: 'PRIMEIRO_HORARIO' }, [horarioFixo()]);
+    const detalhes = pagina.querySelectorAll('details');
+    const pedidos = detalhes[detalhes.length - 1] as HTMLDetailsElement;
+    pedidos.open = true;
+    pedidos.dispatchEvent(new Event('toggle'));
+    await responder(
+      `${url}/espacos/1/equipamentos/solicitaveis?data=2026-11-12&hora_inicio=19:00&hora_fim=20:30`,
+      { data: [], responder_ate: null },
+    );
+    expect(pedidos.textContent).toContain('peça o equipamento diretamente na coordenação');
+    expect(pedidos.querySelector('ul')).toBeNull();
   });
 
   it('usa o RA já informado no calendário e o esquece depois de reservar', async () => {
