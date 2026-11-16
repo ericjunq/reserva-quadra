@@ -10,7 +10,7 @@ Este guia segue o caminho de um **servidor Linux próprio (VPS)** com Nginx, PHP
 - **MySQL 8** ou **Postgres 16** (os dois rodam no CI). SQLite não é recomendado em produção.
 - Nginx com certificado HTTPS (Let's Encrypt via `certbot`).
 - `cron` e `supervisor`.
-- Um serviço de email SMTP (o da faculdade, ou um transacional).
+- Um serviço de email SMTP (o da faculdade, ou um transacional). **⏸️ Ainda não escolhido** (pendente desde 16/11/2026, a pedido do usuário); com o domínio da faculdade, configurar SPF e DKIM.
 
 ## 2. Configuração (`.env`)
 

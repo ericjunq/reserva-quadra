@@ -876,7 +876,8 @@ Na ordem combinada. O detalhe de cada passo (o que fará, decisões tomadas e re
    - **Ordem recomendada (13/11):** área pública → login do admin (11.4) → grade de aulas (passo 12, porque sem ela o sistema não pode entrar em uso) → reservas do admin (11.5, com 11.2f e 12b) → cadastros (11.6) → histórico (11.7) → acabamento (11.8) → API para terceiros (13).
 2. **Grade de aulas (importação):** o admin importa a grade da faculdade (espaços e horários de aula) e esses horários deixam de aceitar reservas de alunos; aula tem prioridade sobre reserva. Ideia do usuário em 10/11/2026; **aprovada com ajustes em 13/11/2026**, com a **reimportação ainda em discussão**. Detalhes no passo 12 do [`CHECKLIST.md`](CHECKLIST.md).
 3. **API para terceiros autorizados**, com as devidas restrições de segurança (passo 13). O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.
-4. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
+4. **⏸️ Pendente (decisão do usuário, 16/11/2026): serviço de disparo de emails.** Em desenvolvimento os emails vão para o Mailtrap Sandbox (não entregam no Gmail). Falta escolher o envio real para testes e o de produção (SMTP da faculdade ou serviço transacional com o domínio dela). Ver "Enviar emails de verdade (teste local)".
+5. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md).
 
 ### Front-end: identidade visual
 
