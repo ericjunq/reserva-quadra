@@ -20,6 +20,7 @@ return new class extends Migration
             $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->string('status', 20)->default('RESERVADO');
             $table->string('tipo', 30)->default('ALUNO');
+            $table->string('origem', 20)->default('SITE');
             $table->timestamp('confirmar_ate')->nullable();
             $table->timestamp('confirmada_em')->nullable();
             $table->timestamp('termos_aceitos_em')->nullable();

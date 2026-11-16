@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Constants\HorarioReservaConstant;
+use App\Constants\OrigemReservaConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Models\Aluno;
@@ -43,7 +44,16 @@ class ReservaFactory extends Factory
             'aluno_id'   => null,
             'criado_por' => User::factory(),
             'tipo'       => TipoReservaConstant::EVENTO,
+            'origem'     => OrigemReservaConstant::ADMIN,
             'descricao'  => 'Evento da faculdade',
+        ]);
+    }
+
+    public function registroPosterior(): static
+    {
+        return $this->state([
+            'origem'     => OrigemReservaConstant::REGISTRO_POSTERIOR,
+            'criado_por' => User::factory(),
         ]);
     }
 

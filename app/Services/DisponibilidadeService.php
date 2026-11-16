@@ -223,6 +223,7 @@ class DisponibilidadeService
                 ? ['tipo' => 'ALUNO', 'nome' => $reserva->aluno->nome_completo, 'curso' => $reserva->aluno->curso?->nome]
                 : ['tipo' => 'ADMIN', 'nome' => $reserva->criador?->name, 'curso' => null];
             $dados['situacao_confirmacao'] = $reserva->situacaoConfirmacao()?->value;
+            $dados['origem'] = $reserva->origem->value;
         }
 
         return $dados;

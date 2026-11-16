@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Constants\HorarioReservaConstant;
+use App\Constants\OrigemReservaConstant;
 use App\Constants\SituacaoConfirmacaoConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
@@ -31,6 +32,7 @@ class Reserva extends Model
         'criado_por',
         'status',
         'tipo',
+        'origem',
         'descricao',
         'justificativa_revogacao',
         'revogada_em',
@@ -48,6 +50,7 @@ class Reserva extends Model
     protected $attributes = [
         'status' => 'RESERVADO',
         'tipo'   => 'ALUNO',
+        'origem' => 'SITE',
     ];
 
     protected function casts(): array
@@ -57,6 +60,7 @@ class Reserva extends Model
             'horario'                 => HorarioReservaConstant::class,
             'status'                  => StatusConstant::class,
             'tipo'                    => TipoReservaConstant::class,
+            'origem'                  => OrigemReservaConstant::class,
             'revogada_em'             => 'datetime',
             'cancelada_em'            => 'datetime',
             'confirmar_ate'           => 'datetime',
@@ -104,7 +108,7 @@ class Reserva extends Model
 
     public function situacaoConfirmacao(): ?SituacaoConfirmacaoConstant
     {
-        if ($this->tipo !== TipoReservaConstant::ALUNO) {
+        if ($this->tipo !== TipoReservaConstant::ALUNO || $this->origem === OrigemReservaConstant::REGISTRO_POSTERIOR) {
             return null;
         }
 

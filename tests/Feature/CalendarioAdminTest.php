@@ -57,6 +57,8 @@ class CalendarioAdminTest extends TestCase
             ->assertJsonPath('data.dias.0.horarios.0.reserva.reservado_por.nome', 'Maria Souza')
             ->assertJsonPath('data.dias.0.horarios.0.reserva.reservado_por.curso', $aluno->curso->nome)
             ->assertJsonPath('data.dias.0.horarios.0.reserva.situacao_confirmacao', 'CONFIRMADA')
+            ->assertJsonPath('data.dias.0.horarios.0.reserva.origem', 'SITE')
+            ->assertJsonPath('data.dias.0.horarios.1.reserva.origem', 'ADMIN')
             ->assertJsonPath('data.dias.0.horarios.1.reserva.reservado_por.tipo', 'ADMIN')
             ->assertJsonPath('data.dias.0.horarios.1.reserva.reservado_por.nome', 'Coordenação')
             ->assertJsonPath('data.dias.0.horarios.1.reserva.descricao', 'Palestra')

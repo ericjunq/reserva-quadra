@@ -24,6 +24,7 @@ class ReservaResource extends JsonResource
             'hora_fim'     => substr($this->hora_fim, 0, 5),
             'status'       => $this->status->value,
             'tipo'         => $this->tipo->value,
+            'origem'       => $this->origem->value,
             'espaco_id'    => $this->espaco_id,
             'espaco'       => $this->whenLoaded('espaco', fn () => [
                 'id'   => $this->espaco->id,

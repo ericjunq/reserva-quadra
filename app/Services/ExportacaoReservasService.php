@@ -29,6 +29,7 @@ class ExportacaoReservasService
         'equipamentos'       => ['Equipamentos'],
         'devolucao'          => ['Devolução'],
         'descricao'          => ['Descrição'],
+        'origem'             => ['Origem'],
         'criada_em'          => ['Criada em'],
         'revogacao'          => ['Revogada por', 'Revogada em', 'Justificativa'],
     ];
@@ -123,6 +124,7 @@ class ExportacaoReservasService
                         .($e->pivot->observacao_devolucao ? " ({$e->pivot->observacao_devolucao})" : ''))
                     ->implode('; ')],
                 'descricao' => [$reserva->descricao],
+                'origem'    => [$reserva->origem->label()],
                 'criada_em' => [$reserva->created_at?->format('d/m/Y H:i')],
                 'revogacao' => [
                     $revogada ? $reserva->revogador?->name : null,

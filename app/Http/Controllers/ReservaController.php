@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ListarReservasRequest;
 use App\Http\Requests\RegistrarDevolucaoRequest;
+use App\Http\Requests\RegistrarUsoPosteriorRequest;
 use App\Http\Requests\RevogarReservaRequest;
 use App\Http\Requests\StoreEventoRequest;
 use App\Http\Requests\StoreReservaRequest;
@@ -42,6 +43,13 @@ class ReservaController extends Controller
         $reserva = $this->reservaService->criarEvento($request->validated(), $request->user());
 
         return (new ReservaResource($reserva))->response()->setStatusCode(201);
+    }
+
+    public function registrarUsoPosterior(RegistrarUsoPosteriorRequest $request)
+    {
+        [$reserva, $aviso] = $this->reservaService->registrarUsoPosterior($request->validated(), $request->user());
+
+        return (new ReservaResource($reserva))->additional(['aviso' => $aviso])->response()->setStatusCode(201);
     }
 
     public function registrarDevolucao(RegistrarDevolucaoRequest $request, Reserva $reserva, DevolucaoService $devolucaoService)

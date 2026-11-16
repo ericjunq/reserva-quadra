@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Constants\OrigemReservaConstant;
 use App\Constants\StatusConstant;
 use App\Constants\TipoReservaConstant;
 use App\Exceptions\RegraNegocioException;
 use App\Mail\ReservaRevogadaMail;
+use App\Mail\UsoRegistradoMail;
 use App\Models\Aluno;
 use App\Models\Equipamento;
 use App\Models\Espaco;
@@ -100,11 +102,55 @@ class ReservaService
                 'descricao'    => $data['descricao'],
                 'criado_por'   => $admin->id,
                 'tipo'         => TipoReservaConstant::EVENTO,
+                'origem'       => OrigemReservaConstant::ADMIN,
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
 
             return $reserva->load('equipamentos');
+        });
+    }
+
+    public function registrarUsoPosterior(array $data, User $admin): array
+    {
+        $aluno = empty($data['registro_academico'])
+            ? null
+            : Aluno::where('registro_academico', $data['registro_academico'])->firstOrFail();
+        $data = $this->resolverIntervalo($data);
+
+        return DB::transaction(function () use ($data, $admin, $aluno) {
+            $espaco = $this->travarEspaco($data['espaco_id']);
+
+            if ($conflito = $this->buscarConflito($data)) {
+                throw new RegraNegocioException(
+                    'Já existe uma reserva ou evento nesse horário. Confira o registro existente.',
+                    409,
+                    ['reserva_conflitante_id' => $conflito->id],
+                );
+            }
+
+            $this->verificarDisponibilidadeEquipamentos($data);
+
+            $reserva = Reserva::create([
+                'data_reserva' => $data['data_reserva'],
+                'horario'      => $data['horario'],
+                'hora_inicio'  => $data['hora_inicio'],
+                'hora_fim'     => $data['hora_fim'],
+                'espaco_id'    => $data['espaco_id'],
+                'aluno_id'     => $aluno?->id,
+                'descricao'    => $aluno ? null : $data['descricao'],
+                'criado_por'   => $admin->id,
+                'tipo'         => $aluno ? TipoReservaConstant::ALUNO : TipoReservaConstant::EVENTO,
+                'origem'       => OrigemReservaConstant::REGISTRO_POSTERIOR,
+            ]);
+
+            $this->anexarEquipamentos($reserva, $data);
+
+            if ($aluno) {
+                Mail::to($aluno->email)->queue((new UsoRegistradoMail($reserva->load('espaco')))->afterCommit());
+            }
+
+            return [$reserva->load(self::RELACOES_ADMIN), $aluno ? $this->avisoDoLimiteSemanal($aluno, $espaco, $data) : null];
         });
     }
 
@@ -207,6 +253,25 @@ class ReservaService
                 409,
             );
         }
+    }
+
+    private function avisoDoLimiteSemanal(Aluno $aluno, Espaco $espaco, array $data): ?string
+    {
+        $limite = $espaco->limite_semanal_por_curso;
+
+        if (! $limite || ! $aluno->curso_id) {
+            return null;
+        }
+
+        $segunda = Carbon::parse($data['data_reserva'])->startOfWeek(Carbon::MONDAY);
+
+        $total = $this->reservas->contarPorSemanaDoCurso(
+            $aluno->curso_id, $espaco->id, $segunda->toDateString(), $segunda->copy()->addDays(4)->toDateString(),
+        )->get($segunda->toDateString(), 0);
+
+        return $total > $limite
+            ? "O curso do aluno passou do limite semanal em {$espaco->nome}: {$total} de {$limite} nesta semana."
+            : null;
     }
 
     private function verificarConflitoDeEspaco(array $data): void
