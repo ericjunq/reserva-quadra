@@ -1,0 +1,300 @@
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-2xl font-semibold text-slate-900">Reservas</h1>
+  <button
+    type="button"
+    class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 hover:bg-azul/5"
+    (click)="atualizar()"
+  >
+    Atualizar
+  </button>
+</div>
+
+<section class="mt-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200" aria-label="Filtros">
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div>
+      <label for="filtro-periodo" class="block text-sm font-semibold text-slate-900">Período</label>
+      <select
+        id="filtro-periodo"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        [value]="valorDoPeriodo()"
+        (change)="escolherPeriodo($any($event.target).value)"
+      >
+        <option value="">De hoje em diante</option>
+        @for (periodo of periodos; track periodo.valor) {
+          <option [value]="periodo.valor">{{ periodo.nome }}</option>
+        }
+        <option value="DATAS">Escolher as datas</option>
+      </select>
+    </div>
+
+    @if (valorDoPeriodo() === 'DATAS') {
+      <div>
+        <label for="filtro-de" class="block text-sm font-semibold text-slate-900">De</label>
+        <input
+          id="filtro-de"
+          type="date"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [value]="filtrosDaUrl().de ?? ''"
+          (change)="filtrar({ de: $any($event.target).value })"
+        />
+      </div>
+      <div>
+        <label for="filtro-ate" class="block text-sm font-semibold text-slate-900">Até</label>
+        <input
+          id="filtro-ate"
+          type="date"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [value]="filtrosDaUrl().ate ?? ''"
+          (change)="filtrar({ ate: $any($event.target).value })"
+        />
+      </div>
+    }
+
+    <div>
+      <label for="filtro-espaco" class="block text-sm font-semibold text-slate-900">Espaço</label>
+      <select
+        id="filtro-espaco"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtrosDaUrl().espaco_id ?? ''"
+        (change)="filtrar({ espaco: $any($event.target).value })"
+      >
+        <option value="">Todos</option>
+        @for (espaco of espacos(); track espaco.id) {
+          <option [value]="espaco.id">{{ espaco.nome }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label for="filtro-curso" class="block text-sm font-semibold text-slate-900">Curso</label>
+      <select
+        id="filtro-curso"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtrosDaUrl().curso_id ?? ''"
+        (change)="filtrar({ curso: $any($event.target).value })"
+      >
+        <option value="">Todos</option>
+        @for (curso of cursos(); track curso.id) {
+          <option [value]="curso.id">{{ curso.nome }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label for="filtro-tipo" class="block text-sm font-semibold text-slate-900">Tipo</label>
+      <select
+        id="filtro-tipo"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtrosDaUrl().tipo ?? ''"
+        (change)="filtrar({ tipo: $any($event.target).value })"
+      >
+        <option value="">Alunos e eventos</option>
+        <option value="ALUNO">Só alunos</option>
+        <option value="EVENTO">Só eventos</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="filtro-confirmacao" class="block text-sm font-semibold text-slate-900"
+        >Confirmação</label
+      >
+      <select
+        id="filtro-confirmacao"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtrosDaUrl().confirmacao ?? ''"
+        (change)="filtrar({ confirmacao: $any($event.target).value })"
+      >
+        <option value="">Todas</option>
+        @for (situacao of confirmacoes; track situacao) {
+          <option [value]="situacao">{{ selosDeConfirmacao[situacao].texto }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label for="filtro-devolucao" class="block text-sm font-semibold text-slate-900"
+        >Devolução</label
+      >
+      <select
+        id="filtro-devolucao"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtrosDaUrl().devolucao ?? ''"
+        (change)="filtrar({ devolucao: $any($event.target).value })"
+      >
+        <option value="">Qualquer</option>
+        @for (situacao of devolucoes; track situacao) {
+          <option [value]="situacao">{{ nomesDasDevolucoes[situacao] }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label for="busca" class="block text-sm font-semibold text-slate-900">Nome ou RA</label>
+      <input
+        id="busca"
+        type="search"
+        autocomplete="off"
+        maxlength="100"
+        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        [ngModel]="busca()"
+        (ngModelChange)="digitarBusca($event)"
+      />
+    </div>
+  </div>
+
+  @if (temFiltros()) {
+    <button
+      type="button"
+      class="mt-4 text-sm font-semibold text-azul underline"
+      (click)="limparFiltros()"
+    >
+      Limpar filtros
+    </button>
+  }
+</section>
+
+<app-exportar-reservas class="mt-4 block" [filtros]="filtros()" />
+
+<section class="mt-6" aria-live="polite" aria-label="Reservas encontradas">
+  @if (paginaPronta(); as pagina) {
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar pelo status">
+      @for (status of todosOsStatus; track status) {
+        <button
+          type="button"
+          class="rounded-full px-3 py-1 text-sm font-semibold"
+          [class]="
+            filtrosDaUrl().status === status
+              ? 'bg-azul text-white'
+              : 'bg-white text-slate-800 ring-1 ring-slate-300 hover:bg-slate-50'
+          "
+          [attr.aria-pressed]="filtrosDaUrl().status === status"
+          (click)="filtrarStatus(status)"
+        >
+          {{ selosDeStatus[status].texto }}s: {{ pagina.totais_por_status[status] }}
+        </button>
+      }
+    </div>
+  }
+
+  @switch (resultado().tipo) {
+    @case ('carregando') {
+      <p class="mt-4 text-slate-600">Buscando reservas…</p>
+    }
+    @case ('erro') {
+      <div class="mt-4">
+        <app-aviso-erro [mensagem]="$any(resultado()).erro.mensagem" />
+      </div>
+    }
+    @case ('pronto') {
+      @if (paginaPronta(); as pagina) {
+        @if (pagina.data.length) {
+          <p class="mt-4 text-sm text-slate-600">{{ pagina.meta.total }} reserva(s).</p>
+
+          <table
+            class="mt-2 hidden w-full overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-slate-200 md:table"
+          >
+            <thead class="bg-slate-50 text-sm text-slate-700">
+              <tr>
+                <th scope="col" class="px-4 py-3">Data</th>
+                <th scope="col" class="px-4 py-3">Horário</th>
+                <th scope="col" class="px-4 py-3">Espaço</th>
+                <th scope="col" class="px-4 py-3">Quem</th>
+                <th scope="col" class="px-4 py-3">Situação</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              @for (reserva of pagina.data; track reserva.id) {
+                <tr class="hover:bg-slate-50">
+                  <td class="px-4 py-3">
+                    <a
+                      class="font-semibold text-azul underline"
+                      [routerLink]="['/admin/reservas', reserva.id]"
+                      [state]="{ daLista: true }"
+                      >{{ formatarDia(reserva.data_reserva) }}</a
+                    >
+                  </td>
+                  <td class="px-4 py-3">{{ reserva.hora_inicio }}–{{ reserva.hora_fim }}</td>
+                  <td class="px-4 py-3">{{ reserva.espaco?.nome }}</td>
+                  <td class="px-4 py-3">
+                    @if (reserva.tipo === 'EVENTO') {
+                      Evento: {{ reserva.descricao || 'sem descrição' }}
+                    } @else if (reserva.aluno) {
+                      {{ reserva.aluno.nome_completo }}
+                      @if (reserva.aluno.curso) {
+                        <span class="text-slate-600">· {{ reserva.aluno.curso.nome }}</span>
+                      }
+                    }
+                  </td>
+                  <td class="px-4 py-3">
+                    <app-selos-reserva
+                      [status]="reserva.status"
+                      [confirmacao]="reserva.situacao_confirmacao"
+                    />
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <ul class="mt-2 space-y-3 md:hidden">
+            @for (reserva of pagina.data; track reserva.id) {
+              <li class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                <a
+                  class="font-semibold text-azul underline"
+                  [routerLink]="['/admin/reservas', reserva.id]"
+                  [state]="{ daLista: true }"
+                  >{{ formatarDia(reserva.data_reserva) }}, {{ reserva.hora_inicio }}–{{
+                    reserva.hora_fim
+                  }}</a
+                >
+                <p class="text-slate-800">{{ reserva.espaco?.nome }}</p>
+                <p class="text-slate-700">
+                  @if (reserva.tipo === 'EVENTO') {
+                    Evento: {{ reserva.descricao || 'sem descrição' }}
+                  } @else if (reserva.aluno) {
+                    {{ reserva.aluno.nome_completo }}
+                    @if (reserva.aluno.curso) {
+                      · {{ reserva.aluno.curso.nome }}
+                    }
+                  }
+                </p>
+                <div class="mt-2">
+                  <app-selos-reserva
+                    [status]="reserva.status"
+                    [confirmacao]="reserva.situacao_confirmacao"
+                  />
+                </div>
+              </li>
+            }
+          </ul>
+
+          @if (pagina.meta.last_page > 1) {
+            <nav class="mt-4 flex items-center justify-between" aria-label="Páginas">
+              <button
+                type="button"
+                class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 disabled:opacity-40"
+                [disabled]="pagina.meta.current_page <= 1"
+                (click)="irParaPagina(pagina.meta.current_page - 1)"
+              >
+                Anterior
+              </button>
+              <span class="text-sm text-slate-700"
+                >Página {{ pagina.meta.current_page }} de {{ pagina.meta.last_page }}</span
+              >
+              <button
+                type="button"
+                class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40 disabled:opacity-40"
+                [disabled]="pagina.meta.current_page >= pagina.meta.last_page"
+                (click)="irParaPagina(pagina.meta.current_page + 1)"
+              >
+                Próxima
+              </button>
+            </nav>
+          }
+        } @else {
+          <p class="mt-4 text-slate-700">Nenhuma reserva com esses filtros.</p>
+        }
+      }
+    }
+  }
+</section>

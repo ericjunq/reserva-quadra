@@ -38,6 +38,18 @@ export const rotasAdmin: Routes = [
         loadComponent: () => import('./painel/painel').then((m) => m.Painel),
       },
       {
+        path: 'reservas',
+        title: 'Reservas · Administração',
+        loadComponent: () =>
+          import('./reservas/lista-reservas/lista-reservas').then((m) => m.ListaReservas),
+      },
+      {
+        path: 'reservas/:id',
+        title: 'Reserva · Administração',
+        loadComponent: () =>
+          import('./reservas/detalhe-reserva/detalhe-reserva').then((m) => m.DetalheReserva),
+      },
+      {
         path: 'minha-conta',
         title: 'Minha conta · Administração',
         loadComponent: () => import('./acesso/minha-conta').then((m) => m.MinhaConta),

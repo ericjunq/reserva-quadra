@@ -1,0 +1,158 @@
+<button type="button" class="text-sm font-semibold text-azul underline" (click)="voltar()">
+  Voltar à lista
+</button>
+
+@switch (resultado().tipo) {
+  @case ('carregando') {
+    <p class="mt-6 text-slate-600">Carregando a reserva…</p>
+  }
+  @case ('erro') {
+    <div class="mt-6">
+      <app-aviso-erro [mensagem]="$any(resultado()).erro.mensagem" />
+    </div>
+  }
+  @case ('pronto') {
+    @if (reserva(); as reserva) {
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <h1 class="text-2xl font-semibold text-slate-900">Reserva nº {{ reserva.id }}</h1>
+        <app-selos-reserva [status]="reserva.status" [confirmacao]="reserva.situacao_confirmacao" />
+      </div>
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <section
+          class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+          aria-labelledby="titulo-reserva"
+        >
+          <h2 id="titulo-reserva" class="text-lg font-semibold text-slate-900">Reserva</h2>
+          <dl class="mt-3 space-y-2">
+            <div>
+              <dt class="text-sm text-slate-600">Espaço</dt>
+              <dd class="font-semibold text-slate-900">{{ reserva.espaco?.nome }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm text-slate-600">Quando</dt>
+              <dd class="text-slate-900">
+                {{ formatarDia(reserva.data_reserva) }}, das {{ reserva.hora_inicio }} às
+                {{ reserva.hora_fim }}
+              </dd>
+            </div>
+            @if (reserva.tipo === 'EVENTO') {
+              <div>
+                <dt class="text-sm text-slate-600">Evento</dt>
+                <dd class="text-slate-900">{{ reserva.descricao || 'Sem descrição' }}</dd>
+              </div>
+            }
+            @if (reserva.status === 'REVOGADO' && reserva.justificativa_revogacao) {
+              <div>
+                <dt class="text-sm text-slate-600">Motivo da revogação</dt>
+                <dd class="text-slate-900">{{ reserva.justificativa_revogacao }}</dd>
+              </div>
+            }
+          </dl>
+        </section>
+
+        @if (reserva.aluno; as aluno) {
+          <section
+            class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+            aria-labelledby="titulo-aluno"
+          >
+            <h2 id="titulo-aluno" class="text-lg font-semibold text-slate-900">Aluno</h2>
+            <dl class="mt-3 space-y-2">
+              <div>
+                <dt class="text-sm text-slate-600">Nome</dt>
+                <dd class="font-semibold text-slate-900">{{ aluno.nome_completo }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm text-slate-600">RA</dt>
+                <dd class="text-slate-900">{{ aluno.registro_academico }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm text-slate-600">Email</dt>
+                <dd class="break-all text-slate-900">{{ aluno.email }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm text-slate-600">Curso</dt>
+                <dd class="text-slate-900">{{ aluno.curso?.nome ?? 'Sem curso' }}</dd>
+              </div>
+            </dl>
+          </section>
+        }
+
+        <section
+          class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+          aria-labelledby="titulo-historico"
+        >
+          <h2 id="titulo-historico" class="text-lg font-semibold text-slate-900">Linha do tempo</h2>
+          <ol class="mt-3 space-y-2">
+            @for (marco of marcos(); track marco.rotulo) {
+              <li class="border-l-2 border-azul/40 pl-3">
+                <p class="font-semibold text-slate-900">{{ marco.rotulo }}</p>
+                <p class="text-sm text-slate-700">
+                  {{ marco.quando }}
+                  @if (marco.detalhe) {
+                    · {{ marco.detalhe }}
+                  }
+                </p>
+              </li>
+            }
+          </ol>
+          @if (reserva.atualizado_por; as admin) {
+            <p class="mt-3 text-sm text-slate-600">Última alteração por {{ admin.nome }}.</p>
+          }
+        </section>
+
+        <section
+          class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+          aria-labelledby="titulo-equipamentos"
+        >
+          <h2 id="titulo-equipamentos" class="text-lg font-semibold text-slate-900">
+            Equipamentos
+          </h2>
+          @if (reserva.equipamentos?.length) {
+            <ul class="mt-3 space-y-2">
+              @for (equipamento of reserva.equipamentos; track equipamento.id) {
+                <li>
+                  <p class="text-slate-900">
+                    {{ equipamento.nome }} × {{ equipamento.quantidade }}
+                  </p>
+                  @if (equipamento.devolucao.situacao; as situacao) {
+                    <p class="text-sm text-slate-700">
+                      {{ nomesDasDevolucoes[situacao] }}
+                      @if (equipamento.devolucao.quantidade_devolvida !== null) {
+                        · {{ equipamento.devolucao.quantidade_devolvida }} devolvido(s)
+                      }
+                      @if (equipamento.devolucao.observacao) {
+                        · {{ equipamento.devolucao.observacao }}
+                      }
+                    </p>
+                  }
+                </li>
+              }
+            </ul>
+            @if (podeRegistrarDevolucao()) {
+              <h3 class="mt-6 font-semibold text-slate-900">Registrar a devolução</h3>
+              <div class="mt-3">
+                <app-registrar-devolucao [reserva]="reserva" (registrada)="atualizar($event)" />
+              </div>
+            } @else if (reserva.status === 'RESERVADO') {
+              <p class="mt-3 text-sm text-slate-600">
+                A devolução pode ser registrada a partir do início da reserva.
+              </p>
+            }
+          } @else {
+            <p class="mt-3 text-slate-700">Nenhum equipamento.</p>
+          }
+        </section>
+      </div>
+
+      @if (podeRevogar()) {
+        <section
+          class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-red-200"
+          aria-label="Revogar"
+        >
+          <app-revogar-reserva [reserva]="reserva" (revogada)="atualizar($event)" />
+        </section>
+      }
+    }
+  }
+}
