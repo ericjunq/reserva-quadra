@@ -70,4 +70,9 @@ return [
         'name'    => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    'reply_to' => [
+        'address' => env('MAIL_REPLY_TO_ADDRESS') ?: null,
+        'name'    => env('MAIL_REPLY_TO_NAME') ?: null,
+    ],
+
 ];

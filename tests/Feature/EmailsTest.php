@@ -19,6 +19,8 @@ use App\Models\Reserva;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\Mailable;
+use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mime\Email;
 use Tests\TestCase;
 
 class EmailsTest extends TestCase
@@ -88,5 +90,33 @@ class EmailsTest extends TestCase
             $this->assertStringNotContainsString('localhost', $html, "{$nome}: link de desenvolvimento");
             $this->assertSame($naFila, $email instanceof ShouldQueue, "{$nome}: fila errada");
         }
+    }
+
+    private function enviarDeVerdade(): Email
+    {
+        config(['mail.default' => 'array']);
+        Mail::purge('array');
+
+        Mail::to('aluno@exemplo.edu')->send(new SenhaAlteradaMail('Eric', now()));
+
+        return Mail::mailer('array')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+    }
+
+    public function test_resposta_vai_para_o_endereco_do_setor_quando_configurado(): void
+    {
+        config(['mail.reply_to' => ['address' => 'setor@exemplo.edu', 'name' => 'Setor de reservas']]);
+
+        $resposta = $this->enviarDeVerdade()->getReplyTo();
+
+        $this->assertCount(1, $resposta);
+        $this->assertSame('setor@exemplo.edu', $resposta[0]->getAddress());
+        $this->assertSame('Setor de reservas', $resposta[0]->getName());
+    }
+
+    public function test_sem_endereco_de_resposta_o_email_sai_sem_reply_to(): void
+    {
+        config(['mail.reply_to' => ['address' => null, 'name' => null]]);
+
+        $this->assertSame([], $this->enviarDeVerdade()->getReplyTo());
     }
 }
