@@ -51,6 +51,7 @@ class ReservaResource extends JsonResource
                     'justificativa' => $e->pivot->justificativa_recusa,
                     'respondida_em' => $e->pivot->respondida_em,
                     'responder_ate' => $e->pivot->responder_ate,
+                    'obrigatorio'   => (bool) $e->pivot->solicitacao_obrigatoria,
                 ] : null,
                 'devolucao' => [
                     'situacao'             => $e->pivot->situacao_devolucao?->value,

@@ -97,6 +97,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/reservas/registro-posterior', [ReservaController::class, 'registrarUsoPosterior']);
         Route::post('/reservas/{reserva}/revogar', [ReservaController::class, 'revogar']);
         Route::post('/reservas/{reserva}/devolucao', [ReservaController::class, 'registrarDevolucao']);
+        Route::post('/reservas/{reserva}/solicitacoes/aprovar', [SolicitacaoController::class, 'aprovar']);
+        Route::post('/reservas/{reserva}/solicitacoes/recusar', [SolicitacaoController::class, 'recusar']);
         Route::post('/reservas/{reserva}/solicitacoes/{equipamento}/aprovar', [SolicitacaoController::class, 'aprovar']);
         Route::post('/reservas/{reserva}/solicitacoes/{equipamento}/recusar', [SolicitacaoController::class, 'recusar']);
     });

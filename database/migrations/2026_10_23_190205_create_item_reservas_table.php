@@ -20,6 +20,7 @@ return new class extends Migration
             $table->foreignId('devolvido_por')->nullable()->constrained('users')->nullOnDelete();
             $table->string('situacao_solicitacao', 20)->nullable();
             $table->timestamp('responder_ate')->nullable();
+            $table->boolean('solicitacao_obrigatoria')->default(false);
             $table->timestamp('respondida_em')->nullable();
             $table->foreignId('respondida_por')->nullable()->constrained('users')->nullOnDelete();
             $table->string('justificativa_recusa', 500)->nullable();

@@ -3,22 +3,28 @@
 
 Olá, {{ $reserva->aluno->nome_completo }}.
 
-@if ($situacao === \App\Constants\SituacaoSolicitacaoConstant::APROVADA)
-O seu pedido de **{{ $equipamento }} × {{ $quantidade }}** para a reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_reserva->format('d/m/Y') }}**, das **{{ substr($reserva->hora_inicio, 0, 5) }}** às **{{ substr($reserva->hora_fim, 0, 5) }}**, foi **aprovado**.
-@else
-@if ($situacao === \App\Constants\SituacaoSolicitacaoConstant::RECUSADA)
-O seu pedido de **{{ $equipamento }} × {{ $quantidade }}** para a reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_reserva->format('d/m/Y') }}**, das **{{ substr($reserva->hora_inicio, 0, 5) }}** às **{{ substr($reserva->hora_fim, 0, 5) }}**, foi **recusado** pela administração.
+Resposta aos equipamentos pedidos para a reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_reserva->format('d/m/Y') }}**, das **{{ substr($reserva->hora_inicio, 0, 5) }}** às **{{ substr($reserva->hora_fim, 0, 5) }}**:
 
-**Motivo:** {{ $justificativa }}
-@else
-O seu pedido de **{{ $equipamento }} × {{ $quantidade }}** para a reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_reserva->format('d/m/Y') }}**, das **{{ substr($reserva->hora_inicio, 0, 5) }}** às **{{ substr($reserva->hora_fim, 0, 5) }}**, **não foi respondido a tempo** e deixou de valer.
-@endif
+@foreach ($itens as $item)
+- **{{ $item['nome'] }} × {{ $item['quantidade'] }}**: @switch($item['situacao'])
+@case(\App\Constants\SituacaoSolicitacaoConstant::APROVADA)
+aprovado
+@break
+@case(\App\Constants\SituacaoSolicitacaoConstant::RECUSADA)
+recusado (motivo: {{ $item['justificativa'] }})
+@break
+@default
+sem resposta da administração a tempo
+@endswitch
+@endforeach
 
-@if ($manterAte)
-**A sua reserva será cancelada em {{ $manterAte->format('d/m/Y') }} às {{ $manterAte->format('H:i') }}**, a menos que você confirme que quer mantê-la sem o equipamento.
+@if (! $naoLiberados)
+Está tudo certo: os equipamentos estarão disponíveis na sua reserva.
+@elseif ($manterAte)
+**A sua reserva será cancelada em {{ $manterAte->format('d/m/Y') }} às {{ $manterAte->format('H:i') }}**, a menos que você confirme que quer mantê-la sem os equipamentos não liberados.
 
 <x-mail::button :url="$linkManter">
-Manter a reserva sem o equipamento
+Manter a reserva mesmo assim
 </x-mail::button>
 @else
 A sua reserva do espaço continua valendo.
@@ -26,7 +32,6 @@ A sua reserva do espaço continua valendo.
 
 @if ($linkCancelar)
 Se não precisa mais do espaço, cancele agora e libere o horário: [Cancelar a reserva]({{ $linkCancelar }})
-@endif
 @endif
 
 {{ config('app.name') }}

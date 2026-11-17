@@ -23,6 +23,7 @@ class ItemReserva extends Pivot
         'devolvido_por',
         'situacao_solicitacao',
         'responder_ate',
+        'solicitacao_obrigatoria',
         'respondida_em',
         'respondida_por',
         'justificativa_recusa',
@@ -39,11 +40,12 @@ class ItemReserva extends Pivot
     protected function casts(): array
     {
         return [
-            'situacao_devolucao'   => SituacaoDevolucaoConstant::class,
-            'devolvido_em'         => 'datetime',
-            'situacao_solicitacao' => SituacaoSolicitacaoConstant::class,
-            'respondida_em'        => 'datetime',
-            'responder_ate'        => 'datetime',
+            'situacao_devolucao'      => SituacaoDevolucaoConstant::class,
+            'devolvido_em'            => 'datetime',
+            'situacao_solicitacao'    => SituacaoSolicitacaoConstant::class,
+            'respondida_em'           => 'datetime',
+            'responder_ate'           => 'datetime',
+            'solicitacao_obrigatoria' => 'boolean',
         ];
     }
 

@@ -179,7 +179,7 @@ class SolicitacaoTest extends TestCase
                 && $mail->envelope()->subject === 'Equipamento não liberado: confirme se quer manter a reserva'
                 && str_contains($html, 'Projetor em manutenção.')
                 && str_contains($html, 'será cancelada em 09/11/2026 às 22:00')
-                && str_contains($html, 'Manter a reserva sem o equipamento');
+                && str_contains($html, 'Manter a reserva mesmo assim');
         });
     }
 
@@ -235,7 +235,7 @@ class SolicitacaoTest extends TestCase
         $this->assertSame('RESERVADO', Reserva::find($id)->status->value);
         $this->assertSame('2026-11-11 07:00', Reserva::find($id)->manter_ate->format('Y-m-d H:i'));
 
-        Mail::assertQueued(SolicitacaoRespondidaMail::class, fn ($mail) => $mail->situacao->value === 'VENCIDA'
+        Mail::assertQueued(SolicitacaoRespondidaMail::class, fn ($mail) => $mail->itens[0]['situacao']->value === 'VENCIDA' && str_contains($mail->render(), 'sem resposta da administração a tempo')
             && $mail->linkManter !== null && $mail->linkCancelar !== null);
 
         $this->comoAdmin();
@@ -268,6 +268,68 @@ class SolicitacaoTest extends TestCase
         $csv = $this->get('/api/admin/reservas/exportar?colunas[]=equipamentos')->streamedContent();
 
         $this->assertStringContainsString('Projetor x1 (pedido aguardando aprovação)', $csv);
+    }
+
+    public function test_varios_pedidos_geram_um_email_so_quando_todos_tem_resposta(): void
+    {
+        $microscopio = Equipamento::factory()->create([
+            'espaco_id' => $this->lab->id, 'nome' => 'Microscópio', 'quantidade_total' => 3, 'aceita_solicitacao' => true,
+        ]);
+        $id = $this->reservar($this->sala10, ['solicitacoes' => [
+            ['id' => $this->projetor->id, 'quantidade' => 1, 'obrigatorio' => true],
+            ['id' => $microscopio->id, 'quantidade' => 2],
+        ]])->assertCreated()
+            ->assertJsonPath('data.equipamentos.0.solicitacao.obrigatorio', true)
+            ->json('data.id');
+        $this->comoAdmin();
+
+        $this->postJson("/api/admin/reservas/{$id}/solicitacoes/{$this->projetor->id}/aprovar")->assertOk();
+        Mail::assertNotQueued(SolicitacaoRespondidaMail::class);
+
+        $this->postJson("/api/admin/reservas/{$id}/solicitacoes/{$microscopio->id}/recusar", ['justificativa' => 'Microscópios em aula.'])->assertOk();
+
+        Mail::assertQueuedCount(2);
+        Mail::assertQueued(SolicitacaoRespondidaMail::class, function (SolicitacaoRespondidaMail $mail) {
+            $html = $mail->render();
+
+            return $mail->naoLiberados
+                && $mail->linkManter !== null
+                && str_contains($html, 'Projetor × 1</strong>: aprovado')
+                && str_contains($html, 'Microscópio × 2</strong>: recusado (motivo: Microscópios em aula.)');
+        });
+    }
+
+    public function test_aprovar_todos_de_uma_vez_manda_o_email_de_aprovado(): void
+    {
+        $microscopio = Equipamento::factory()->create([
+            'espaco_id' => $this->lab->id, 'nome' => 'Microscópio', 'quantidade_total' => 3, 'aceita_solicitacao' => true,
+        ]);
+        $id = $this->reservar($this->sala10, ['solicitacoes' => [
+            ['id' => $this->projetor->id, 'quantidade' => 1],
+            ['id' => $microscopio->id, 'quantidade' => 1],
+        ]])->json('data.id');
+        $this->comoAdmin();
+
+        $this->postJson("/api/admin/reservas/{$id}/solicitacoes/aprovar")->assertOk()
+            ->assertJsonPath('data.equipamentos.0.solicitacao.situacao', 'APROVADA')
+            ->assertJsonPath('data.equipamentos.1.solicitacao.situacao', 'APROVADA')
+            ->assertJsonPath('data.manter_ate', null);
+
+        Mail::assertQueued(SolicitacaoRespondidaMail::class, fn ($mail) => ! $mail->naoLiberados
+            && $mail->linkManter === null
+            && $mail->envelope()->subject === 'Seu pedido de equipamento foi aprovado');
+        $this->postJson("/api/admin/reservas/{$id}/solicitacoes/recusar", ['justificativa' => 'Equipamentos em manutenção.'])
+            ->assertStatus(409)->assertJsonPath('message', 'Não há pedidos aguardando resposta.');
+    }
+
+    public function test_recusar_todos_de_uma_vez_usa_um_motivo_so(): void
+    {
+        $id = $this->pedir()->json('data.id');
+        $this->comoAdmin();
+
+        $this->postJson("/api/admin/reservas/{$id}/solicitacoes/recusar", ['justificativa' => 'Equipamentos em manutenção.'])->assertOk()
+            ->assertJsonPath('data.equipamentos.0.solicitacao.justificativa', 'Equipamentos em manutenção.');
+        Mail::assertQueued(SolicitacaoRespondidaMail::class, fn ($mail) => $mail->naoLiberados && $mail->linkManter !== null);
     }
 
     public function test_admin_marca_o_equipamento_como_aceita_solicitacao(): void

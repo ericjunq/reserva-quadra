@@ -360,7 +360,8 @@ class ReservaService
             : ['situacao_solicitacao' => SituacaoSolicitacaoConstant::AGUARDANDO, 'responder_ate' => app(SolicitacaoService::class)->prazoDeResposta($reserva->inicio())];
 
         $itens = collect($solicitacoes)->mapWithKeys(fn ($item) => [$item['id'] => [
-            'quantidade' => $item['quantidade'],
+            'quantidade'              => $item['quantidade'],
+            'solicitacao_obrigatoria' => (bool) ($item['obrigatorio'] ?? false),
             ...$situacao,
         ]]);
 

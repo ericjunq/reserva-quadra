@@ -13,15 +13,15 @@ class SolicitacaoController extends Controller
 {
     public function __construct(private SolicitacaoService $solicitacaoService) {}
 
-    public function aprovar(Request $request, Reserva $reserva, Equipamento $equipamento)
+    public function aprovar(Request $request, Reserva $reserva, ?Equipamento $equipamento = null)
     {
-        return new ReservaResource($this->solicitacaoService->aprovar($reserva, $equipamento->id, $request->user()));
+        return new ReservaResource($this->solicitacaoService->aprovar($reserva, $equipamento?->id, $request->user()));
     }
 
-    public function recusar(RecusarSolicitacaoRequest $request, Reserva $reserva, Equipamento $equipamento)
+    public function recusar(RecusarSolicitacaoRequest $request, Reserva $reserva, ?Equipamento $equipamento = null)
     {
         return new ReservaResource($this->solicitacaoService->recusar(
-            $reserva, $equipamento->id, $request->user(), $request->validated('justificativa'),
+            $reserva, $equipamento?->id, $request->user(), $request->validated('justificativa'),
         ));
     }
 }

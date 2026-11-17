@@ -10,6 +10,7 @@ use App\Mail\SolicitacaoRespondidaMail;
 use App\Models\ItemReserva;
 use App\Models\Reserva;
 use App\Models\User;
+use App\Support\VersaoDisponibilidade;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -38,33 +39,42 @@ class SolicitacaoService
         return null;
     }
 
-    public function aprovar(Reserva $reserva, int $equipamentoId, User $admin): Reserva
+    public function aprovar(Reserva $reserva, ?int $equipamentoId, User $admin): Reserva
     {
         return $this->responder($reserva, $equipamentoId, $admin, SituacaoSolicitacaoConstant::APROVADA);
     }
 
-    public function recusar(Reserva $reserva, int $equipamentoId, User $admin, string $justificativa): Reserva
+    public function recusar(Reserva $reserva, ?int $equipamentoId, User $admin, string $justificativa): Reserva
     {
         return $this->responder($reserva, $equipamentoId, $admin, SituacaoSolicitacaoConstant::RECUSADA, $justificativa);
     }
 
     public function vencerPendentes(): int
     {
-        $itens = ItemReserva::query()
-            ->with(['reserva.aluno', 'reserva.espaco', 'equipamento'])
+        $reservaIds = ItemReserva::query()
             ->where('situacao_solicitacao', SituacaoSolicitacaoConstant::AGUARDANDO)
             ->where('responder_ate', '<=', now())
             ->whereHas('reserva', fn ($q) => $q->where('status', StatusConstant::RESERVADO))
-            ->get();
+            ->distinct()
+            ->pluck('reserva_id');
 
-        foreach ($itens as $item) {
-            DB::transaction(function () use ($item) {
-                $item->update(['situacao_solicitacao' => SituacaoSolicitacaoConstant::VENCIDA, 'respondida_em' => now()]);
-                $this->avisar($item);
+        $vencidos = 0;
+
+        foreach ($reservaIds as $reservaId) {
+            DB::transaction(function () use ($reservaId, &$vencidos) {
+                $vencidos += ItemReserva::query()
+                    ->where('reserva_id', $reservaId)
+                    ->where('situacao_solicitacao', SituacaoSolicitacaoConstant::AGUARDANDO)
+                    ->where('responder_ate', '<=', now())
+                    ->update(['situacao_solicitacao' => SituacaoSolicitacaoConstant::VENCIDA, 'respondida_em' => now()]);
+
+                $this->avisarSeConcluido(Reserva::findOrFail($reservaId));
             });
         }
 
-        return $itens->count();
+        VersaoDisponibilidade::avancar();
+
+        return $vencidos;
     }
 
     public function resumoParaManter(string $token): Reserva
@@ -101,75 +111,78 @@ class SolicitacaoService
 
     private function responder(
         Reserva $reserva,
-        int $equipamentoId,
+        ?int $equipamentoId,
         User $admin,
         SituacaoSolicitacaoConstant $resposta,
         ?string $justificativa = null,
     ): Reserva {
         DB::transaction(function () use ($reserva, $equipamentoId, $admin, $resposta, $justificativa) {
-            $item = ItemReserva::query()
-                ->with(['reserva.aluno', 'reserva.espaco', 'equipamento'])
-                ->where('reserva_id', $reserva->id)
-                ->where('equipamento_id', $equipamentoId)
-                ->whereNotNull('situacao_solicitacao')
-                ->lockForUpdate()
-                ->first();
+            $atual = Reserva::whereKey($reserva->id)->lockForUpdate()->firstOrFail();
 
-            if (! $item) {
+            $itens = ItemReserva::query()
+                ->where('reserva_id', $reserva->id)
+                ->whereNotNull('situacao_solicitacao')
+                ->when($equipamentoId, fn ($q) => $q->where('equipamento_id', $equipamentoId))
+                ->lockForUpdate()
+                ->get();
+
+            if ($itens->isEmpty()) {
                 throw new RegraNegocioException('Não há pedido desse equipamento nesta reserva.', 404);
             }
 
-            if ($item->reserva->status !== StatusConstant::RESERVADO) {
+            if ($atual->status !== StatusConstant::RESERVADO) {
                 throw new RegraNegocioException('Esta reserva não está mais ativa.', 409);
             }
 
-            if ($item->situacao_solicitacao !== SituacaoSolicitacaoConstant::AGUARDANDO) {
-                throw new RegraNegocioException('Este pedido já foi respondido.', 409);
+            $pendentes = $itens->where('situacao_solicitacao', SituacaoSolicitacaoConstant::AGUARDANDO);
+
+            if ($pendentes->isEmpty()) {
+                throw new RegraNegocioException($equipamentoId ? 'Este pedido já foi respondido.' : 'Não há pedidos aguardando resposta.', 409);
             }
 
-            $item->update([
-                'situacao_solicitacao' => $resposta,
-                'respondida_em'        => now(),
-                'respondida_por'       => $admin->id,
-                'justificativa_recusa' => $justificativa,
-            ]);
+            foreach ($pendentes as $item) {
+                $item->update([
+                    'situacao_solicitacao' => $resposta,
+                    'respondida_em'        => now(),
+                    'respondida_por'       => $admin->id,
+                    'justificativa_recusa' => $justificativa,
+                ]);
+            }
 
-            $this->avisar($item);
+            $this->avisarSeConcluido($atual);
         });
 
         return $reserva->fresh(ReservaService::RELACOES_ADMIN);
     }
 
-    private function avisar(ItemReserva $item): void
+    private function avisarSeConcluido(Reserva $reserva): void
     {
-        $reserva = $item->reserva;
+        $reserva->load(['aluno', 'espaco', 'equipamentos']);
+        $pedidos = $reserva->equipamentos->filter(fn ($e) => $e->pivot->situacao_solicitacao !== null);
 
-        if (! $reserva->aluno) {
+        if (! $reserva->aluno || $pedidos->isEmpty()
+            || $pedidos->contains(fn ($e) => $e->pivot->situacao_solicitacao === SituacaoSolicitacaoConstant::AGUARDANDO)) {
             return;
         }
 
-        $manterAte = null;
-        $linkManter = null;
-        $linkCancelar = null;
+        $itens = $pedidos->map(fn ($e) => [
+            'nome'          => $e->nome,
+            'quantidade'    => $e->pivot->quantidade,
+            'situacao'      => $e->pivot->situacao_solicitacao,
+            'justificativa' => $e->pivot->justificativa_recusa,
+            'obrigatorio'   => (bool) $e->pivot->solicitacao_obrigatoria,
+        ])->values()->all();
 
-        if ($item->situacao_solicitacao !== SituacaoSolicitacaoConstant::APROVADA) {
-            $manterAte = $this->pedirParaManter($reserva);
-            $linkCancelar = $this->link($reserva, FinalidadeTokenConstant::CANCELAR, $reserva->inicio());
-
-            if ($manterAte) {
-                $linkManter = $this->link($reserva, FinalidadeTokenConstant::MANTER, $manterAte);
-            }
-        }
+        $naoLiberados = $pedidos->contains(fn ($e) => $e->pivot->situacao_solicitacao !== SituacaoSolicitacaoConstant::APROVADA);
+        $manterAte = $naoLiberados ? $this->pedirParaManter($reserva) : null;
 
         Mail::to($reserva->aluno->email)->queue((new SolicitacaoRespondidaMail(
             $reserva,
-            $item->equipamento->nome,
-            $item->quantidade,
-            $item->situacao_solicitacao,
-            $item->justificativa_recusa,
+            $itens,
+            $naoLiberados,
             $manterAte,
-            $linkManter,
-            $linkCancelar,
+            $manterAte ? $this->link($reserva, FinalidadeTokenConstant::MANTER, $manterAte) : null,
+            $naoLiberados ? $this->link($reserva, FinalidadeTokenConstant::CANCELAR, $reserva->inicio()) : null,
         ))->afterCommit());
     }
 

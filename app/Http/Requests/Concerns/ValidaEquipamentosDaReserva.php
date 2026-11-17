@@ -46,7 +46,8 @@ trait ValidaEquipamentosDaReserva
                             ->from('equipamento_compartilhamentos')
                             ->where('espaco_id', $espacoId))),
             ],
-            'solicitacoes.*.quantidade' => ['required', 'integer', 'min:1'],
+            'solicitacoes.*.quantidade'  => ['required', 'integer', 'min:1'],
+            'solicitacoes.*.obrigatorio' => ['sometimes', 'boolean'],
         ];
     }
 
