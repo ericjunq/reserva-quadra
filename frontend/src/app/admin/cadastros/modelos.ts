@@ -29,6 +29,33 @@ export interface EquipamentoCadastro {
   espacos_compartilhados?: { id: number; nome: string }[];
 }
 
+export interface CursoCadastro {
+  id: number;
+  nome: string;
+  ativo: boolean;
+}
+
+export interface DataBloqueadaCadastro {
+  id: number;
+  data_inicio: string;
+  data_fim: string;
+  dia_inteiro: boolean;
+  hora_inicio: string | null;
+  hora_fim: string | null;
+  espaco: { id: number; nome: string } | null;
+  motivo: string;
+  origem: 'MANUAL' | 'FERIADO';
+}
+
+export interface DadosDoBloqueio {
+  data_inicio: string;
+  data_fim: string;
+  hora_inicio?: string;
+  hora_fim?: string;
+  espaco_id?: number;
+  motivo: string;
+}
+
 export interface DadosDoEquipamento {
   espaco_id?: number;
   nome: string;

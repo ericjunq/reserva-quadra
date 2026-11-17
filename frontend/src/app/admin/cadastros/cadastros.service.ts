@@ -3,6 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ambiente } from '../../../ambientes/ambiente';
 import {
+  CursoCadastro,
+  DadosDoBloqueio,
+  DataBloqueadaCadastro,
   DadosDoEquipamento,
   DadosDoEspaco,
   EquipamentoCadastro,
@@ -82,6 +85,62 @@ export class CadastrosService {
 
   desativarEquipamento(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/equipamentos/${id}`);
+  }
+
+  listarCursos(pagina: number): Observable<Pagina<CursoCadastro>> {
+    return this.http.get<Pagina<CursoCadastro>>(`${this.url}/cursos`, {
+      params: new HttpParams().set('page', pagina),
+    });
+  }
+
+  criarCurso(nome: string): Observable<CursoCadastro> {
+    return this.dados(this.http.post<Resposta<CursoCadastro>>(`${this.url}/cursos`, { nome }));
+  }
+
+  atualizarCurso(id: number, curso: { nome?: string; ativo?: boolean }): Observable<CursoCadastro> {
+    return this.dados(this.http.patch<Resposta<CursoCadastro>>(`${this.url}/cursos/${id}`, curso));
+  }
+
+  desativarCurso(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/cursos/${id}`);
+  }
+
+  listarBloqueios(
+    pagina: number,
+    filtros: { de?: string; ate?: string; espaco_id?: number },
+  ): Observable<Pagina<DataBloqueadaCadastro>> {
+    let params = new HttpParams().set('page', pagina);
+    for (const [chave, valor] of Object.entries(filtros)) {
+      if (valor) {
+        params = params.set(chave, valor);
+      }
+    }
+    return this.http.get<Pagina<DataBloqueadaCadastro>>(`${this.url}/datas-bloqueadas`, { params });
+  }
+
+  criarBloqueio(
+    bloqueio: DadosDoBloqueio,
+  ): Observable<{ bloqueio: DataBloqueadaCadastro; revogadas: number }> {
+    return this.http
+      .post<Resposta<DataBloqueadaCadastro> & { reservas_revogadas: number }>(
+        `${this.url}/datas-bloqueadas`,
+        bloqueio,
+      )
+      .pipe(
+        map((resposta) => ({ bloqueio: resposta.data, revogadas: resposta.reservas_revogadas })),
+      );
+  }
+
+  atualizarMotivo(id: number, motivo: string): Observable<DataBloqueadaCadastro> {
+    return this.dados(
+      this.http.patch<Resposta<DataBloqueadaCadastro>>(`${this.url}/datas-bloqueadas/${id}`, {
+        motivo,
+      }),
+    );
+  }
+
+  excluirBloqueio(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/datas-bloqueadas/${id}`);
   }
 
   private dados<T>(pedido: Observable<Resposta<T>>): Observable<T> {

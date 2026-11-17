@@ -12,6 +12,12 @@ const CADASTROS = [
     nome: 'Equipamentos',
     texto: 'Itens de cada espaço, compartilhamento e pedidos de outros espaços.',
   },
+  { caminho: 'cursos', nome: 'Cursos', texto: 'Cursos que aparecem no cadastro dos alunos.' },
+  {
+    caminho: 'datas-bloqueadas',
+    nome: 'Datas bloqueadas',
+    texto: 'Feriados, recessos e manutenções: dias ou horários sem reservas.',
+  },
 ];
 
 @Component({
@@ -32,9 +38,7 @@ const CADASTROS = [
         </li>
       }
     </ul>
-    <p class="mt-6 text-slate-600">
-      Cursos, datas bloqueadas, alunos e admins chegam nos próximos passos.
-    </p>
+    <p class="mt-6 text-slate-600">Alunos e admins chegam nos próximos passos.</p>
   `,
 })
 export class Cadastros {

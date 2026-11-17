@@ -42,6 +42,10 @@ export class ApiPublicaService {
     return this.espacos$;
   }
 
+  esquecerCursos(): void {
+    this.cursos$ = null;
+  }
+
   esquecerEspacos(): void {
     this.espacos$ = null;
   }

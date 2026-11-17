@@ -5,7 +5,11 @@ import { Router, provideRouter } from '@angular/router';
 import { ambiente } from '../../../ambientes/ambiente';
 import { interceptorApi } from '../../nucleo/api.interceptor';
 import { SessaoService } from '../../nucleo/sessao.service';
+import { Cursos } from './cursos/cursos';
+import { DatasBloqueadas } from './datas-bloqueadas/datas-bloqueadas';
+import { FormBloqueio } from './datas-bloqueadas/form-bloqueio';
 import { FormEquipamento } from './equipamentos/form-equipamento';
+import { paraIso } from '../../publico/datas';
 import { FormEspaco } from './espacos/form-espaco';
 import { ListaEspacos } from './espacos/lista-espacos';
 import { EspacoCadastro } from './modelos';
@@ -193,5 +197,144 @@ describe('cadastros do admin', () => {
     });
     await estabilizar(fixture);
     expect(elemento.textContent).toContain('Equipamento salvo.');
+  });
+
+  it('cria, renomeia e desativa cursos na mesma página', async () => {
+    const fixture = TestBed.createComponent(Cursos);
+    await estabilizar(fixture);
+    controle.expectOne(`${url}/admin/cursos?page=1`).flush({
+      data: [{ id: 2, nome: 'Direito', ativo: true }],
+      meta: { current_page: 1, last_page: 1, total: 1, per_page: 15 },
+    });
+    await estabilizar(fixture);
+    const elemento = fixture.nativeElement as HTMLElement;
+
+    digitar(elemento, '#curso-novo', 'Enfermagem');
+    await estabilizar(fixture);
+    elemento.querySelector('form')!.dispatchEvent(new Event('submit'));
+    const criar = controle.expectOne(`${url}/admin/cursos`);
+    expect(criar.request.body).toEqual({ nome: 'Enfermagem' });
+    criar.flush(
+      { data: { id: 3, nome: 'Enfermagem', ativo: true } },
+      { status: 201, statusText: 'criado' },
+    );
+    await estabilizar(fixture);
+    controle.expectOne(`${url}/admin/cursos?page=1`).flush({
+      data: [
+        { id: 2, nome: 'Direito', ativo: true },
+        { id: 3, nome: 'Enfermagem', ativo: true },
+      ],
+      meta: { current_page: 1, last_page: 1, total: 2, per_page: 15 },
+    });
+    await estabilizar(fixture);
+    expect(elemento.textContent).toContain('Curso criado.');
+
+    [...elemento.querySelectorAll('button')]
+      .find((b) => b.textContent?.trim() === 'Renomear')!
+      .click();
+    await estabilizar(fixture);
+    digitar(elemento, '#curso-2', 'Direito noturno');
+    await estabilizar(fixture);
+    (elemento.querySelector('#curso-2') as HTMLInputElement).form!.dispatchEvent(
+      new Event('submit'),
+    );
+    const renomear = controle.expectOne(`${url}/admin/cursos/2`);
+    expect(renomear.request.body).toEqual({ nome: 'Direito noturno' });
+    renomear.flush({ data: { id: 2, nome: 'Direito noturno', ativo: true } });
+    await estabilizar(fixture);
+    expect(elemento.textContent).toContain('Direito noturno');
+
+    [...elemento.querySelectorAll('button')]
+      .find((b) => b.textContent?.trim() === 'Desativar')!
+      .click();
+    await estabilizar(fixture);
+    [...elemento.querySelectorAll('button')]
+      .find((b) => b.textContent?.includes('Confirmar: desativar'))!
+      .click();
+    const desativar = controle.expectOne(`${url}/admin/cursos/2`);
+    expect(desativar.request.method).toBe('DELETE');
+    desativar.flush(null, { status: 204, statusText: 'ok' });
+    await estabilizar(fixture);
+    expect(elemento.textContent).toContain('Curso desativado.');
+  });
+
+  it('lista os bloqueios de hoje em diante, marca feriado e exclui com confirmação', async () => {
+    const fixture = TestBed.createComponent(DatasBloqueadas);
+    await estabilizar(fixture);
+    controle.expectOne(`${url}/admin/espacos?per_page=100`).flush({ data: [] });
+    controle.expectOne(`${url}/admin/datas-bloqueadas?page=1&de=${paraIso(new Date())}`).flush({
+      data: [
+        {
+          id: 1,
+          data_inicio: '2099-12-25',
+          data_fim: '2099-12-25',
+          dia_inteiro: true,
+          hora_inicio: null,
+          hora_fim: null,
+          espaco: null,
+          motivo: 'Natal',
+          origem: 'FERIADO',
+        },
+      ],
+      meta: { current_page: 1, last_page: 1, total: 1, per_page: 15 },
+    });
+    await estabilizar(fixture);
+    const elemento = fixture.nativeElement as HTMLElement;
+    expect(elemento.textContent).toContain('25/12, dia inteiro');
+    expect(elemento.textContent).toContain('Todos os espaços');
+    expect(elemento.textContent).toContain('Feriado');
+
+    [...elemento.querySelectorAll('button')]
+      .find((b) => b.textContent?.trim() === 'Excluir')!
+      .click();
+    await estabilizar(fixture);
+    [...elemento.querySelectorAll('button')]
+      .find((b) => b.textContent?.includes('Confirmar: excluir'))!
+      .click();
+    const excluir = controle.expectOne(`${url}/admin/datas-bloqueadas/1`);
+    expect(excluir.request.method).toBe('DELETE');
+    excluir.flush(null, { status: 204, statusText: 'ok' });
+    await estabilizar(fixture);
+    controle.expectOne(`${url}/admin/datas-bloqueadas?page=1&de=${paraIso(new Date())}`).flush({
+      data: [],
+      meta: { current_page: 1, last_page: 1, total: 0, per_page: 15 },
+    });
+    await estabilizar(fixture);
+    expect(elemento.textContent).toContain('Bloqueio excluído.');
+  });
+
+  it('cria um bloqueio de parte do dia num espaço e mostra quantas reservas foram revogadas', async () => {
+    const fixture = TestBed.createComponent(FormBloqueio);
+    await estabilizar(fixture);
+    controle.expectOne(`${url}/admin/espacos?per_page=100`).flush({
+      data: [{ id: 4, nome: 'Laboratório de Informática', ativo: true }],
+    });
+    await estabilizar(fixture);
+    const elemento = fixture.nativeElement as HTMLElement;
+    (elemento.querySelector('input[name=parte]') as HTMLInputElement).click();
+    await estabilizar(fixture);
+    digitar(elemento, '#bloqueio-inicio', '14:00');
+    digitar(elemento, '#bloqueio-fim', '16:00');
+    const espaco = elemento.querySelector('#bloqueio-espaco') as HTMLSelectElement;
+    espaco.value = '4';
+    espaco.dispatchEvent(new Event('change'));
+    digitar(elemento, '#bloqueio-motivo', 'Manutenção elétrica');
+    await estabilizar(fixture);
+    elemento.querySelector('form')!.dispatchEvent(new Event('submit'));
+    await estabilizar(fixture);
+
+    const envio = controle.expectOne(`${url}/admin/datas-bloqueadas`);
+    const hoje = paraIso(new Date());
+    expect(envio.request.body).toEqual({
+      data_inicio: hoje,
+      data_fim: hoje,
+      motivo: 'Manutenção elétrica',
+      hora_inicio: '14:00',
+      hora_fim: '16:00',
+      espaco_id: 4,
+    });
+    envio.flush({ data: { id: 3 }, reservas_revogadas: 2 }, { status: 201, statusText: 'criado' });
+    await estabilizar(fixture);
+    expect(elemento.textContent).toContain('2 reserva(s) revogada(s), com email aos alunos.');
   });
 });

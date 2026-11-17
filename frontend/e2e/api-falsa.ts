@@ -256,6 +256,7 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
   let usoRegistrado: Record<string, unknown> | null = null;
   let reservaPeloAdmin: Record<string, unknown> | null = null;
   let espacoCriado: Record<string, unknown> | null = null;
+  const cursosDoAdmin: Record<string, unknown>[] = [{ id: 2, nome: 'Direito', ativo: true }];
   let equipamentoDoAdmin: Record<string, unknown> = {
     id: 5,
     espaco_id: 4,
@@ -423,6 +424,22 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
     }
     if (caminho === '/admin/espacos/9' && espacoCriado) {
       return json({ data: espacoCriado });
+    }
+    if (caminho === '/admin/cursos') {
+      if (requisicao.method() === 'POST') {
+        cursosDoAdmin.push({ id: 3, nome: requisicao.postDataJSON().nome, ativo: true });
+        return json({ data: cursosDoAdmin.at(-1) }, 201);
+      }
+      return json({
+        data: cursosDoAdmin,
+        meta: { current_page: 1, last_page: 1, total: cursosDoAdmin.length, per_page: 15 },
+      });
+    }
+    if (caminho === '/admin/datas-bloqueadas') {
+      if (requisicao.method() === 'POST') {
+        return json({ data: { id: 8, ...requisicao.postDataJSON() }, reservas_revogadas: 1 }, 201);
+      }
+      return json({ data: [], meta: { current_page: 1, last_page: 1, total: 0, per_page: 15 } });
     }
     if (caminho === '/admin/equipamentos') {
       return json({

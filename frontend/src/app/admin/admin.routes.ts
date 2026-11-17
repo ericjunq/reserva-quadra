@@ -99,6 +99,23 @@ export const rotasAdmin: Routes = [
           import('./cadastros/equipamentos/form-equipamento').then((m) => m.FormEquipamento),
       })),
       {
+        path: 'cadastros/cursos',
+        title: 'Cursos · Administração',
+        loadComponent: () => import('./cadastros/cursos/cursos').then((m) => m.Cursos),
+      },
+      {
+        path: 'cadastros/datas-bloqueadas',
+        title: 'Datas bloqueadas · Administração',
+        loadComponent: () =>
+          import('./cadastros/datas-bloqueadas/datas-bloqueadas').then((m) => m.DatasBloqueadas),
+      },
+      {
+        path: 'cadastros/datas-bloqueadas/novo',
+        title: 'Novo bloqueio · Administração',
+        loadComponent: () =>
+          import('./cadastros/datas-bloqueadas/form-bloqueio').then((m) => m.FormBloqueio),
+      },
+      {
         path: 'minha-conta',
         title: 'Minha conta · Administração',
         loadComponent: () => import('./acesso/minha-conta').then((m) => m.MinhaConta),
