@@ -3184,3 +3184,24 @@ DEPLOY.md: passo 11 (build, Nginx explicado parte por parte, por que sem CSS emb
   marcado como alternativa; checklist de LGPD com os cabeçalhos do front.
 CLAUDE.md: regra da CSP do front.
 Totais: 346 da API, 166 do front, 56 no navegador.
+
+========================================================================
+81. PASSO 11.8e: REVISÃO DE TEXTOS (17/11/2026)
+========================================================================
+Varredura: textos das telas públicas e do admin (HTML e TS), dos 11 emails e das mensagens da API,
+procurando acento faltando, espaço duplo, nomes diferentes para a mesma coisa e textos errados.
+Nenhum acento faltando nem espaço duplo.
+resources/views/emails/reserva-revogada.blade.php: "foi revogada pela administração" valia também
+  para as revogações automáticas (não confirmada, não mantida sem o equipamento, data bloqueada,
+  aluno desativado); agora "foi revogada." + o motivo, e o fecho "Se ainda precisar do espaço...
+  Em caso de dúvida, procure a administração." (o "Pedimos desculpas pelo transtorno" soava errado
+  quando o próprio aluno não confirmou).
+lang/pt_BR/validation.php e passwords.php: "e-mail" → "email", como no resto do sistema.
+frontend: admin/reservas/selos.ts (NOMES_DAS_ORIGENS.ADMIN "Evento do admin" → "Pelo admin", usado
+  no filtro de origem; desde o 11.5e a origem ADMIN inclui reservas de aluno feitas pelo admin);
+  publico/reservar/reservar.ts ("Essa data" → "Este dia", igual ao calendário);
+  admin/historico/rotulos.ts ("Aceita pedido de outros espaços", igual ao formulário);
+  cadastros/espacos e equipamentos ("A API não deixa desativar" → "O sistema não deixa").
+Em aberto (pergunta ao usuário): o aluno é mandado procurar a "coordenação" em 5 textos e a
+  "administração" em 4. Falta escolher um nome.
+Totais: 346 da API, 166 do front, 56 no navegador.
