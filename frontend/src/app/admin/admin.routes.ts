@@ -71,6 +71,34 @@ export const rotasAdmin: Routes = [
         redirectTo: 'reservas/nova',
       },
       {
+        path: 'cadastros',
+        title: 'Cadastros · Administração',
+        loadComponent: () => import('./cadastros/cadastros').then((m) => m.Cadastros),
+      },
+      {
+        path: 'cadastros/espacos',
+        title: 'Espaços · Administração',
+        loadComponent: () =>
+          import('./cadastros/espacos/lista-espacos').then((m) => m.ListaEspacos),
+      },
+      ...['cadastros/espacos/novo', 'cadastros/espacos/:id'].map((path) => ({
+        path,
+        title: 'Espaço · Administração',
+        loadComponent: () => import('./cadastros/espacos/form-espaco').then((m) => m.FormEspaco),
+      })),
+      {
+        path: 'cadastros/equipamentos',
+        title: 'Equipamentos · Administração',
+        loadComponent: () =>
+          import('./cadastros/equipamentos/lista-equipamentos').then((m) => m.ListaEquipamentos),
+      },
+      ...['cadastros/equipamentos/novo', 'cadastros/equipamentos/:id'].map((path) => ({
+        path,
+        title: 'Equipamento · Administração',
+        loadComponent: () =>
+          import('./cadastros/equipamentos/form-equipamento').then((m) => m.FormEquipamento),
+      })),
+      {
         path: 'minha-conta',
         title: 'Minha conta · Administração',
         loadComponent: () => import('./acesso/minha-conta').then((m) => m.MinhaConta),

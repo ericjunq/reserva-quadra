@@ -1,0 +1,158 @@
+<a routerLink="/admin/cadastros/equipamentos" class="text-sm font-semibold text-azul underline"
+  >Equipamentos</a
+>
+<h1 class="mt-2 text-2xl font-semibold text-slate-900">
+  {{ equipamento() ? equipamento()!.nome : 'Novo equipamento' }}
+</h1>
+
+@switch (estado().tipo) {
+  @case ('carregando') {
+    <p class="mt-4 text-slate-600">Carregando…</p>
+  }
+  @case ('erro') {
+    <div class="mt-4"><app-aviso-erro [mensagem]="$any(estado()).erro.mensagem" /></div>
+  }
+  @case ('pronto') {
+    @if (equipamento() && !equipamento()!.ativo) {
+      <p class="mt-2 rounded-lg bg-slate-200 px-4 py-2 text-slate-800">
+        Desativado: não aparece nas reservas.
+      </p>
+    }
+    <form
+      class="mt-6 max-w-2xl space-y-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+      (ngSubmit)="salvar()"
+      novalidate
+    >
+      @if (erro(); as erro) {
+        <app-aviso-erro [mensagem]="erro.mensagem" />
+      }
+      @if (mensagem(); as mensagem) {
+        <p class="rounded-lg bg-emerald-50 px-4 py-3 text-emerald-900" role="status">
+          {{ mensagem }}
+        </p>
+      }
+      <div>
+        <label for="equipamento-espaco" class="block font-semibold text-slate-900">Espaço</label>
+        <select
+          id="equipamento-espaco"
+          name="espaco"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-100"
+          [disabled]="!!equipamento()"
+          [value]="espacoId() ?? ''"
+          (change)="espacoId.set(+$any($event.target).value || null)"
+        >
+          <option value="">Escolha o espaço</option>
+          @for (espaco of espacos(); track espaco.id) {
+            <option [value]="espaco.id" [selected]="espaco.id === espacoId()">
+              {{ espaco.nome }}
+            </option>
+          }
+        </select>
+        @if (equipamento()) {
+          <p class="mt-1 text-sm text-slate-600">
+            O espaço de um equipamento não muda depois de criado.
+          </p>
+        }
+        @if (erroDoCampo('espaco_id'); as texto) {
+          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+        }
+      </div>
+      <div>
+        <label for="equipamento-nome" class="block font-semibold text-slate-900">Nome</label>
+        <input
+          id="equipamento-nome"
+          name="nome"
+          maxlength="100"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [ngModel]="nome()"
+          (ngModelChange)="nome.set($event)"
+        />
+        @if (erroDoCampo('nome'); as texto) {
+          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+        }
+      </div>
+      <div>
+        <label for="equipamento-quantidade" class="block font-semibold text-slate-900"
+          >Quantidade total</label
+        >
+        <input
+          id="equipamento-quantidade"
+          name="quantidade"
+          type="number"
+          min="1"
+          class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2"
+          [ngModel]="quantidade()"
+          (ngModelChange)="quantidade.set($event)"
+        />
+        @if (erroDoCampo('quantidade_total'); as texto) {
+          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+        }
+      </div>
+      <label class="flex items-start gap-2">
+        <input
+          type="checkbox"
+          name="aceita"
+          class="mt-1"
+          [ngModel]="aceitaSolicitacao()"
+          (ngModelChange)="aceitaSolicitacao.set($event)"
+        />
+        <span>
+          <span class="font-semibold text-slate-900">Aceita pedido de outros espaços</span>
+          <span class="block text-sm text-slate-600">
+            Alunos que reservam outros espaços podem pedir este item; a administração aprova ou
+            recusa cada pedido.
+          </span>
+        </span>
+      </label>
+      <fieldset>
+        <legend class="font-semibold text-slate-900">Compartilhado com</legend>
+        <p class="text-sm text-slate-600">
+          Nestes espaços o item aparece direto na reserva, sem pedido.
+        </p>
+        <div class="mt-2 grid gap-1 sm:grid-cols-2">
+          @for (espaco of outrosEspacos(); track espaco.id) {
+            <label class="flex items-center gap-2 text-slate-800">
+              <input
+                type="checkbox"
+                [checked]="compartilhados().includes(espaco.id)"
+                (change)="alternarCompartilhado(espaco.id, $any($event.target).checked)"
+              />
+              {{ espaco.nome }}
+            </label>
+          }
+        </div>
+        @if (erroDoCampo('espacos_compartilhados'); as texto) {
+          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+        }
+      </fieldset>
+      <button
+        type="submit"
+        class="rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio disabled:opacity-50"
+        [disabled]="enviando()"
+      >
+        {{ enviando() ? 'Salvando…' : equipamento() ? 'Salvar' : 'Criar equipamento' }}
+      </button>
+    </form>
+
+    @if (equipamento(); as atual) {
+      <section class="mt-6 max-w-2xl" aria-label="Situação">
+        @if (atual.ativo) {
+          <app-confirmar-acao
+            rotulo="Desativar"
+            aviso="O equipamento deixa de aparecer nas reservas. A API não deixa desativar se houver reservas futuras com ele."
+            [perigo]="true"
+            [ocupado]="enviando()"
+            (confirmado)="desativar()"
+          />
+        } @else {
+          <app-confirmar-acao
+            rotulo="Reativar"
+            aviso="O equipamento volta a aparecer nas reservas."
+            [ocupado]="enviando()"
+            (confirmado)="reativar()"
+          />
+        }
+      </section>
+    }
+  }
+}

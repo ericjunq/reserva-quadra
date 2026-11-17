@@ -28,6 +28,10 @@ export class CalendarioAdminService {
     return this.espacos$;
   }
 
+  esquecerEspacos(): void {
+    this.espacos$ = null;
+  }
+
   consultar(espacoId: number, de: string, ate: string): Observable<CalendarioAdmin> {
     return this.http
       .get<Resposta<CalendarioAdmin>>(`${this.url}/espacos/${espacoId}/disponibilidade`, {

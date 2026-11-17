@@ -255,6 +255,16 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
   let eventoCriado: Record<string, unknown> | null = null;
   let usoRegistrado: Record<string, unknown> | null = null;
   let reservaPeloAdmin: Record<string, unknown> | null = null;
+  let espacoCriado: Record<string, unknown> | null = null;
+  let equipamentoDoAdmin: Record<string, unknown> = {
+    id: 5,
+    espaco_id: 4,
+    nome: 'Microscópio',
+    quantidade_total: 2,
+    ativo: true,
+    aceita_solicitacao: false,
+    espacos_compartilhados: [],
+  };
 
   await page.route('**/api/**', async (route: Route) => {
     const requisicao = route.request();
@@ -399,8 +409,41 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
       return json({ data: reservaDoAluno, pode_cancelar: true });
     }
     if (caminho === '/admin/espacos') {
+      if (requisicao.method() === 'POST') {
+        espacoCriado = { ...requisicao.postDataJSON(), id: 9, ativo: true };
+        return json({ data: espacoCriado }, 201);
+      }
       return json({
-        data: espacos.map((espaco) => ({ id: espaco.id, nome: espaco.nome, ativo: true })),
+        data: [
+          ...espacos.map((espaco) => ({ ...espaco, ativo: true })),
+          ...(espacoCriado ? [espacoCriado] : []),
+        ],
+        meta: { current_page: 1, last_page: 1, total: espacos.length, per_page: 15 },
+      });
+    }
+    if (caminho === '/admin/espacos/9' && espacoCriado) {
+      return json({ data: espacoCriado });
+    }
+    if (caminho === '/admin/equipamentos') {
+      return json({
+        data: [equipamentoDoAdmin],
+        meta: { current_page: 1, last_page: 1, total: 1, per_page: 15 },
+      });
+    }
+    if (caminho === '/admin/equipamentos/5') {
+      if (requisicao.method() === 'PATCH') {
+        equipamentoDoAdmin = { ...equipamentoDoAdmin, ...requisicao.postDataJSON() };
+      }
+      return json({
+        data: {
+          ...equipamentoDoAdmin,
+          espacos_compartilhados: (equipamentoDoAdmin.espacos_compartilhados as number[]).map(
+            (id) => ({
+              id,
+              nome: espacos.find((espaco) => espaco.id === id)?.nome ?? '',
+            }),
+          ),
+        },
       });
     }
     if (caminho === '/admin/espacos/4/disponibilidade') {

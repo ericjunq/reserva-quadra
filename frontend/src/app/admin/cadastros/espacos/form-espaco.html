@@ -1,0 +1,184 @@
+<a routerLink="/admin/cadastros/espacos" class="text-sm font-semibold text-azul underline"
+  >Espaços</a
+>
+<h1 class="mt-2 text-2xl font-semibold text-slate-900">
+  {{ espaco() ? espaco()!.nome : 'Novo espaço' }}
+</h1>
+
+@switch (estado().tipo) {
+  @case ('carregando') {
+    <p class="mt-4 text-slate-600">Carregando…</p>
+  }
+  @case ('erro') {
+    <div class="mt-4"><app-aviso-erro [mensagem]="$any(estado()).erro.mensagem" /></div>
+  }
+  @case ('pronto') {
+    @if (espaco() && !espaco()!.ativo) {
+      <p class="mt-2 rounded-lg bg-slate-200 px-4 py-2 text-slate-800">
+        Desativado: não aparece para os alunos.
+      </p>
+    }
+    <form
+      class="mt-6 max-w-2xl space-y-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+      (ngSubmit)="salvar()"
+      novalidate
+    >
+      @if (erro(); as erro) {
+        <app-aviso-erro [mensagem]="erro.mensagem" />
+      }
+      @if (mensagem(); as mensagem) {
+        <p class="rounded-lg bg-emerald-50 px-4 py-3 text-emerald-900" role="status">
+          {{ mensagem }}
+        </p>
+      }
+      <div>
+        <label for="espaco-nome" class="block font-semibold text-slate-900">Nome</label>
+        <input
+          id="espaco-nome"
+          name="nome"
+          maxlength="100"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [ngModel]="nome()"
+          (ngModelChange)="nome.set($event)"
+        />
+        @if (erroDoCampo('nome'); as texto) {
+          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+        }
+      </div>
+      <div>
+        <label for="espaco-tipo" class="block font-semibold text-slate-900">Tipo</label>
+        <select
+          id="espaco-tipo"
+          name="tipo"
+          class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+          [ngModel]="tipo()"
+          (ngModelChange)="tipo.set($event)"
+        >
+          @for (opcao of tipos; track opcao) {
+            <option [value]="opcao">{{ nomesDosTipos[opcao] }}</option>
+          }
+        </select>
+      </div>
+      <fieldset>
+        <legend class="font-semibold text-slate-900">Horário</legend>
+        <div class="mt-2 flex flex-wrap gap-4">
+          <label class="flex items-center gap-2">
+            <input
+              type="radio"
+              name="modo"
+              value="FIXO"
+              [ngModel]="modo()"
+              (ngModelChange)="modo.set($event)"
+            />
+            Horários fixos (19:00–20:30 e 20:30–22:00)
+          </label>
+          <label class="flex items-center gap-2">
+            <input
+              type="radio"
+              name="modo"
+              value="LIVRE"
+              [ngModel]="modo()"
+              (ngModelChange)="modo.set($event)"
+            />
+            Horário livre (o aluno escolhe início e fim)
+          </label>
+        </div>
+      </fieldset>
+      @if (modo() === 'LIVRE') {
+        <div class="flex flex-wrap gap-4">
+          <div>
+            <label for="espaco-abre" class="block font-semibold text-slate-900">Abre às</label>
+            <input
+              id="espaco-abre"
+              name="abre"
+              type="time"
+              class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+              [ngModel]="abreAs()"
+              (ngModelChange)="abreAs.set($event)"
+            />
+          </div>
+          <div>
+            <label for="espaco-fecha" class="block font-semibold text-slate-900">Fecha às</label>
+            <input
+              id="espaco-fecha"
+              name="fecha"
+              type="time"
+              class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+              [ngModel]="fechaAs()"
+              (ngModelChange)="fechaAs.set($event)"
+            />
+          </div>
+          <div>
+            <label for="espaco-duracao" class="block font-semibold text-slate-900"
+              >Duração máxima (min)</label
+            >
+            <input
+              id="espaco-duracao"
+              name="duracao"
+              type="number"
+              min="15"
+              step="15"
+              class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2"
+              [ngModel]="duracao()"
+              (ngModelChange)="duracao.set($event)"
+            />
+          </div>
+        </div>
+        @if (
+          erroDoCampo('abre_as', 'fecha_as', 'duracao_maxima_minutos', 'modo_horario');
+          as texto
+        ) {
+          <p class="text-sm text-red-700">{{ texto }}</p>
+        }
+      }
+      <div>
+        <label for="espaco-limite" class="block font-semibold text-slate-900"
+          >Limite de reservas por curso na semana</label
+        >
+        <input
+          id="espaco-limite"
+          name="limite"
+          type="number"
+          min="1"
+          max="50"
+          class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2"
+          aria-describedby="ajuda-limite"
+          [ngModel]="limite()"
+          (ngModelChange)="limite.set($event)"
+        />
+        <p id="ajuda-limite" class="mt-1 text-sm text-slate-600">Vazio = sem limite.</p>
+        @if (erroDoCampo('limite_semanal_por_curso'); as texto) {
+          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+        }
+      </div>
+      <button
+        type="submit"
+        class="rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio disabled:opacity-50"
+        [disabled]="enviando()"
+      >
+        {{ enviando() ? 'Salvando…' : espaco() ? 'Salvar' : 'Criar espaço' }}
+      </button>
+    </form>
+
+    @if (espaco(); as atual) {
+      <section class="mt-6 max-w-2xl" aria-label="Situação">
+        @if (atual.ativo) {
+          <app-confirmar-acao
+            rotulo="Desativar"
+            aviso="O espaço deixa de aparecer para os alunos. A API não deixa desativar se houver reservas futuras."
+            [perigo]="true"
+            [ocupado]="enviando()"
+            (confirmado)="desativar()"
+          />
+        } @else {
+          <app-confirmar-acao
+            rotulo="Reativar"
+            aviso="O espaço volta a aparecer para os alunos."
+            [ocupado]="enviando()"
+            (confirmado)="reativar()"
+          />
+        }
+      </section>
+    }
+  }
+}

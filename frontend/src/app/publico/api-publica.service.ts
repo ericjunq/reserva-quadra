@@ -42,6 +42,10 @@ export class ApiPublicaService {
     return this.espacos$;
   }
 
+  esquecerEspacos(): void {
+    this.espacos$ = null;
+  }
+
   consultarVersao(): Observable<string> {
     return this.http
       .get<Resposta<{ versao: string }>>(`${this.url}/disponibilidade/versao`)
