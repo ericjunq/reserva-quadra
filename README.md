@@ -939,7 +939,7 @@ Arquivo: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Roda a cada **p
 | Job | O que faz |
 |---|---|
 | `Pint e composer audit` | `vendor/bin/pint --test` (acusa código fora do padrão, sem alterar) e `composer audit` (dependência com vulnerabilidade conhecida) |
-| `Front-end` | Node 24, `npm ci`, Prettier (`--check` em `src` e `e2e`), testes (Vitest), build de produção (com o orçamento de tamanho), `npm audit --audit-level=high` e os testes no navegador (Playwright com o Chrome do runner) |
+| `Front-end` | Node 24, `npm ci`, Prettier (`--check` em `src` e `e2e`), testes (Vitest), build de produção (com o orçamento de tamanho), `npm audit --omit=dev --audit-level=high` (bloqueia: o que vai para o site), `npm audit --audit-level=high` (só aviso, `continue-on-error`: ferramentas de build e teste; mudança de 17/11/2026, quando um alerta do `picomatch` sem correção deixou o CI vermelho) e os testes no navegador (Playwright com o Chrome do runner) |
 | `Testes (sqlite)` · `Testes (mysql)` · `Testes (pgsql)` | `php artisan test` em cada banco, em paralelo. MySQL 8.0 e Postgres 16 sobem como serviços temporários do GitHub |
 
 - Primeira execução (09/11/2026): os 226 testes passaram nos três bancos, sem nenhum ajuste de compatibilidade.
