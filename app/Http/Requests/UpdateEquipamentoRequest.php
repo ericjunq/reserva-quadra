@@ -26,7 +26,6 @@ class UpdateEquipamentoRequest extends FormRequest
                     ['espaco_id' => $this->route('equipamento')->espaco_id],
                 ),
             ],
-            'quantidade_total'         => ['sometimes', 'integer', 'min:1'],
             'aceita_solicitacao'       => ['sometimes', 'boolean'],
             'ativo'                    => ['sometimes', 'boolean'],
             'espacos_compartilhados'   => ['sometimes', 'array'],

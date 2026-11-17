@@ -89,6 +89,8 @@ Route::middleware(['auth:sanctum', 'admin.ativo'])->group(function () {
 
         Route::get('/espacos/{espaco}/disponibilidade', [EspacoController::class, 'disponibilidadeAdmin']);
         Route::get('/espacos/{espaco}/equipamentos/solicitaveis', [EquipamentoController::class, 'solicitaveisAdmin']);
+        Route::get('/equipamentos/{equipamento}/movimentacoes', [EquipamentoController::class, 'movimentacoes']);
+        Route::post('/equipamentos/{equipamento}/movimentacoes', [EquipamentoController::class, 'movimentar']);
 
         Route::get('/reservas', [ReservaController::class, 'index']);
         Route::post('/reservas/consulta', [ReservaController::class, 'index']);

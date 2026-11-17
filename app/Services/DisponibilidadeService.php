@@ -198,8 +198,8 @@ class DisponibilidadeService
             return [
                 'id'         => $equipamento->id,
                 'nome'       => $equipamento->nome,
-                'total'      => $equipamento->quantidade_total,
-                'disponivel' => max($equipamento->quantidade_total - $emUso, 0),
+                'total'      => $equipamento->utilizavel(),
+                'disponivel' => max($equipamento->utilizavel() - $emUso, 0),
             ];
         })->values()->all();
 

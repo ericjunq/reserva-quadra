@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Equipamento extends Model
 {
@@ -16,14 +17,17 @@ class Equipamento extends Model
 
     public const RELACOES_ADMIN = [...Auditoria::RELACOES, 'espacosCompartilhados:id,nome'];
 
-    protected $fillable = ['espaco_id', 'nome', 'quantidade_total', 'ativo', 'aceita_solicitacao'];
+    protected $attributes = ['quantidade_em_manutencao' => 0];
+
+    protected $fillable = ['espaco_id', 'nome', 'quantidade_total', 'quantidade_em_manutencao', 'ativo', 'aceita_solicitacao'];
 
     public function casts(): array
     {
         return [
-            'quantidade_total'   => 'integer',
-            'ativo'              => 'boolean',
-            'aceita_solicitacao' => 'boolean',
+            'quantidade_total'         => 'integer',
+            'quantidade_em_manutencao' => 'integer',
+            'ativo'                    => 'boolean',
+            'aceita_solicitacao'       => 'boolean',
         ];
     }
 
@@ -33,6 +37,16 @@ class Equipamento extends Model
             ->using(ItemReserva::class)
             ->withPivot(ItemReserva::COLUNAS)
             ->withTimestamps();
+    }
+
+    public function utilizavel(): int
+    {
+        return max($this->quantidade_total - $this->quantidade_em_manutencao, 0);
+    }
+
+    public function movimentacoes(): HasMany
+    {
+        return $this->hasMany(MovimentacaoEstoque::class);
     }
 
     public function espaco(): BelongsTo

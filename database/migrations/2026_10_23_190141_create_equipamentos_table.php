@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('espaco_id')->constrained('espacos')->restrictOnDelete();
             $table->string('nome', 100);
             $table->integer('quantidade_total');
+            $table->integer('quantidade_em_manutencao')->default(0);
             $table->boolean('ativo')->default(true);
             $table->boolean('aceita_solicitacao')->default(false);
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();

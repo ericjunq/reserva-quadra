@@ -59,7 +59,9 @@ trait ValidaEquipamentosDaReserva
 
         foreach (['equipamentos', 'solicitacoes'] as $campo) {
             $itens = collect($this->input($campo, []));
-            $estoques = Equipamento::whereIn('id', $itens->pluck('id'))->pluck('quantidade_total', 'id');
+            $estoques = Equipamento::whereIn('id', $itens->pluck('id'))
+                ->get(['id', 'quantidade_total', 'quantidade_em_manutencao'])
+                ->mapWithKeys(fn (Equipamento $equipamento) => [$equipamento->id => $equipamento->utilizavel()]);
 
             foreach ($itens as $i => $item) {
                 $total = $estoques[$item['id']];
@@ -67,7 +69,7 @@ trait ValidaEquipamentosDaReserva
                 if ($item['quantidade'] > $total) {
                     $validator->errors()->add(
                         "{$campo}.{$i}.quantidade",
-                        "A quantidade não pode ser maior que o estoque total ({$total}).",
+                        "A quantidade não pode ser maior que o estoque disponível ({$total}).",
                     );
                 }
             }

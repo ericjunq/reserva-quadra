@@ -223,8 +223,12 @@ class HorarioLivreTest extends TestCase
         $this->reservaExistente('15:00:00', '16:00:00', [$projetor->id => 2]);
         $this->reservaExistente('14:30:00', '15:30:00', [$projetor->id => 1], '2026-11-13');
 
-        $this->patchJson("/api/admin/equipamentos/{$projetor->id}", ['quantidade_total' => 1])->assertStatus(409);
-        $this->patchJson("/api/admin/equipamentos/{$projetor->id}", ['quantidade_total' => 2])->assertOk();
+        $manutencao = fn (int $quantidade) => $this->postJson("/api/admin/equipamentos/{$projetor->id}/movimentacoes", [
+            'tipo' => 'MANUTENCAO', 'quantidade' => $quantidade, 'estado' => 'Lâmpada queimada.',
+        ]);
+
+        $manutencao(4)->assertStatus(409);
+        $manutencao(3)->assertCreated();
     }
 
     public function test_calendario_mostra_a_janela_e_os_intervalos_ocupados(): void

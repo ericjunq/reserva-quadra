@@ -31,6 +31,8 @@ return new class extends Migration
             $table->timestamp('manter_ate')->nullable();
             $table->timestamp('mantida_em')->nullable();
             $table->string('descricao', 255)->nullable();
+            $table->string('responsavel_nome', 100)->nullable();
+            $table->string('responsavel_contato', 120)->nullable();
             $table->text('justificativa_revogacao')->nullable();
             $table->timestamp('revogada_em')->nullable();
             $table->timestamp('cancelada_em')->nullable();

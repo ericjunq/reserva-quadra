@@ -138,7 +138,13 @@ class EquipamentoTest extends TestCase
         $reserva = Reserva::factory()->create(['espaco_id' => $equipamento->espaco_id]);
         $reserva->equipamentos()->attach($equipamento->id, ['quantidade' => 4]);
 
-        $this->patchJson("/api/admin/equipamentos/{$equipamento->id}", ['quantidade_total' => 3])->assertStatus(409);
-        $this->patchJson("/api/admin/equipamentos/{$equipamento->id}", ['quantidade_total' => 4])->assertOk();
+        $baixa = fn (int $quantidade) => $this->postJson("/api/admin/equipamentos/{$equipamento->id}/movimentacoes", [
+            'tipo' => 'BAIXA', 'quantidade' => $quantidade, 'estado' => 'Quebrado sem conserto.',
+        ]);
+
+        $baixa(2)->assertStatus(409)->assertJsonPath('dados.maior_uso_futuro', 4);
+        $baixa(1)->assertCreated();
+        $this->patchJson("/api/admin/equipamentos/{$equipamento->id}", ['quantidade_total' => 9])->assertOk();
+        $this->assertSame(4, $equipamento->fresh()->quantidade_total);
     }
 }

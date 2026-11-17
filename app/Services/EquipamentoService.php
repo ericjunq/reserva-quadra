@@ -15,7 +15,10 @@ use Illuminate\Support\Facades\DB;
 
 class EquipamentoService
 {
-    public function __construct(private DisponibilidadeEquipamentoRepository $disponibilidade) {}
+    public function __construct(
+        private DisponibilidadeEquipamentoRepository $disponibilidade,
+        private EstoqueService $estoque,
+    ) {}
 
     public function listarAtivos(Espaco $espaco): Collection
     {
@@ -34,7 +37,7 @@ class EquipamentoService
         return $equipamentos->map(fn (Equipamento $equipamento) => [
             'id'         => $equipamento->id,
             'nome'       => $equipamento->nome,
-            'total'      => $equipamento->quantidade_total,
+            'total'      => $equipamento->utilizavel(),
             'disponivel' => $disponiveis[$equipamento->id],
         ])->values()->all();
     }
@@ -59,7 +62,7 @@ class EquipamentoService
                 'id'         => $equipamento->id,
                 'nome'       => $equipamento->nome,
                 'espaco'     => $equipamento->espaco->nome,
-                'total'      => $equipamento->quantidade_total,
+                'total'      => $equipamento->utilizavel(),
                 'disponivel' => $disponiveis[$equipamento->id],
             ])->values()->all() : [],
         ];
@@ -83,6 +86,7 @@ class EquipamentoService
     {
         return DB::transaction(function () use ($data) {
             $equipamento = Equipamento::create(collect($data)->except('espacos_compartilhados')->all());
+            $this->estoque->registrarCadastro($equipamento);
 
             if (isset($data['espacos_compartilhados'])) {
                 $this->compartilhar($equipamento, $data['espacos_compartilhados']);
@@ -95,11 +99,6 @@ class EquipamentoService
     public function atualizar(Equipamento $equipamento, array $data): Equipamento
     {
         return DB::transaction(function () use ($equipamento, $data) {
-            if (isset($data['quantidade_total'])) {
-                Equipamento::whereKey($equipamento->id)->lockForUpdate()->first();
-                $this->verificarNovaQuantidade($equipamento, $data['quantidade_total']);
-            }
-
             $equipamento->update(collect($data)->except('espacos_compartilhados')->all());
 
             if (array_key_exists('espacos_compartilhados', $data)) {
@@ -153,18 +152,6 @@ class EquipamentoService
                 "O equipamento tem reservas futuras em {$nomes->join(', ', ' e ')}. Ele só pode deixar de ser compartilhado com esses espaços depois delas.",
                 409,
                 ['espacos' => $emUso->values()->all()],
-            );
-        }
-    }
-
-    private function verificarNovaQuantidade(Equipamento $equipamento, int $novaQuantidade): void
-    {
-        $maiorUso = $this->disponibilidade->maiorUsoFuturo($equipamento);
-
-        if ($novaQuantidade < $maiorUso) {
-            throw new RegraNegocioException(
-                "Já existem {$maiorUso} unidades reservadas em um mesmo horário. A quantidade não pode ser menor que isso.",
-                409,
             );
         }
     }

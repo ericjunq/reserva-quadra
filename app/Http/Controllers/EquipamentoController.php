@@ -3,17 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ConsultarEquipamentosNoIntervaloRequest;
+use App\Http\Requests\MovimentarEstoqueRequest;
 use App\Http\Requests\StoreEquipamentoRequest;
 use App\Http\Requests\UpdateEquipamentoRequest;
 use App\Http\Resources\EquipamentoResource;
+use App\Http\Resources\MovimentacaoEstoqueResource;
 use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Services\EquipamentoService;
+use App\Services\EstoqueService;
 use Illuminate\Http\Request;
 
 class EquipamentoController extends Controller
 {
-    public function __construct(private EquipamentoService $equipamentoService) {}
+    public function __construct(
+        private EquipamentoService $equipamentoService,
+        private EstoqueService $estoqueService,
+    ) {}
 
     public function index(Request $request)
     {
@@ -72,6 +78,23 @@ class EquipamentoController extends Controller
         $equipamento = $this->equipamentoService->criar($request->validated());
 
         return (new EquipamentoResource($equipamento->load(Equipamento::RELACOES_ADMIN)))->response()->setStatusCode(201);
+    }
+
+    public function movimentacoes(Request $request, Equipamento $equipamento)
+    {
+        return MovimentacaoEstoqueResource::collection(
+            $this->estoqueService->listarPaginado($equipamento, $this->porPagina($request))
+        );
+    }
+
+    public function movimentar(MovimentarEstoqueRequest $request, Equipamento $equipamento)
+    {
+        $movimentacao = $this->estoqueService->movimentar($equipamento, $request->validated());
+
+        return response()->json([
+            'data'        => new MovimentacaoEstoqueResource($movimentacao->load(['usuario:id,name', 'reserva:id,tipo,data_reserva'])),
+            'equipamento' => new EquipamentoResource($movimentacao->equipamento->load(Equipamento::RELACOES_ADMIN)),
+        ], 201);
     }
 
     public function show(Equipamento $equipamento)

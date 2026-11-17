@@ -28,7 +28,7 @@ class DisponibilidadeEquipamentoRepository
         $emUso = $this->emUso($equipamentos->pluck('id')->all(), $data, $inicio, $fim);
 
         return $equipamentos->mapWithKeys(fn (Equipamento $equipamento) => [
-            $equipamento->id => max($equipamento->quantidade_total - ($emUso[$equipamento->id] ?? 0), 0),
+            $equipamento->id => max($equipamento->utilizavel() - ($emUso[$equipamento->id] ?? 0), 0),
         ]);
     }
 
@@ -43,7 +43,11 @@ class DisponibilidadeEquipamentoRepository
 
     public function maiorUsoFuturo(Equipamento $equipamento): int
     {
-        return (int) $this->intervalosEmUso([$equipamento->id], today()->toDateString())
+        $hoje = today()->toDateString();
+        $agora = now()->format('H:i:s');
+
+        return (int) $this->intervalosEmUso([$equipamento->id], $hoje)
+            ->reject(fn ($linha) => $linha->data === $hoje && $linha->hora_fim <= $agora)
             ->groupBy('data')
             ->map(fn (Collection $linhas) => self::pico($linhas, '00:00:00', '24:00:00'))
             ->max();
