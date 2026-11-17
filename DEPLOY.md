@@ -24,7 +24,7 @@ Copie `.env.production.example` para `.env` no servidor e preencha. O `.env` **n
 | `CORS_ALLOWED_ORIGINS` | endereço(s) do front, separados por vírgula. Só eles podem chamar a API pelo navegador |
 | `TRUSTED_PROXIES` | IP do proxy/balanceador na frente do servidor (ou `*` se só ele alcança o servidor). Vazio se o Nginx atende direto |
 | `DB_*` | banco e usuário próprios do sistema, com senha forte |
-| `MAIL_*` | dados do SMTP |
+| `MAIL_*` | dados do SMTP. `MAIL_REPLY_TO_ADDRESS`/`_NAME`: email do setor que atende os alunos, para onde vão as respostas aos emails do sistema (informado pela faculdade; vazio = sem endereço de resposta) |
 | `ALERTAS_EMAIL` | email (ou lista separada por vírgula) que recebe os alertas, além dos admins ativos |
 | `ADMIN_INICIAL_*` | deixe **vazio** (ver passo 4) |
 | `PARCEIROS_*` | só se a instituição quiser mudar os padrões dos sistemas parceiros (termos da API, validade de 12 meses, aviso 30 dias antes, limite de 60 por minuto). A versão dos termos (`PARCEIROS_TERMOS_VERSAO`) muda quando o texto mudar |

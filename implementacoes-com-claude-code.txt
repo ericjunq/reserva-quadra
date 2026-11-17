@@ -3408,3 +3408,17 @@ docs/api-v1.openapi.json gerado pelo DocumentacaoApiTest: o Scramble lê os tipo
 docs/API-PARCEIROS.md: pedir acesso, aceite e token, autenticação, permissões, rotas com exemplo,
   limites, erros, LGPD, versões e como atualizar o arquivo.
 394 testes da API.
+
+========================================================================
+87. ENDEREÇO DE RESPOSTA DOS EMAILS: MAIL_REPLY_TO (17/11/2026)
+========================================================================
+Aprovado pelo usuário ("pode fazer então o mail reply to").
+config/mail.php: chave reply_to (address e name) lendo MAIL_REPLY_TO_ADDRESS e
+  MAIL_REPLY_TO_NAME; "?: null" porque a variável vazia no .env vira string vazia, e o Laravel
+  só põe o Reply-To quando o endereço existe. O MailManager aplica o reply_to global em todo
+  mailer, então nenhum Mailable mudou (inclusive os da fila).
+.env.example e .env.production.example: as duas variáveis, vazias.
+EmailsTest: dois testes que enviam de verdade pelo mailer array (o Mail::fake não aplica os
+  endereços globais) e conferem o Reply-To com e sem configuração.
+Motivo: o remetente pode ser um "naoresponda" e a resposta do aluno vai para o setor; o
+  endereço vem da faculdade. 396 testes.

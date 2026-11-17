@@ -156,6 +156,7 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `CORS_ALLOWED_ORIGINS` | `FRONTEND_URL` | Endereços (separados por vírgula) que podem chamar a API pelo navegador |
 | `CORS_MAX_AGE` | 86400 | Por quantos segundos o navegador guarda a liberação do CORS (menos requisições `OPTIONS`) |
 | `TRUSTED_PROXIES` | vazio | IPs do proxy/balanceador na frente do servidor (ou `*`), para o Laravel enxergar o HTTPS e o IP real |
+| `MAIL_REPLY_TO_ADDRESS` / `_NAME` | vazio | Endereço (e nome) que recebe a resposta quando alguém clica em "Responder" num email do sistema, ex.: o email do setor que atende os alunos. Vazio = sem `Reply-To` (a resposta iria para o remetente). Na produção, o endereço vem da faculdade |
 | `SESSAO_ADMIN_MINUTOS` | 480 | Validade do token de login do admin (8 h). Fica no próprio token: a validade global do Sanctum é `null` desde o passo 13, senão os tokens de 12 meses dos parceiros venceriam em 8 h |
 | `PARCEIROS_TERMOS_VERSAO` | 2026-11 | Versão dos termos de uso da API (gravada no sistema parceiro no aceite) |
 | `PARCEIROS_VALIDADE_MESES` | 12 | Validade do token de um sistema parceiro |
@@ -927,7 +928,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026, depois do passo 13):** 394 testes da API, 178 testes de unidade do front (Vitest) e 64 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026, depois do passo 13 e do `MAIL_REPLY_TO`):** 396 testes da API, 178 testes de unidade do front (Vitest) e 64 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -958,7 +959,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
 | `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, **arredondamento para 15 min** (inclusive em conflitos e na duração máxima), espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela e arredondado, equipamentos pelo pico, redução de estoque pelo pico, **calendário com janela e ocupados** (reservas e bloqueios, sem RA), **`fim_minimo` de hoje e dia encerrado**, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
 | `VersaoDisponibilidadeTest` | Versão igual sem mudanças; muda depois de uma reserva e de um bloqueio; muda a cada faixa de 5 minutos; resposta só com a versão |
-| `EmailsTest` | Os 13 emails (com o aceite e a renovação do acesso à API) montam com o assunto e o conteúdo esperados, sem link para a API ou `localhost`, e só o alerta e o código de login saem sem fila |
+| `EmailsTest` | Os 13 emails (com o aceite e a renovação do acesso à API); `Reply-To` com o endereço do setor quando configurado e sem ele quando vazio; montam com o assunto e o conteúdo esperados, sem link para a API ou `localhost`, e só o alerta e o código de login saem sem fila |
 | `ConsultasDasListagensTest` | Histórico, espaços, equipamentos, cursos, datas bloqueadas, alunos, sistemas parceiros e admins fazem o mesmo número de consultas com 2 e com 12 itens (sem N+1) |
 | `LimitesPublicosTest` | Mesmo RA limitado sem afetar outro aluno do mesmo IP, limite por IP valendo para todos os RAs do IP, links do email limitados por token, consultas do calendário com o limite das consultas, RA fora da chave do limite |
 | `RotasProtegidasTest` | Toda rota do admin (e `/me`, `/logout`) responde 401 sem token; todas têm `auth:sanctum` e `admin.ativo`; token de sistema parceiro recebe 403 em **todas** as rotas do admin; toda rota `/api/v1` tem `auth:sanctum`, `parceiro`, `throttle:parceiros` e uma `permissao:*`, e responde 401 sem token, 403 com token de admin e 403 sem a permissão **antes** de buscar o registro (com teste de mutação); admin desativado com token ainda válido é recusado e perde os tokens; admin ativo continua entrando |
