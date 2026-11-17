@@ -1,0 +1,1468 @@
+{
+    "openapi": "3.1.2",
+    "info": {
+        "title": "API de reservas para parceiros (v1)",
+        "version": "1.0.0",
+        "description": "API do sistema de reservas para sistemas parceiros autorizados. Guia completo em docs/API-PARCEIROS.md."
+    },
+    "servers": [
+        {
+            "url": "https://{dominio}/api/v1",
+            "description": "Servidor da institui\u00e7\u00e3o",
+            "variables": {
+                "dominio": {
+                    "default": "reservas.exemplo.edu",
+                    "description": "Dom\u00ednio do sistema de reservas, informado pela institui\u00e7\u00e3o"
+                }
+            }
+        }
+    ],
+    "security": [
+        {
+            "http": []
+        }
+    ],
+    "paths": {
+        "/espacos": {
+            "get": {
+                "operationId": "espacoParceiro.index",
+                "tags": [
+                    "EspacoParceiro"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `EspacoResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/EspacoResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/espacos/{espaco}/disponibilidade": {
+            "get": {
+                "operationId": "espacoParceiro.disponibilidade",
+                "tags": [
+                    "EspacoParceiro"
+                ],
+                "parameters": [
+                    {
+                        "name": "espaco",
+                        "in": "path",
+                        "required": true,
+                        "description": "The espaco ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "de",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "ate",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "curso_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "espaco": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "nome": {
+                                                            "type": "string"
+                                                        },
+                                                        "tipo": {
+                                                            "$ref": "#/components/schemas/TipoEspacoConstant"
+                                                        },
+                                                        "modo_horario": {
+                                                            "$ref": "#/components/schemas/ModoHorarioConstant"
+                                                        },
+                                                        "abre_as": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "fecha_as": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "duracao_maxima_minutos": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "bloco_minutos": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "nome",
+                                                        "tipo",
+                                                        "modo_horario",
+                                                        "abre_as",
+                                                        "fecha_as",
+                                                        "duracao_maxima_minutos",
+                                                        "bloco_minutos"
+                                                    ]
+                                                },
+                                                "de": {},
+                                                "ate": {
+                                                    "type": "string"
+                                                },
+                                                "reservas_ate": {
+                                                    "type": "string"
+                                                },
+                                                "calendario_ate": {
+                                                    "type": "string"
+                                                },
+                                                "curso": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "nome": {
+                                                            "type": "string"
+                                                        },
+                                                        "limite_semanal": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "semanas": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "nome",
+                                                        "limite_semanal",
+                                                        "semanas"
+                                                    ]
+                                                },
+                                                "dias": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "data": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "reservavel": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "motivo": {
+                                                                        "type": "string",
+                                                                        "const": "Os hor\u00e1rios de hoje j\u00e1 foram encerrados."
+                                                                    },
+                                                                    "fim_minimo": {
+                                                                        "type": "null"
+                                                                    },
+                                                                    "ocupados": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "anyOf": [
+                                                                                {
+                                                                                    "type": "object",
+                                                                                    "properties": {
+                                                                                        "inicio": {
+                                                                                            "type": "string"
+                                                                                        },
+                                                                                        "fim": {
+                                                                                            "type": "string"
+                                                                                        },
+                                                                                        "situacao": {
+                                                                                            "type": "string",
+                                                                                            "enum": [
+                                                                                                "EVENTO",
+                                                                                                "RESERVADO"
+                                                                                            ]
+                                                                                        },
+                                                                                        "motivo": {
+                                                                                            "type": "null"
+                                                                                        },
+                                                                                        "reserva": {
+                                                                                            "type": "object",
+                                                                                            "properties": {
+                                                                                                "id": {
+                                                                                                    "type": "integer"
+                                                                                                },
+                                                                                                "tipo": {
+                                                                                                    "$ref": "#/components/schemas/TipoReservaConstant"
+                                                                                                },
+                                                                                                "descricao": {
+                                                                                                    "type": [
+                                                                                                        "string",
+                                                                                                        "null"
+                                                                                                    ]
+                                                                                                },
+                                                                                                "do_curso": {
+                                                                                                    "type": "boolean"
+                                                                                                },
+                                                                                                "reservado_por": {
+                                                                                                    "anyOf": [
+                                                                                                        {
+                                                                                                            "type": "object",
+                                                                                                            "properties": {
+                                                                                                                "tipo": {
+                                                                                                                    "type": "string",
+                                                                                                                    "const": "ALUNO"
+                                                                                                                },
+                                                                                                                "nome": {
+                                                                                                                    "type": "string"
+                                                                                                                },
+                                                                                                                "curso": {
+                                                                                                                    "type": "string"
+                                                                                                                }
+                                                                                                            },
+                                                                                                            "required": [
+                                                                                                                "tipo",
+                                                                                                                "nome",
+                                                                                                                "curso"
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "type": "object",
+                                                                                                            "properties": {
+                                                                                                                "tipo": {
+                                                                                                                    "type": "string",
+                                                                                                                    "const": "ADMIN"
+                                                                                                                },
+                                                                                                                "nome": {
+                                                                                                                    "type": [
+                                                                                                                        "string",
+                                                                                                                        "null"
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                                "curso": {
+                                                                                                                    "type": "null"
+                                                                                                                }
+                                                                                                            },
+                                                                                                            "required": [
+                                                                                                                "tipo",
+                                                                                                                "nome",
+                                                                                                                "curso"
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                "situacao_confirmacao": {
+                                                                                                    "type": [
+                                                                                                        "string",
+                                                                                                        "null"
+                                                                                                    ],
+                                                                                                    "enum": [
+                                                                                                        "AGUARDANDO_CONFIRMACAO",
+                                                                                                        "RECONFIRMADA",
+                                                                                                        "AGUARDANDO_RECONFIRMACAO",
+                                                                                                        "CONFIRMADA",
+                                                                                                        null
+                                                                                                    ]
+                                                                                                },
+                                                                                                "origem": {
+                                                                                                    "type": "string",
+                                                                                                    "enum": [
+                                                                                                        "SITE",
+                                                                                                        "ADMIN",
+                                                                                                        "REGISTRO_POSTERIOR",
+                                                                                                        "API"
+                                                                                                    ]
+                                                                                                }
+                                                                                            },
+                                                                                            "required": [
+                                                                                                "id",
+                                                                                                "tipo",
+                                                                                                "descricao",
+                                                                                                "do_curso",
+                                                                                                "reservado_por",
+                                                                                                "situacao_confirmacao",
+                                                                                                "origem"
+                                                                                            ]
+                                                                                        }
+                                                                                    },
+                                                                                    "required": [
+                                                                                        "inicio",
+                                                                                        "fim",
+                                                                                        "situacao",
+                                                                                        "motivo",
+                                                                                        "reserva"
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "type": "string"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "abre_em": {
+                                                                        "type": "null"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "data",
+                                                                    "reservavel",
+                                                                    "motivo",
+                                                                    "fim_minimo",
+                                                                    "ocupados",
+                                                                    "abre_em"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "data": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "reservavel": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "motivo": {
+                                                                        "type": [
+                                                                            "string",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "abre_em": {
+                                                                        "type": "null"
+                                                                    },
+                                                                    "horarios": {
+                                                                        "type": "array",
+                                                                        "items": {}
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "data",
+                                                                    "reservavel",
+                                                                    "motivo",
+                                                                    "abre_em",
+                                                                    "horarios"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "espaco",
+                                                "de",
+                                                "ate",
+                                                "reservas_ate",
+                                                "calendario_ate",
+                                                "curso",
+                                                "dias"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/espacos/{espaco}/equipamentos": {
+            "get": {
+                "operationId": "espacoParceiro.equipamentos",
+                "tags": [
+                    "EspacoParceiro"
+                ],
+                "parameters": [
+                    {
+                        "name": "espaco",
+                        "in": "path",
+                        "required": true,
+                        "description": "The espaco ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `EquipamentoResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/EquipamentoResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/espacos/{espaco}/equipamentos/disponibilidade": {
+            "get": {
+                "operationId": "espacoParceiro.equipamentosDisponiveis",
+                "tags": [
+                    "EspacoParceiro"
+                ],
+                "parameters": [
+                    {
+                        "name": "espaco",
+                        "in": "path",
+                        "required": true,
+                        "description": "The espaco ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "data",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "hora_inicio",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "hora_fim",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "nome": {
+                                                        "type": "string"
+                                                    },
+                                                    "total": {
+                                                        "type": "integer"
+                                                    },
+                                                    "disponivel": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "nome",
+                                                    "total",
+                                                    "disponivel"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/reservas": {
+            "get": {
+                "operationId": "reservaParceiro.index",
+                "tags": [
+                    "ReservaParceiro"
+                ],
+                "parameters": [
+                    {
+                        "name": "de",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "ate",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/StatusConstant"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `ReservaResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ReservaResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "reservaParceiro.store",
+                "tags": [
+                    "ReservaParceiro"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreReservaRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ReservaResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReservaResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/reservas/{reserva}": {
+            "get": {
+                "operationId": "reservaParceiro.show",
+                "tags": [
+                    "ReservaParceiro"
+                ],
+                "parameters": [
+                    {
+                        "name": "reserva",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ReservaResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReservaResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/reservas/{reserva}/cancelar": {
+            "post": {
+                "operationId": "reservaParceiro.cancelar",
+                "tags": [
+                    "ReservaParceiro"
+                ],
+                "parameters": [
+                    {
+                        "name": "reserva",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ReservaResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReservaResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "http": {
+                "type": "http",
+                "description": "Token gerado na p\u00e1gina de aceite dos termos, enviado como Authorization: Bearer <token>.",
+                "scheme": "bearer"
+            }
+        },
+        "schemas": {
+            "EquipamentoDaReservaResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "nome": {
+                        "type": "string"
+                    },
+                    "quantidade": {
+                        "type": "integer"
+                    },
+                    "situacao_do_pedido": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "nome",
+                    "quantidade",
+                    "situacao_do_pedido"
+                ],
+                "title": "EquipamentoDaReservaResource"
+            },
+            "EquipamentoResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "nome": {
+                        "type": "string"
+                    },
+                    "quantidade": {
+                        "type": "integer"
+                    },
+                    "aceita_solicitacao": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "nome",
+                    "quantidade",
+                    "aceita_solicitacao"
+                ],
+                "title": "EquipamentoResource"
+            },
+            "EspacoResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "nome": {
+                        "type": "string"
+                    },
+                    "tipo": {
+                        "type": "string"
+                    },
+                    "modo_horario": {
+                        "type": "string"
+                    },
+                    "abre_as": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "fecha_as": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "duracao_maxima_minutos": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "limite_semanal_por_curso": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "nome",
+                    "tipo",
+                    "modo_horario",
+                    "abre_as",
+                    "fecha_as",
+                    "duracao_maxima_minutos",
+                    "limite_semanal_por_curso"
+                ],
+                "title": "EspacoResource"
+            },
+            "HorarioReservaConstant": {
+                "type": "string",
+                "enum": [
+                    "PRIMEIRO_HORARIO",
+                    "SEGUNDO_HORARIO"
+                ],
+                "title": "HorarioReservaConstant"
+            },
+            "ModoHorarioConstant": {
+                "type": "string",
+                "enum": [
+                    "FIXO",
+                    "LIVRE"
+                ],
+                "title": "ModoHorarioConstant"
+            },
+            "ReservaResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "data_reserva": {
+                        "type": "string"
+                    },
+                    "horario": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "hora_inicio": {
+                        "type": "string"
+                    },
+                    "hora_fim": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "situacao_confirmacao": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "confirmar_ate": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "confirmada_em": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cancelada_em": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "revogada_em": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "espaco": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "nome": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "nome"
+                        ]
+                    },
+                    "equipamentos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/EquipamentoDaReservaResource"
+                        }
+                    },
+                    "criada_em": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "data_reserva",
+                    "horario",
+                    "hora_inicio",
+                    "hora_fim",
+                    "status",
+                    "situacao_confirmacao",
+                    "confirmar_ate",
+                    "confirmada_em",
+                    "cancelada_em",
+                    "revogada_em",
+                    "espaco",
+                    "equipamentos",
+                    "criada_em"
+                ],
+                "title": "ReservaResource"
+            },
+            "StatusConstant": {
+                "type": "string",
+                "enum": [
+                    "RESERVADO",
+                    "CANCELADO",
+                    "REVOGADO"
+                ],
+                "title": "StatusConstant"
+            },
+            "StoreReservaRequest": {
+                "type": "object",
+                "properties": {
+                    "equipamentos": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "quantidade": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "quantidade"
+                            ]
+                        },
+                        "uniqueItems": true
+                    },
+                    "solicitacoes": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "quantidade": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "obrigatorio": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "quantidade"
+                            ]
+                        },
+                        "uniqueItems": true
+                    },
+                    "horario": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/HorarioReservaConstant"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "hora_inicio": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "hora_fim": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "data_reserva": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "registro_academico": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 10
+                    },
+                    "espaco_id": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "data_reserva",
+                    "registro_academico",
+                    "espaco_id"
+                ],
+                "title": "StoreReservaRequest"
+            },
+            "TipoEspacoConstant": {
+                "type": "string",
+                "enum": [
+                    "QUADRA",
+                    "LABORATORIO",
+                    "SALA"
+                ],
+                "title": "TipoEspacoConstant"
+            },
+            "TipoReservaConstant": {
+                "type": "string",
+                "enum": [
+                    "ALUNO",
+                    "EVENTO"
+                ],
+                "title": "TipoReservaConstant"
+            }
+        },
+        "responses": {
+            "AuthenticationException": {
+                "description": "Unauthenticated",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ModelNotFoundException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

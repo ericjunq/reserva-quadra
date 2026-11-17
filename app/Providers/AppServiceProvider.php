@@ -5,6 +5,10 @@ namespace App\Providers;
 use App\Constants\TipoAuditavelConstant;
 use App\Models\ClienteApi;
 use App\Services\AlertaService;
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Dedoc\Scramble\Support\Generator\ServerVariable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Middleware\TrustProxies;
@@ -17,7 +21,12 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        if (class_exists(Scramble::class)) {
+            $this->configurarDocumentacaoDaApi();
+        }
+    }
 
     public function boot(): void
     {
@@ -37,6 +46,15 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->isProduction()) {
             URL::forceHttps();
         }
+    }
+
+    private function configurarDocumentacaoDaApi(): void
+    {
+        Scramble::configure()
+            ->withServerVariables(['dominio' => ServerVariable::make('reservas.exemplo.edu', description: 'Domínio do sistema de reservas, informado pela instituição')])
+            ->withDocumentTransformers(fn (OpenApi $openApi) => $openApi->secure(
+                SecurityScheme::http('bearer')->setDescription('Token gerado na página de aceite dos termos, enviado como Authorization: Bearer <token>.'),
+            ));
     }
 
     private function definirLimites(): void
