@@ -61,7 +61,7 @@ export const NOMES_DAS_SOLICITACOES: Record<SituacaoSolicitacao, string> = {
 
 export const NOMES_DAS_ORIGENS: Record<OrigemReserva, string> = {
   SITE: 'Pelo site',
-  ADMIN: 'Evento do admin',
+  ADMIN: 'Pelo admin',
   REGISTRO_POSTERIOR: 'Registro posterior',
 };
 

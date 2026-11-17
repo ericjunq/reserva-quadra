@@ -165,7 +165,7 @@
         @if (atual.ativo) {
           <app-confirmar-acao
             rotulo="Desativar"
-            aviso="O espaço deixa de aparecer para os alunos. A API não deixa desativar se houver reservas futuras."
+            aviso="O espaço deixa de aparecer para os alunos. O sistema não deixa desativar se houver reservas futuras."
             [perigo]="true"
             [ocupado]="enviando()"
             (confirmado)="desativar()"

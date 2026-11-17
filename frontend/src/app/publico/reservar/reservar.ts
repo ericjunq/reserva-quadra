@@ -403,7 +403,7 @@ export class Reservar {
           const dia = calendario.dias.find((item) => item.data === escolha.data);
           return dia
             ? { tipo: 'pronto', valor: { dia, bloco: calendario.espaco.bloco_minutos ?? 15 } }
-            : { tipo: 'erro', mensagem: 'Essa data não aceita reservas.' };
+            : { tipo: 'erro', mensagem: 'Este dia não aceita reservas.' };
         }),
         catchError((erro: ErroApi) =>
           silencioso

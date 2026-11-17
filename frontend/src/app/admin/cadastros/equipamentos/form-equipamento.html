@@ -139,7 +139,7 @@
         @if (atual.ativo) {
           <app-confirmar-acao
             rotulo="Desativar"
-            aviso="O equipamento deixa de aparecer nas reservas. A API não deixa desativar se houver reservas futuras com ele."
+            aviso="O equipamento deixa de aparecer nas reservas. O sistema não deixa desativar se houver reservas futuras com ele."
             [perigo]="true"
             [ocupado]="enviando()"
             (confirmado)="desativar()"

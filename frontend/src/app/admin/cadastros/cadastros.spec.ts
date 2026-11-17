@@ -125,7 +125,9 @@ describe('cadastros do admin', () => {
       .find((b) => b.textContent?.trim() === 'Desativar')!
       .click();
     await estabilizar(fixture);
-    expect(elemento.textContent).toContain('A API não deixa desativar se houver reservas futuras.');
+    expect(elemento.textContent).toContain(
+      'O sistema não deixa desativar se houver reservas futuras.',
+    );
     [...elemento.querySelectorAll('button')]
       .find((b) => b.textContent?.includes('Confirmar: desativar'))!
       .click();

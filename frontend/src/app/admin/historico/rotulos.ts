@@ -61,7 +61,7 @@ const ROTULOS_DOS_CAMPOS: Record<string, string> = {
   fecha_as: 'Fecha às',
   duracao_maxima_minutos: 'Duração máxima (minutos)',
   quantidade_total: 'Quantidade total',
-  aceita_solicitacao: 'Aceita pedido de outro espaço',
+  aceita_solicitacao: 'Aceita pedido de outros espaços',
   espacos_compartilhados: 'Espaços compartilhados',
   data_inicio: 'Data de início',
   data_fim: 'Data de fim',
