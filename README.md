@@ -359,6 +359,7 @@ Cursos, alunos, espaços, equipamentos, reservas e datas bloqueadas têm também
 | GET | `/api/espacos/{id}/disponibilidade?de=&ate=` | Calendário do espaço: situação de cada horário e equipamentos disponíveis (opcional `curso_id`) |
 | POST | `/api/espacos/{id}/disponibilidade/curso` | O mesmo calendário com o limite semanal do curso do aluno (`registro_academico`, `de`, `ate` no corpo); só em espaços com limite por curso |
 | POST | `/api/reservas` | Cria uma reserva |
+| POST | `/api/minhas-reservas/reenviar-confirmacao` | Reenvia o email de confirmação (RA, email e reserva no corpo); invalida os links anteriores; prazo igual; até 3 reenvios por etapa, 5 min entre eles |
 | POST | `/api/minhas-reservas` | O aluno consulta as próprias reservas (RA + email no corpo) |
 | GET | `/api/reservas/cancelamento/{token}` | Resumo da reserva do link do email (`pode_cancelar`) |
 | POST | `/api/reservas/cancelamento/{token}` | Cancela a reserva do link do email |
@@ -434,6 +435,7 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 | POST | `/api/admin/reservas/consulta` | A mesma lista, com os filtros no corpo: usada pelo front para a **busca por nome ou RA não ir na URL** (LGPD; desde 16/11/2026) |
 | GET/POST | `/api/reservas/manter/{token}` | Pública: resumo (`pode_manter`) e manter a reserva sem o equipamento pedido (link do email) |
 | POST | `/api/admin/reservas/{id}/solicitacoes/{equipamento}/aprovar` | Aprova o pedido de equipamento (11.5d) |
+| POST | `/api/admin/reservas/{id}/solicitacoes/aprovar` e `/recusar` | Aprova ou recusa todos os pedidos aguardando da reserva de uma vez (17/11/2026) |
 | POST | `/api/admin/reservas/{id}/solicitacoes/{equipamento}/recusar` | Recusa o pedido, com `justificativa` (11.5d) |
 | POST | `/api/admin/reservas/aluno` | Reserva feita pelo admin para um aluno (11.5e): mesmas regras do site, confirmação pelo email, origem `ADMIN`; `solicitacoes` entram já aprovadas |
 | GET | `/api/admin/espacos/{id}/equipamentos/solicitaveis` | Itens de outros espaços que aceitam pedido, sem o limite de prazo (para o pedido presencial) |
@@ -493,6 +495,7 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 - **Prazo de resposta do admin**, gravado no item (`responder_ate`): **24 h antes do início**; se isso deixar ao admin menos de **2 h**, o **prazo curto** é **3 h antes do início**; se nem assim houver 2 h, o pedido online é recusado com "Faltam poucas horas para a reserva: peça o equipamento diretamente na coordenação" (a lista vem vazia com `responder_ate` nulo). Valores em `RESERVA_SOLICITACAO_*`.
 - O pedido **segura a quantidade** enquanto aguarda (conta na disponibilidade para todos); recusado ou vencido, libera na hora. A aprovação vale **só para aquela reserva**: não vira compartilhamento (outra reserva que quiser o item pede de novo).
 - O admin responde no detalhe: `POST /api/admin/reservas/{id}/solicitacoes/{equipamento}/aprovar` ou `/recusar` (com `justificativa`); 409 se já respondido ou a reserva não está ativa. Sem resposta, vence no `responder_ate` (`reservas:vencer-solicitacoes`, a cada 15 min).
+- **Vários pedidos e um email só (17/11/2026):** o aluno pode pedir vários itens e marcar cada um como **obrigatório** ("A reserva só serve com este item"; só informação para o admin, que vê a marca no detalhe). O admin responde item por item ou com **"Aprovar todos"/"Recusar todos"** (`POST /api/admin/reservas/{id}/solicitacoes/aprovar` e `/recusar`, um motivo só). Quando **todos** os pedidos da reserva têm resposta (ou vencem, todos juntos), sai **um email só**: todos aprovados → "Seu pedido de equipamento foi aprovado"; algum recusado ou sem resposta → a lista de cada item (aprovado, recusado com o motivo, sem resposta) e a pergunta de manter.
 - **Recusado ou sem resposta: a reserva será cancelada, a menos que o aluno a mantenha** (lógica pedida pelo usuário em 16/11/2026; substituiu a opção A). A reserva recebe `manter_ate` = aviso + **12 h**, nunca depois de **1 h antes do início** (se já faltar menos de 1 h, não pergunta e a reserva continua). O email "Equipamento não liberado: confirme se quer manter a reserva" traz **"Manter a reserva sem o equipamento"** (link com token, página `/reservas/manter`) e o link de cancelar. `GET/POST /api/reservas/manter/{token}`. Sem clicar, a revogação automática (a cada 15 min) revoga com "Equipamento não liberado e a reserva não foi mantida." Se outro pedido da mesma reserva for recusado depois, não pergunta de novo.
 - "Minhas reservas" mostra o aviso com o prazo; o admin vê o selo "Aguardando o aluno manter" e a linha do tempo. Só itens normais e pedidos aprovados entram na devolução. Lista: filtro `solicitacao` e selo "Pedido de equipamento"; painel com o contador. Exportação: a coluna "Equipamentos" mostra a situação do pedido.
 
@@ -572,6 +575,12 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 - Filtros: `tipo` (`RESERVA`, `ALUNO`, `ESPACO`, `EQUIPAMENTO`, `CURSO`, `DATA_BLOQUEADA`, `ITEM_RESERVA`, `ADMIN`), `registro_id` (exige `tipo`; ex.: `?tipo=RESERVA&registro_id=15` é o histórico da reserva 15), `admin_id` (o que um admin fez), `sem_admin=true` (feito pela rota pública ou pelo sistema; não combina com `admin_id`), `acao` (`CRIACAO`, `ATUALIZACAO`, `EXCLUSAO`), `periodo` ou `de`/`ate`.
 - Cada item: `tipo`, `registro_id`, `acao`, `campos_alterados`, `antes`, `depois`, `feito_por` (`{id, nome}` ou `null`) e `em`.
 - Senhas aparecem como `[oculto]`; dados de aluno anonimizado, como `[anonimizado]`.
+
+### Reenvio do email de confirmação (17/11/2026)
+
+- Em "Minhas reservas" (RA + email), a reserva que aguarda confirmação ou reconfirmação mostra **"Reenviar o email de confirmação"**: `POST /api/minhas-reservas/reenviar-confirmacao` com `registro_academico`, `email` e `reserva_id` no corpo (10/min por IP).
+- O email novo tem links novos e **os links de confirmar e cancelar do email anterior deixam de valer**. O **prazo não muda**.
+- No máximo **3 reenvios por etapa** (confirmação ou reconfirmação), com **5 min** entre eles, contados pelos próprios links gravados (sem coluna nova). Dados errados ou reserva de outro aluno: a mesma resposta genérica de "Minhas reservas" (404); reserva que não aguarda confirmação: 409.
 
 ### Cancelamento pelo aluno (link do email)
 
@@ -715,6 +724,8 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Disponibilidade como **calendário** (até 31 dias) | O front navega por semanas/meses; reservas continuam limitadas a 10 dias úteis, e os dias fora da janela vêm com o motivo |
 | ~~Consulta mostra **quem reservou** (nome e curso)~~ (substituída em 13/11/2026) | Facilitava o mapeamento do uso |
 | Calendário público **não identifica quem reservou**; só os admins veem nome e curso | Pedido do usuário (13/11): mínima exposição (LGPD); para o aluno basta saber que o horário está ocupado |
+| Um email só por reserva quando todos os pedidos de equipamento têm resposta; qualquer item não aprovado pede para manter | Pedido do usuário (17/11/2026): um email por item confundia; a marca "obrigatório" ficou só como informação para o admin (opção A), porque a regra de manter vale para qualquer item não aprovado |
+| Reenvio do email de confirmação invalida os links anteriores e não muda o prazo | Ideia do usuário (17/11/2026): email perdido ou no spam; reenviar não pode dar mais tempo; limite de 3 por etapa e 5 min entre eles contra abuso |
 | Admin reserva para um aluno com as mesmas regras do site e com confirmação por email (11.5e) | Protege contra RA digitado errado e mantém um fluxo só; o pedido de equipamento feito na coordenação entra já aprovado (17/11/2026) |
 | Prazo de resposta do pedido gravado no item: 24 h antes, prazo curto 3 h antes, mínimo de 2 h ao admin, senão presencial | Pedido do usuário (16/11/2026): 2 h era em cima da hora para quem vem de outra cidade; reservas próximas ainda podem pedir com prazo curto |
 | Pedido recusado ou sem resposta: a reserva é cancelada se o aluno não clicar em "Manter" em até 12 h (nunca depois de 1 h antes do início) | Pedido do usuário (16/11/2026, "lógica invertida"): libera o espaço de quem só queria com o equipamento; segue o padrão da confirmação por email |
@@ -807,7 +818,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 318 testes da API, 145 testes de unidade do front (Vitest) e 38 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 325 testes da API, 147 testes de unidade do front (Vitest) e 38 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -830,6 +841,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `ReenvioConfirmacaoTest` | Reenvio com links novos e antigos invalidados sem mudar o prazo, espera de 5 min e limite de 3, resposta genérica para dados errados ou reserva de outro aluno, reserva já confirmada |
 | `ReservaPeloAdminTest` | Login, reserva para o aluno com origem ADMIN e email de confirmação, mesmas regras do site (fim de semana, RA, conflito, limite do curso), equipamento de outro espaço aprovado na hora mesmo perto do início (rota do admin sem prazo), reserva pelo site continua com origem SITE |
 | `SolicitacaoTest` | Lista de itens que podem ser pedidos, pedido aguardando segura a quantidade para todos, aprovação não vira compartilhamento, item que não aceita ou do próprio espaço, prazo normal, curto e presencial, aprovar (email sem link), recusar (libera e pede para manter em 12 h, com os links), manter pelo link e revogação de quem não manteve, prazo para manter limitado a 1 h antes, vencer no prazo gravado, filtro e devolução só dos que valem, exportação, marcar `aceita_solicitacao` |
 | `RegistroPosteriorTest` | Login, uso passado do aluno sem confirmação e com email, grupo sem RA e sem email, RA ou descrição, 30 dias e hoje só o que começou, fim de semana e fora da janela aceitos, bloqueio recusado, conflito 409 sem revogar, limite semanal só avisa, estoque, fora da revogação automática e do filtro de confirmação, filtro e exportação por origem, calendário público só "Reservado" |
@@ -929,6 +941,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
+| Pedidos com um email só e reenvio da confirmação (17/11/2026) | Marca de obrigatório, aprovar/recusar todos, um email por reserva quando todos os pedidos têm resposta; reenvio do email de confirmação por "Minhas reservas" invalidando os links anteriores |
 | Reserva pelo admin para um aluno (passo 11.5e, 17/11/2026) | API: `POST /admin/reservas/aluno` (regras do site, confirmação, origem ADMIN, pedidos aprovados) e itens de outros espaços sem prazo. Front: página Nova reserva (aluno ou evento), "Reservar aqui" no calendário, selo "Pelo admin" |
 | Ajuste do pedido de equipamento (16/11/2026) | Prazo de resposta gravado (24 h / curto 3 h / mínimo 2 h / presencial) e lógica invertida (reserva cancelada se o aluno não mantiver em 12 h); página "Manter a reserva" |
 | Pedido de equipamento (passo 11.5d, 16/11/2026) | API: `aceita_solicitacao`, pedido no item da reserva, rota de itens solicitáveis, aprovar/recusar, vencimento 2 h antes, emails com o link de cancelar, filtro e exportação. Front: seção de pedido na reserva, situação em minhas reservas, resposta no detalhe do admin, selo, filtro e contador no painel |
@@ -1014,7 +1027,7 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 
 - ~~**Reserva condicionada ao equipamento pedido (ideia de 16/11/2026, para depois):**~~ (absorvida em 16/11/2026: com a lógica invertida, a reserva já é cancelada se o aluno não a mantiver) uma caixa opcional no pedido de equipamento, "só quero o espaço se o equipamento for aprovado", que cancela a reserva sozinha se o pedido for recusado ou vencer. Por ora vale a opção A (a reserva continua e o email traz o botão de cancelar). Avaliação: resolve o mesmo que perguntar ao aluno depois (opção B, descartada por exigir um estado novo com prazo), mas libera o horário mais tarde.
 
-- **Reenviar o email de confirmação por "Minhas reservas" (ideia do usuário, 17/11/2026; recomendação enviada):** botão na reserva que aguarda confirmação ou reconfirmação, com RA + email; o email novo invalida os links do anterior; o prazo não muda; até 3 reenvios por etapa, 5 min entre eles.
+- **✅ Feito em 17/11/2026. Reenviar o email de confirmação por "Minhas reservas" (ideia do usuário):** botão na reserva que aguarda confirmação ou reconfirmação, com RA + email; o email novo invalida os links do anterior; o prazo não muda; até 3 reenvios por etapa, 5 min entre eles.
 
 - **Monitor externo da API:** um serviço gratuito (UptimeRobot ou Healthchecks.io) consulta `GET /up` a cada poucos minutos e avisa por outro canal (app, SMS, Telegram) quando a API não responde. Cobre o caso em que o próprio serviço de email cai e os alertas por email não saem. É configurado fora do código, na hora do deploy.
 - **Backup do banco:** definido na hora do deploy, conforme a plataforma. Regra 3-2-1; banco gerenciado com backup automático **ou** `spatie/laravel-backup` com armazenamento externo (Backblaze B2, Cloudflare R2, S3); retenção de 7 diários, 4 semanais e 6 mensais; teste mensal de restauração; `.env` guardado à parte num gerenciador de senhas. LGPD: backup criptografado, acesso restrito, e refazer as anonimizações depois de uma restauração.

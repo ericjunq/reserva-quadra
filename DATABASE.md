@@ -141,6 +141,7 @@ erDiagram
         bigint devolvido_por FK
         string situacao_solicitacao "null = item normal; AGUARDANDO, APROVADA, RECUSADA, VENCIDA"
         timestamp responder_ate "prazo do admin"
+        boolean solicitacao_obrigatoria "o aluno marcou como indispensável (informação para o admin)"
         timestamp respondida_em
         bigint respondida_por FK
         string justificativa_recusa

@@ -2810,3 +2810,44 @@ Testes: calendario.spec (+1, reserva para aluno; o de evento usa tipo=evento), e
   passar nos testes sozinho.
 
 Totais: 318 da API, 145 do front, 38 no navegador. Build: inicial 314,2 kB (82,7 kB transferidos).
+
+========================================================================
+67. PEDIDOS COM UM EMAIL SÓ E REENVIO DA CONFIRMAÇÃO (17/11/2026)
+========================================================================
+Pedidos do usuário junto com a aprovação do 11.6: (1) vários pedidos de equipamento, aprovar todos
+ou cada um, e um email só; qualquer item não aprovado pede para manter a reserva; marcar itens como
+obrigatórios (escolhida a opção A: só informação para o admin); (2) reenviar o email de confirmação
+por "Minhas reservas", invalidando o anterior.
+
+API
+item_reservas.solicitacao_obrigatoria (migration no lugar; ItemReserva e COLUNAS); regra
+  solicitacoes.*.obrigatorio; ReservaService::anexarSolicitacoes grava a marca; ReservaResource
+  devolve solicitacao.obrigatorio.
+app/Services/SolicitacaoService.php: aprovar/recusar aceitam equipamento nulo (todos os
+  aguardando, 409 "Não há pedidos aguardando resposta."); trava a reserva e os itens; email só em
+  avisarSeConcluido (nenhum pedido aguardando): lista de itens, naoLiberados, pergunta de manter;
+  vencerPendentes vence por reserva e avança a versão da disponibilidade uma vez.
+app/Mail/SolicitacaoRespondidaMail.php e a view: lista de itens com aprovado, recusado (motivo) ou
+  sem resposta; botão "Manter a reserva mesmo assim".
+routes/api.php e SolicitacaoController: POST .../solicitacoes/aprovar e /recusar (todos).
+app/Services/ConfirmacaoService.php: reenviar(RA, email, reserva): aluno por RA + email (sem
+  anonimizados), reserva do aluno com trava, podeConfirmar, até 3 reenvios por etapa e 5 min entre
+  eles (pelos links de CONFIRMAR gravados desde o início da etapa), invalida CONFIRMAR e CANCELAR
+  abertos e manda o mesmo email com o mesmo prazo.
+ReenviarConfirmacaoRequest, MinhasReservasController@reenviarConfirmacao e
+  POST /api/minhas-reservas/reenviar-confirmacao (10/min).
+Testes: SolicitacaoTest (+3: um email quando todos respondidos, aprovar todos, recusar todos) e
+  ReenvioConfirmacaoTest (4).
+
+FRONT
+publico/reservar/pedidos-de-equipamento.ts: caixa "A reserva só serve com este item" por pedido
+  (model obrigatorios); reservar.ts manda obrigatorio só quando marcado; resumo com "(obrigatório)".
+admin: responder-solicitacao com equipamento opcional (todos), bloco "N pedidos aguardando:
+  responda todos de uma vez" no detalhe, aviso "O aluno marcou como obrigatório"; serviço com
+  equipamento opcional.
+publico/minhas-reservas: botão "Reenviar o email de confirmação" (aguardaConfirmacao em
+  situacao-reserva.ts), RA e email da consulta em memória, resposta por reserva.
+Testes: reservar.spec (obrigatório), reservas.spec (+1 aprovar todos), minhas-reservas.spec (+1
+  reenvio), e2e pedido-equipamento (obrigatório) e pos-reserva (reenvio).
+
+Totais: 325 da API, 147 do front, 38 no navegador.
