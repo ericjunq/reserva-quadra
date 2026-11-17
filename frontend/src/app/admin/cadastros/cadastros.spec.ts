@@ -5,6 +5,8 @@ import { Router, provideRouter } from '@angular/router';
 import { ambiente } from '../../../ambientes/ambiente';
 import { interceptorApi } from '../../nucleo/api.interceptor';
 import { SessaoService } from '../../nucleo/sessao.service';
+import { DetalheAluno } from './alunos/detalhe-aluno';
+import { ListaAlunos } from './alunos/lista-alunos';
 import { Cursos } from './cursos/cursos';
 import { DatasBloqueadas } from './datas-bloqueadas/datas-bloqueadas';
 import { FormBloqueio } from './datas-bloqueadas/form-bloqueio';
@@ -336,5 +338,120 @@ describe('cadastros do admin', () => {
     envio.flush({ data: { id: 3 }, reservas_revogadas: 2 }, { status: 201, statusText: 'criado' });
     await estabilizar(fixture);
     expect(elemento.textContent).toContain('2 reserva(s) revogada(s), com email aos alunos.');
+  });
+
+  it('busca alunos por POST, sem RA nem email na lista', async () => {
+    const navegar = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    const fixture = TestBed.createComponent(ListaAlunos);
+    await estabilizar(fixture);
+    controle.expectOne(`${url}/cursos`).flush({ data: [{ id: 2, nome: 'Direito' }] });
+    controle.expectOne(`${url}/admin/alunos/consulta`).flush({
+      data: [
+        {
+          id: 3,
+          nome_completo: 'Maria Souza',
+          registro_academico: '2024000001',
+          email: 'maria@email.com',
+          curso: { id: 2, nome: 'Direito' },
+          ativo: true,
+          anonimizado_em: null,
+        },
+      ],
+      meta: { current_page: 1, last_page: 1, total: 1, per_page: 15 },
+    });
+    await estabilizar(fixture);
+    const elemento = fixture.nativeElement as HTMLElement;
+    expect(elemento.textContent).toContain('Maria Souza');
+    expect(elemento.textContent).not.toContain('2024000001');
+    expect(elemento.textContent).not.toContain('maria@email.com');
+
+    digitar(elemento, '#busca', 'Souza');
+    await new Promise((resolver) => setTimeout(resolver, 450));
+    await estabilizar(fixture);
+    const busca = controle.expectOne(`${url}/admin/alunos/consulta`);
+    expect(busca.request.method).toBe('POST');
+    expect(busca.request.body).toEqual({ busca: 'Souza', page: 1 });
+    busca.flush({ data: [], meta: { current_page: 1, last_page: 1, total: 0, per_page: 15 } });
+    expect(navegar).not.toHaveBeenCalled();
+  });
+
+  it('detalhe mostra RA e email, edita e só anonimiza com a confirmação forte', async () => {
+    const aluno = {
+      id: 3,
+      nome_completo: 'Maria Souza',
+      registro_academico: '2024000001',
+      email: 'maria@email.com',
+      curso: { id: 2, nome: 'Direito' },
+      ativo: true,
+      anonimizado_em: null,
+    };
+    const fixture = TestBed.createComponent(DetalheAluno);
+    fixture.componentRef.setInput('id', '3');
+    await estabilizar(fixture);
+    controle.expectOne(`${url}/cursos`).flush({ data: [{ id: 2, nome: 'Direito' }] });
+    controle.expectOne(`${url}/admin/alunos/3`).flush({ data: aluno });
+    const reservas = controle.expectOne(`${url}/admin/reservas/consulta`);
+    expect(reservas.request.body).toEqual({
+      aluno_id: 3,
+      de: '2000-01-01',
+      ordem: 'desc',
+      page: 1,
+      per_page: 10,
+    });
+    reservas.flush({
+      data: [],
+      meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 },
+      totais_por_status: {},
+    });
+    await estabilizar(fixture);
+
+    const elemento = fixture.nativeElement as HTMLElement;
+    expect((elemento.querySelector('#aluno-ra') as HTMLInputElement).value).toBe('2024000001');
+    expect((elemento.querySelector('#aluno-email') as HTMLInputElement).value).toBe(
+      'maria@email.com',
+    );
+
+    digitar(elemento, '#aluno-email', 'maria.souza@email.com');
+    await estabilizar(fixture);
+    elemento.querySelector('form')!.dispatchEvent(new Event('submit'));
+    const salvar = controle.expectOne(`${url}/admin/alunos/3`);
+    expect(salvar.request.method).toBe('PATCH');
+    expect(salvar.request.body).toEqual({
+      nome_completo: 'Maria Souza',
+      registro_academico: '2024000001',
+      email: 'maria.souza@email.com',
+      curso_id: 2,
+    });
+    salvar.flush({ data: { ...aluno, email: 'maria.souza@email.com' }, reservas_revogadas: 0 });
+    await estabilizar(fixture);
+    expect(elemento.textContent).toContain('Dados salvos.');
+
+    const botao = () =>
+      [...elemento.querySelectorAll('button')].find((b) =>
+        b.textContent?.includes('Anonimizar os dados'),
+      ) as HTMLButtonElement;
+    expect(botao().disabled).toBe(true);
+    (
+      elemento
+        .querySelector('#titulo-anonimizar')!
+        .parentElement!.querySelector('input[type=checkbox]') as HTMLInputElement
+    ).click();
+    digitar(elemento, '#aluno-palavra', 'anonimizar');
+    await estabilizar(fixture);
+    expect(botao().disabled).toBe(false);
+    botao().click();
+    const anonimizar = controle.expectOne(`${url}/admin/alunos/3/anonimizar`);
+    expect(anonimizar.request.body).toEqual({ confirmar: true });
+    anonimizar.flush({
+      data: {
+        ...aluno,
+        nome_completo: 'Aluno anonimizado',
+        ativo: false,
+        anonimizado_em: '2026-11-17T12:00:00Z',
+      },
+    });
+    await estabilizar(fixture);
+    expect(elemento.textContent).toContain('Dados pessoais anonimizados em');
+    expect(elemento.querySelector('#aluno-ra')).toBeNull();
   });
 });

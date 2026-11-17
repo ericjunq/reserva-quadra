@@ -56,6 +56,23 @@ export interface DadosDoBloqueio {
   motivo: string;
 }
 
+export interface AlunoCadastro {
+  id: number;
+  nome_completo: string;
+  registro_academico: string;
+  email: string;
+  curso: { id: number; nome: string } | null;
+  ativo: boolean;
+  anonimizado_em: string | null;
+}
+
+export interface DadosDoAluno {
+  nome_completo: string;
+  registro_academico: string;
+  email: string;
+  curso_id: number | null;
+}
+
 export interface DadosDoEquipamento {
   espaco_id?: number;
   nome: string;

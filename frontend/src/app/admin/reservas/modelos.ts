@@ -84,6 +84,8 @@ export interface FiltrosReservas {
   devolucao?: SituacaoDevolucao;
   origem?: OrigemReserva;
   solicitacao?: SituacaoSolicitacao;
+  aluno_id?: number;
+  ordem?: 'asc' | 'desc';
   busca?: string;
 }
 

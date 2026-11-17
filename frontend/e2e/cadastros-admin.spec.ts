@@ -64,3 +64,27 @@ test('o admin cria um curso e bloqueia uma parte do dia num espaço', async ({ p
     motivo: 'Manutenção elétrica',
   });
 });
+
+test('o admin busca um aluno por nome e corrige o email no detalhe', async ({ page }) => {
+  const chamadas = await prepararApi(page);
+  await entrarComoAdmin(page);
+  await expect(page.getByRole('heading', { name: 'Painel' })).toBeVisible();
+
+  await page.goto('/admin/cadastros/alunos');
+  await expect(page.getByText('Carla Dias')).toBeVisible();
+  await expect(page.getByText('2024000009')).toHaveCount(0);
+  await page.getByLabel('Nome ou RA').fill('Carla');
+  await expect
+    .poll(() =>
+      chamadas.some((chamada) => (chamada.corpo as { busca?: string })?.busca === 'Carla'),
+    )
+    .toBe(true);
+  expect(page.url()).not.toContain('Carla');
+
+  await page.getByRole('link', { name: 'Carla Dias' }).click();
+  await expect(page.getByLabel('RA', { exact: true })).toHaveValue('2024000009');
+  await page.getByLabel('Email', { exact: true }).fill('carla.dias@email.com');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+  await expect(page.getByText('Dados salvos.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Anonimizar os dados' })).toBeDisabled();
+});

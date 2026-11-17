@@ -257,6 +257,15 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
   let reservaPeloAdmin: Record<string, unknown> | null = null;
   let espacoCriado: Record<string, unknown> | null = null;
   const cursosDoAdmin: Record<string, unknown>[] = [{ id: 2, nome: 'Direito', ativo: true }];
+  let alunoDoAdmin: Record<string, unknown> = {
+    id: 3,
+    nome_completo: 'Carla Dias',
+    registro_academico: '2024000009',
+    email: 'carla@email.com',
+    curso: { id: 2, nome: 'Direito' },
+    ativo: true,
+    anonimizado_em: null,
+  };
   let equipamentoDoAdmin: Record<string, unknown> = {
     id: 5,
     espaco_id: 4,
@@ -424,6 +433,21 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
     }
     if (caminho === '/admin/espacos/9' && espacoCriado) {
       return json({ data: espacoCriado });
+    }
+    if (caminho === '/admin/alunos/consulta') {
+      const corpo = requisicao.postDataJSON();
+      const lista = corpo.busca && !'Carla Dias'.includes(corpo.busca) ? [] : [alunoDoAdmin];
+      return json({
+        data: lista,
+        meta: { current_page: 1, last_page: 1, total: lista.length, per_page: 15 },
+      });
+    }
+    if (caminho === '/admin/alunos/3') {
+      if (requisicao.method() === 'PATCH') {
+        alunoDoAdmin = { ...alunoDoAdmin, ...requisicao.postDataJSON() };
+        return json({ data: alunoDoAdmin, reservas_revogadas: 0 });
+      }
+      return json({ data: alunoDoAdmin });
     }
     if (caminho === '/admin/cursos') {
       if (requisicao.method() === 'POST') {

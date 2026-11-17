@@ -18,6 +18,11 @@ const CADASTROS = [
     nome: 'Datas bloqueadas',
     texto: 'Feriados, recessos e manutenções: dias ou horários sem reservas.',
   },
+  {
+    caminho: 'alunos',
+    nome: 'Alunos',
+    texto: 'Busca por nome ou RA, edição, desativação e anonimização (LGPD).',
+  },
 ];
 
 @Component({
@@ -38,7 +43,7 @@ const CADASTROS = [
         </li>
       }
     </ul>
-    <p class="mt-6 text-slate-600">Alunos e admins chegam nos próximos passos.</p>
+    <p class="mt-6 text-slate-600">O cadastro de admins chega no próximo passo.</p>
   `,
 })
 export class Cadastros {

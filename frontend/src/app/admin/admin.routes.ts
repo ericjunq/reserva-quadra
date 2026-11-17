@@ -116,6 +116,16 @@ export const rotasAdmin: Routes = [
           import('./cadastros/datas-bloqueadas/form-bloqueio').then((m) => m.FormBloqueio),
       },
       {
+        path: 'cadastros/alunos',
+        title: 'Alunos · Administração',
+        loadComponent: () => import('./cadastros/alunos/lista-alunos').then((m) => m.ListaAlunos),
+      },
+      {
+        path: 'cadastros/alunos/:id',
+        title: 'Aluno · Administração',
+        loadComponent: () => import('./cadastros/alunos/detalhe-aluno').then((m) => m.DetalheAluno),
+      },
+      {
         path: 'minha-conta',
         title: 'Minha conta · Administração',
         loadComponent: () => import('./acesso/minha-conta').then((m) => m.MinhaConta),

@@ -3,7 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ambiente } from '../../../ambientes/ambiente';
 import {
+  AlunoCadastro,
   CursoCadastro,
+  DadosDoAluno,
   DadosDoBloqueio,
   DataBloqueadaCadastro,
   DadosDoEquipamento,
@@ -141,6 +143,48 @@ export class CadastrosService {
 
   excluirBloqueio(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/datas-bloqueadas/${id}`);
+  }
+
+  consultarAlunos(
+    filtros: { busca?: string; curso_id?: number; ativo?: boolean },
+    pagina: number,
+  ): Observable<Pagina<AlunoCadastro>> {
+    return this.http.post<Pagina<AlunoCadastro>>(`${this.url}/alunos/consulta`, {
+      ...filtros,
+      page: pagina,
+    });
+  }
+
+  detalharAluno(id: number): Observable<AlunoCadastro> {
+    return this.dados(this.http.get<Resposta<AlunoCadastro>>(`${this.url}/alunos/${id}`));
+  }
+
+  atualizarAluno(
+    id: number,
+    aluno: Partial<DadosDoAluno> & { ativo?: boolean },
+  ): Observable<{ aluno: AlunoCadastro; revogadas: number }> {
+    return this.http
+      .patch<Resposta<AlunoCadastro> & { reservas_revogadas?: number }>(
+        `${this.url}/alunos/${id}`,
+        aluno,
+      )
+      .pipe(
+        map((resposta) => ({ aluno: resposta.data, revogadas: resposta.reservas_revogadas ?? 0 })),
+      );
+  }
+
+  desativarAluno(id: number): Observable<{ aluno: AlunoCadastro; revogadas: number }> {
+    return this.http
+      .delete<Resposta<AlunoCadastro> & { reservas_revogadas: number }>(`${this.url}/alunos/${id}`)
+      .pipe(map((resposta) => ({ aluno: resposta.data, revogadas: resposta.reservas_revogadas })));
+  }
+
+  anonimizarAluno(id: number): Observable<AlunoCadastro> {
+    return this.dados(
+      this.http.post<Resposta<AlunoCadastro>>(`${this.url}/alunos/${id}/anonimizar`, {
+        confirmar: true,
+      }),
+    );
   }
 
   private dados<T>(pedido: Observable<Resposta<T>>): Observable<T> {
