@@ -66,6 +66,8 @@ php artisan sistema:verificar-producao
 
 ## 5. Nginx
 
+**Recomendado (11.8, 17/11/2026): front e API no mesmo domínio**, com o exemplo de [`frontend/deploy/nginx.conf`](frontend/deploy/nginx.conf), explicado no passo 11. O bloco abaixo é para a **alternativa** da API num subdomínio próprio.
+
 ```nginx
 server {
     listen 80;
@@ -161,6 +163,7 @@ Por decisão do usuário (09/11/2026), o backup é definido na hora do deploy. A
 ## 10. Checklist de LGPD na produção
 
 - [ ] HTTPS em tudo (API e front) e `APP_DEBUG=false` (o erro detalhado mostraria dados).
+- [ ] Cabeçalhos do front no ar (CSP, `Referrer-Policy: no-referrer` etc., passo 11.5): sem scripts de terceiros nem rastreamento.
 - [ ] `CORS_ALLOWED_ORIGINS` só com o front.
 - [ ] `.env` com permissão `600` e cópia num gerenciador de senhas.
 - [ ] Banco com usuário próprio, senha forte e sem acesso externo (só do servidor da API).
@@ -170,3 +173,62 @@ Por decisão do usuário (09/11/2026), o backup é definido na hora do deploy. A
 - [ ] Backups criptografados, com acesso restrito e prazo de guarda (quando forem definidos). Depois de restaurar um backup, refazer as anonimizações pedidas depois da data dele.
 - [ ] Definir com a faculdade o prazo de guarda do histórico de auditoria (hoje sem prazo, por decisão do usuário).
 - [ ] `php artisan sistema:verificar-producao` todo ✅.
+
+## 11. Front-end (Angular)
+
+O front é um site estático (HTML, JS e CSS gerados pelo build). Recomendação aprovada no 11.8 (17/11/2026): **front e API no mesmo domínio**, com a API em **`/api`** (ex.: `https://reservas.exemplo.edu.br` e `https://reservas.exemplo.edu.br/api`).
+
+**Por que o mesmo domínio:** o front já chama `/api` (`frontend/src/ambientes/ambiente.ts`), então não há o que mudar no código; o navegador não precisa de CORS (menos uma requisição `OPTIONS` por chamada e uma configuração a menos para errar); a CSP fica só com `'self'`; e um certificado só.
+
+### 11.1 Build
+
+Numa máquina com Node 22.22+/24.15+/26 (o servidor não precisa de Node se o build for feito fora, por exemplo no CI):
+
+```bash
+cd frontend
+npm ci
+npx ng build
+```
+
+O resultado fica em `frontend/dist/reservas-front/browser/`. Copie **o conteúdo** dessa pasta para o servidor (ex.: `/var/www/reservas-front/browser/`), substituindo a versão anterior. O build já sai sem comentários, minificado, com o nome de cada arquivo com um código (hash) e com o orçamento conferido (aviso em 330 kB e erro em 380 kB no pacote inicial).
+
+### 11.2 Nginx (front + API num servidor só)
+
+O exemplo completo está em [`frontend/deploy/nginx.conf`](frontend/deploy/nginx.conf). Ele substitui o bloco do passo 5 (que serve a API num domínio próprio). O que cada parte faz:
+
+- **`/api/` e `/up`** vão direto para o `public/index.php` do Laravel (PHP-FPM). Todo o resto é o front.
+- **`location /` com `try_files $uri /index.html`:** as rotas do Angular (`/espacos/1`, `/admin/historico`) não existem como arquivo; o Nginx devolve o `index.html` e o Angular mostra a página certa. Sem isso, recarregar a página daria 404.
+- **Cache:**
+  - arquivos com hash no nome (`main-SCVWP3S6.js`, `chunk-…`, `styles-…`, fontes): **1 ano, `immutable`**. Como o nome muda a cada versão, o navegador nunca usa um arquivo velho por engano, e a segunda visita quase não baixa nada (desempenho);
+  - `index.html`: **`no-cache`** (o navegador sempre confere se mudou). É ele que aponta para os arquivos novos, então uma versão nova chega a todos na hora;
+  - `favicon.ico` não tem hash e fica com o cache padrão.
+- **Cabeçalhos de segurança** (no `index.html`, que é a página carregada; a API manda os dela):
+  - `Content-Security-Policy`: só scripts, estilos, fontes e chamadas do **próprio site** (`'self'`), nenhum script de terceiros, nada de `<iframe>` do site em outro lugar (`frame-ancestors 'none'`). Barra a maior parte dos ataques de XSS: mesmo que alguém conseguisse injetar um `<script>`, o navegador não o executaria. Também é a garantia técnica de que o site não tem rastreamento (LGPD);
+  - `Referrer-Policy: no-referrer` (os links dos emails têm token; nada vaza para outro site), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security` (sempre HTTPS) e `Permissions-Policy` (sem câmera, microfone ou localização).
+- **`gzip`** para JS, CSS e JSON.
+
+**Por que o build não embute CSS nem script no `index.html`** (`inlineCritical: false` no `angular.json`): por padrão o Angular coloca o CSS principal e um pequeno script dentro do `index.html` para pintar a tela um pouco antes. A CSP acima bloqueia qualquer script ou estilo embutido, e o site ficaria sem estilo (conferido: a fonte caía para Times New Roman). A troca custa quase nada: o CSS é um arquivo de 6 kB comprimido que fica em cache por 1 ano. O teste `e2e/seguranca-do-front.spec.ts` carrega o site com **exatamente a CSP deste arquivo** e falha se algo for bloqueado ou se o estilo não for aplicado; se mudar a CSP, mude no `nginx.conf` e o teste acompanha.
+
+### 11.3 Variáveis da API para o mesmo domínio
+
+- `APP_URL=https://reservas.exemplo.edu.br`
+- `FRONTEND_URL=https://reservas.exemplo.edu.br` (links dos emails e cabeçalho dos emails)
+- `CORS_ALLOWED_ORIGINS=https://reservas.exemplo.edu.br` (no mesmo domínio o navegador nem usa CORS, mas fica restrito ao próprio site)
+
+### 11.4 Alternativa: API num subdomínio próprio
+
+Se a hospedagem exigir domínios separados (ex.: front num serviço de sites estáticos e API em `api.reservas.exemplo.edu.br`):
+
+1. API com o bloco do passo 5; `CORS_ALLOWED_ORIGINS` com o endereço exato do front.
+2. No front, `frontend/src/ambientes/ambiente.ts` com `urlApi: 'https://api.reservas.exemplo.edu.br/api'` e build de novo.
+3. Na CSP, `connect-src 'self' https://api.reservas.exemplo.edu.br`.
+4. No serviço de sites estáticos, configurar o equivalente: todas as rotas voltando para `index.html` ("SPA fallback" ou "rewrite"), os cabeçalhos de segurança e o cache acima.
+
+O token do admin continua no `sessionStorage` com `Authorization: Bearer` nos dois casos (decisão do passo 11).
+
+### 11.5 Conferência depois de publicar
+
+- Abrir o site, recarregar numa página interna (ex.: `/espacos/1`) e ver que não dá 404.
+- No navegador, F12 → Console: nenhuma mensagem de "Content Security Policy".
+- F12 → Rede: `index.html` com `Cache-Control: no-cache`; `main-….js` com `max-age=31536000`.
+- `curl -I https://reservas.exemplo.edu.br` mostra os cabeçalhos de segurança.

@@ -3154,3 +3154,33 @@ tests/Feature/AlertaTest.php: 9 tarefas agendadas.
 DEPLOY.md e README: com supervisor, false; sem supervisor, true (até ~1 min de atraso).
 Desenvolvimento: basta "php artisan schedule:work" para emails e tarefas automáticas.
 Totais: 346 da API, 166 do front, 54 no navegador.
+
+========================================================================
+80. PASSO 11.8d: GUIA DE DEPLOY DO FRONT E CSP (17/11/2026)
+========================================================================
+Antes: a pedido do usuário, README ganhou a seção "Quem envia os emails da fila: supervisor ou
+agendador" (por que FILA_PELO_AGENDADOR fica desligado com supervisor, quando ligar e por quê,
+tabela por ambiente, como investigar) e o DEPLOY.md, passo 6, a escolha com o motivo.
+frontend/deploy/nginx.conf: exemplo de um servidor só para front e API (decisão do 11.8: mesmo
+  domínio, API em /api). /api/ e /up vão por fastcgi direto ao public/index.php do Laravel;
+  location / com try_files $uri /index.html (rotas do Angular); arquivos com hash de 8 caracteres
+  no nome com cache de 1 ano immutable; index.html com no-cache e os cabeçalhos de segurança
+  (CSP só 'self', Referrer-Policy no-referrer, X-Frame-Options DENY, nosniff, HSTS,
+  Permissions-Policy). Os cabeçalhos ficam no location do index.html porque o add_header do
+  Nginx não é herdado por um location que tem os seus; a API manda os próprios
+  (CabecalhosDeSeguranca), sem duplicar.
+frontend/angular.json (production): optimization com styles.inlineCritical = false. O build
+  colocava o CSS crítico num <style> e um <script> que trocava o media do <link> no index.html;
+  a CSP sem 'unsafe-inline' bloqueia os dois e o site ficava sem estilo. Nenhum componente usa
+  styles próprios, e os [style.left.%] do calendário mudam o estilo pelo JavaScript (CSSOM), que a
+  CSP não bloqueia. Pacote inicial igual (315,1 kB).
+frontend/e2e/seguranca-do-front.spec.ts: lê a CSP do nginx.conf, acrescenta o cabeçalho na
+  resposta dos documentos (page.route só para resourceType document; o resto cai na API falsa
+  com route.fallback), registra os eventos securitypolicyviolation e confere que nada foi
+  bloqueado e que a fonte Montserrat foi aplicada, no calendário, na reserva, no login, no painel,
+  no histórico e no calendário do laboratório. Verificado: com inlineCritical true o teste falha.
+DEPLOY.md: passo 11 (build, Nginx explicado parte por parte, por que sem CSS embutido, variáveis
+  para o mesmo domínio, alternativa com subdomínio, conferência depois de publicar); passo 5
+  marcado como alternativa; checklist de LGPD com os cabeçalhos do front.
+CLAUDE.md: regra da CSP do front.
+Totais: 346 da API, 166 do front, 56 no navegador.

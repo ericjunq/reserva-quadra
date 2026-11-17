@@ -92,7 +92,7 @@ npx playwright test             # testes no navegador (Chrome instalado; sobe o 
 npx prettier --write src        # formata no padrão do projeto (.prettierrc)
 ```
 
-- O endereço da API vem de `frontend/src/ambientes/`: `ambiente.development.ts` (`http://localhost:8000/api`, usado pelo `npm start` e pelos testes) e `ambiente.ts` (produção; `/api` até o deploy do front ser definido no subpasso 11.8).
+- O endereço da API vem de `frontend/src/ambientes/`: `ambiente.development.ts` (`http://localhost:8000/api`, usado pelo `npm start` e pelos testes) e `ambiente.ts` (produção; `/api`, porque front e API ficam no mesmo domínio, decisão do 11.8; deploy do front no `DEPLOY.md`, passo 11).
 - O `FRONTEND_URL` do `.env` da API já é `http://localhost:4200`, então o CORS libera o front local.
 - **Rede que bloqueia o `registry.npmjs.org`** (aconteceu no PC Ubuntu): `npm config set registry https://registry.yarnpkg.com/` (espelho com os mesmos pacotes). Fica no `~/.npmrc` do PC, fora do repositório; o `package-lock.json` continua apontando para o registro padrão.
 - A coleta de dados de uso do Angular CLI fica **desligada** no projeto (`"analytics": false` no `angular.json`), em linha com a decisão de não usar rastreamento.
@@ -861,7 +861,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 346 testes da API, 166 testes de unidade do front (Vitest) e 54 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 346 testes da API, 166 testes de unidade do front (Vitest) e 56 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -960,6 +960,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `e2e/cadastros-admin.spec.ts` | No navegador: Cadastros → Espaços → criar espaço; Equipamentos → marcar "Aceita pedido de outros espaços"; criar curso; criar bloqueio de parte do dia; buscar aluno por nome (fora da URL) e corrigir o email; convidar admin |
 | `e2e/registro-posterior.spec.ts` | No navegador: "Registrar uso" pela lista, formulário, detalhe com o selo e "Registrado depois do uso por", RA só no corpo |
 | `e2e/calendario-admin.spec.ts` | No navegador: calendário com quem reservou e o selo, "Reservar aqui", evento criado pela Nova reserva, e reserva para um aluno com equipamento de outro espaço (selo "Pelo admin", RA fora da URL) |
+| `e2e/seguranca-do-front.spec.ts` | No navegador: o site carregado com a CSP do `frontend/deploy/nginx.conf` (lida do arquivo) não tem nada bloqueado, aplica a fonte e funciona no calendário, na reserva e no admin |
 | `e2e/acessibilidade.spec.ts` | No navegador: axe (WCAG A e AA) em início, calendários da quadra e do laboratório, reservar, cadastro, minhas reservas, termos e confirmar; e em entrar, painel, reservas, detalhe, nova reserva, calendário do admin, cadastros, espaços, equipamento, aluno, histórico e minha conta; reserva só pelo teclado com o foco visível |
 | `e2e/reservas-admin.spec.ts` | No navegador: login, lista sem RA, filtro de confirmação na URL, busca fora da URL, detalhe com RA e email, revogação e volta à lista com os filtros |
 | `e2e/acesso-admin.spec.ts` | No navegador: login com erro e certo voltando à página pedida, painel, sair e rota protegida; senha nova pelo link do email (token fora da URL, corpo enviado) |
