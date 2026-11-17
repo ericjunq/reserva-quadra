@@ -2876,3 +2876,23 @@ admin.routes.ts: cadastros, cadastros/espacos[/novo|/:id], cadastros/equipamento
 Testes: cadastros.spec.ts (4) e e2e/cadastros-admin.spec.ts; api-falsa com as rotas de cadastro.
 
 Totais: 325 da API, 151 do front, 40 no navegador. Build: inicial 314,6 kB (82,8 kB transferidos).
+
+========================================================================
+69. PASSO 11.6b: CADASTROS DE CURSOS E DATAS BLOQUEADAS (17/11/2026)
+========================================================================
+FRONT (frontend/src/app/admin/cadastros/)
+modelos.ts (CursoCadastro, DataBloqueadaCadastro, DadosDoBloqueio) e cadastros.service.ts (listar,
+  criar, atualizar e desativar cursos; listar, criar, editar motivo e excluir bloqueios; o criar
+  devolve reservas_revogadas).
+cursos/cursos.ts: uma página só: criar no topo, renomear e desativar/reativar em cada linha; a lista
+  recarrega depois de criar; salvar limpa a lista de cursos guardada no ApiPublicaService
+  (esquecerCursos novo), usada no cadastro do aluno.
+datas-bloqueadas/datas-bloqueadas.ts/.html: filtros de/até/espaço na URL (de padrão = hoje),
+  período descrito (dia inteiro ou horário), "Todos os espaços", marca de Feriado, editar o motivo
+  na linha e excluir com confirmação (avisa que as reservas revogadas não voltam).
+datas-bloqueadas/form-bloqueio.ts: criar com de/até (mínimo hoje), "Só uma parte do dia" com
+  das/às, espaço (vazio = todos) e motivo; mostra quantas reservas foram revogadas.
+admin.routes.ts e cadastros.ts: rotas e cartões novos.
+Testes: cadastros.spec.ts (+3) e e2e/cadastros-admin.spec.ts (+1); api-falsa com cursos e bloqueios.
+
+Totais: 325 da API, 154 do front, 42 no navegador.
