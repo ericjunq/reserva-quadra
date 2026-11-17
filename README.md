@@ -798,6 +798,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Admin vê o calendário **sem o limite do semestre** e de segunda a domingo | Histórico e eventos futuros; eventos podem cair no fim de semana (16/11/2026) |
 | Criar evento em **página própria**, preenchida pelo calendário | Mais simples e acessível que uma janela por cima, e com URL (16/11/2026) |
 | Lista e exportação do admin por **POST** no front | A busca por nome ou RA é dado pessoal e não pode ir na URL (fica em logs de servidor e no histórico); o GET continua para quem usa a API direto (16/11/2026) |
+| API para parceiros em **`/api/v1`**, separada das rotas do front (passo 13) | Mesmo antes da produção e sem parceiro confirmado (o usuário pediu para registrar o porquê, 17/11/2026): as rotas do front mudam a cada passo (o 11.9 tirou a quantidade da edição do equipamento; o 12 vai pôr aulas no calendário) e um parceiro quebraria a cada mudança. O número custa só um prefixo; uma mudança que quebre vira `/api/v2`, com a v1 no ar por um prazo avisado. Descartado: `/api/parceiros` sem número (a primeira mudança que quebrasse pediria outro nome) |
 | Situação da confirmação calculada na **API** (`situacao_confirmacao`) | Uma regra só (a mesma do filtro), sem duplicar no front (16/11/2026) |
 | Filtros do admin na URL, **menos a busca** | Recarregar e voltar mantêm os filtros; a busca (nome/RA) fica só na memória da tela (16/11/2026) |
 | Consulta com RA ou curso **não filtra** as reservas | Mostra o espaço inteiro e apenas aponta o limite e a disponibilidade do curso |
