@@ -2938,3 +2938,14 @@ Achado no navegador: o rótulo "Nome" casava com o campo de busca da página ant
   troca de página; o teste espera o título da página nova e usa rótulo exato (regra no CLAUDE.md).
 
 Totais: 328 da API, 158 do front, 46 no navegador.
+
+========================================================================
+72. CI VERMELHO: COMPOSER AUDIT E TESTE NO POSTGRES (17/11/2026)
+========================================================================
+O usuário notou o histórico de falhas no CI (desde 13/11).
+composer.lock: laravel/framework 13.38 → 13.42 (CVE-2026-128083, baixa, corrigida na 13.40), com
+  composer update laravel/framework --with-dependencies; composer audit limpo; 328 testes passando.
+tests/Feature/HorarioLivreTest.php: o teste do link de cancelamento passou a filtrar
+  finalidade = CANCELAR. Desde o 11.3a cada reserva tem dois tokens; sem filtro nem ordenação, o
+  Postgres devolvia o de confirmar (vence em 24 h). Defeito só do teste.
+CLAUDE.md: conferir o CI pela API pública no início de cada conversa e depois de cada push.
