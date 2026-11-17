@@ -2896,3 +2896,26 @@ admin.routes.ts e cadastros.ts: rotas e cartões novos.
 Testes: cadastros.spec.ts (+3) e e2e/cadastros-admin.spec.ts (+1); api-falsa com cursos e bloqueios.
 
 Totais: 325 da API, 154 do front, 42 no navegador.
+
+========================================================================
+70. PASSO 11.6c: CADASTRO DE ALUNOS (17/11/2026)
+========================================================================
+API
+routes/api.php: POST /api/admin/alunos/consulta e POST /api/admin/admins/consulta (mesmo index do
+  GET; a busca por nome/RA ou email não vai na URL, regra de LGPD do CLAUDE.md).
+ListarReservasRequest e ReservaRepository: filtro aluno_id (índice aluno_id + data_reserva já existe).
+Testes: AlunoAdminTest (+2: busca por POST, reservas do aluno) e AdminTest (+1: busca de admins).
+
+FRONT (frontend/src/app/admin/cadastros/)
+modelos.ts (AlunoCadastro, DadosDoAluno) e cadastros.service.ts (consultarAlunos por POST,
+  detalharAluno, atualizarAluno e desativarAluno com o total revogado, anonimizarAluno com
+  {confirmar: true}). reservas/modelos.ts: FiltrosReservas com aluno_id e ordem.
+alunos/lista-alunos.ts: busca com espera de 400 ms só na memória; curso e situação na URL; lista com
+  nome, curso e situação (Ativo, Desativado, Anonimizado), sem RA e email.
+alunos/detalhe-aluno.ts/.html: dados com RA e email; editar nome, RA, email e curso; desativar ou
+  reativar com confirmação; últimas 10 reservas com os selos; anonimizar com caixa "Entendo que não
+  dá para desfazer" + digitar ANONIMIZAR; aluno anonimizado mostra só a data e as reservas.
+admin.routes.ts e cadastros.ts: rotas e cartão de alunos.
+Testes: cadastros.spec.ts (+2) e e2e/cadastros-admin.spec.ts (+1); api-falsa com alunos.
+
+Totais: 328 da API, 156 do front, 44 no navegador.
