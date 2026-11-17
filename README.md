@@ -143,6 +143,8 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `RESERVA_SOLICITACAO_PRAZO_HORAS_ANTES` | 24 | Prazo normal de resposta do admin a um pedido de equipamento (horas antes do início) |
 | `RESERVA_SOLICITACAO_PRAZO_CURTO_HORAS_ANTES` | 3 | Prazo curto, usado quando o normal deixaria pouco tempo ao admin |
 | `RESERVA_SOLICITACAO_TEMPO_MINIMO_RESPOSTA_HORAS` | 2 | Tempo mínimo que o admin precisa ter para responder; sem ele, o pedido é presencial |
+| `RETIRADA_MINUTOS_ANTES` | 30 | A partir de quantos minutos antes do início o admin pode registrar a retirada dos equipamentos (passo 14b) |
+| `SUGESTAO_COMPARTILHAMENTO_MINIMO` / `_DIAS` | 3 / 60 | Quantos pedidos aprovados do mesmo equipamento pelo mesmo espaço, em quantos dias, viram sugestão de compartilhamento fixo (passo 14a) |
 | `RESERVA_MANTER_HORAS` | 12 | Horas que o aluno tem para manter a reserva depois de o pedido não ser liberado |
 | `RESERVA_MANTER_MINIMO_HORAS_ANTES` | 1 | O prazo para manter nunca passa deste tanto de horas antes do início |
 | `RESERVA_TERMOS_VERSAO` | 2026-11 | Versão dos termos de uso e do aviso de privacidade (gravada na reserva no aceite) |
@@ -326,6 +328,8 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/admin/cadastros/estoque/` | Estoque (11.9): `estoque-equipamento.ts` (resumo total/manutenção/para reservar, ajuste e lista paginada de movimentações no detalhe do equipamento), `ajustar-estoque.ts` (formulário reaproveitado no detalhe da reserva, com tipo, quantidade e reserva já preenchidos a partir da devolução), `tipos.ts` (nomes e ajudas dos tipos). Também: `admin/compartilhado/campos-do-responsavel.ts` (responsável do evento na Nova reserva e no Registrar uso) e `reservas/detalhe-reserva/responsavel-do-evento.ts` (mostra, corrige e remove a pedido) |
 | `app/admin/cadastros/sistemas-parceiros/` | Sistemas parceiros (13c): lista com busca por sistema ou organização e situação (aguardando aceite, ativo, acesso vencido, desativado); formulário com responsável, finalidade, permissões e limite por minuto; no detalhe, termos aceitos, vencimento, link pendente, "Enviar link de aceite/renovação", "Revogar o token", desativar/reativar e o histórico. O admin nunca vê o token |
 | `app/publico/aceite-parceiro/` | `/parceiros/aceite/:token` (13c): tira o token da barra, mostra o cadastro, as permissões e os termos da API, exige "Li e aceito" e mostra o token **uma única vez**, com "Copiar"; nada é guardado no navegador |
+| `app/admin/reservas/detalhe-reserva/registrar-retirada.ts` | Retirada (14b): formulário com a quantidade de cada item entregue, `janelaDaRetirada()` (30 min antes até o fim, o mesmo padrão da API) e o motivo de cada item recusado; o painel ganhou "Equipamentos fora agora" e o cartão de Minhas reservas mostra a retirada |
+| `app/admin/cadastros/equipamentos/sugestoes-compartilhamento.ts` | Sugestões de compartilhamento (14a): usadas no painel (todas) e no detalhe do equipamento (só as dele, avisando o formulário para atualizar os compartilhados) |
 | `app/admin/reservas/nova-reserva/` | `/admin/reservas/nova?espaco=&data=&horario=` ou `&inicio=&fim=` e `&tipo=evento` (11.5e): "Para um aluno (RA)" ou "Evento da faculdade"; para aluno, RA só no corpo e equipamento de outro espaço já aprovado; para evento, descrição e conflito com justificativa. Antiga página de novo evento (`/admin/eventos/novo` redireciona) |
 | `app/admin/compartilhado/equipamentos-de-outros-espacos.ts` | Seção "Equipamento de outro espaço" da Nova reserva: busca na rota do admin só ao abrir, itens entram aprovados |
 | `app/compartilhado/caminho-interno.ts` | Aceita só caminhos do próprio site no `?voltar=` (cadastro e login) |
@@ -503,6 +507,10 @@ Guia completo em [`docs/API-PARCEIROS.md`](docs/API-PARCEIROS.md) e especificaç
 | DELETE | `/api/admin/admins/{id}` | Desativa o admin (sem login e sem sessões) |
 | POST | `/api/admin/admins/{id}/reenviar-convite` | Reenvia o convite de quem ainda não definiu a senha |
 | GET/POST/PATCH/DELETE | `/api/admin/espacos` | CRUD de espaços (`?tipo=`); `modo_horario`, `abre_as`, `fecha_as`, `duracao_maxima_minutos` para horário livre |
+| GET | `/api/admin/equipamentos/fora-agora` | Equipamentos retirados e ainda não devolvidos (14b) |
+| POST | `/api/admin/reservas/{id}/retirada` | Registra ou corrige a retirada dos equipamentos (14b) |
+| GET | `/api/admin/equipamentos/sugestoes-compartilhamento` | Sugestões de compartilhamento fixo (`?equipamento_id=`; 14a) |
+| POST | `/api/admin/equipamentos/{id}/sugestoes-compartilhamento/{espaco}/aceitar` e `/dispensar` | Aceita (compartilha) ou dispensa a sugestão (14a) |
 | GET/POST | `/api/admin/equipamentos/{id}/movimentacoes` | Movimentações do estoque (lista paginada; registrar com `tipo`, `quantidade`, `estado`, `reserva_id`, `da_manutencao`) |
 | PATCH | `/api/admin/reservas/{id}/responsavel` | Corrige ou remove a pedido o responsável de um evento |
 | GET/POST/PATCH/DELETE | `/api/admin/equipamentos` | CRUD de equipamentos (`?espaco_id=`, `?nome=`, `?ativo=`). A quantidade só é informada na criação; depois muda pelas movimentações. `espacos_compartilhados`: lista de ids dos outros espaços onde o item aparece (vazia = só no próprio espaço; o próprio espaço dá 422 "O equipamento já pertence a este espaço."); tirar um espaço com reserva futura do item dá 409 com `dados.espacos`. A resposta do admin traz `espacos_compartilhados` (`id`, `nome`); a rota pública não traz |
@@ -727,6 +735,23 @@ POST /api/admin/reservas/15/devolucao
 - Chamar de novo **corrige** o registro; cada alteração fica no histórico de auditoria (`ItemReserva`).
 - Avaria ou falta **avisa o aluno por email** (uma vez por mudança; repetir o mesmo registro não reenvia). Eventos não têm aluno, então não há email.
 - **Não** mexe no estoque: o admin decide se reduz a `quantidade_total`. **Não** bloqueia o aluno de novas reservas.
+- **Com a retirada registrada (14b),** a devolução confere com a quantidade **retirada**, e não com a reservada (ex.: reservou 3 bolas, levou 2: "Devolvido" exige 2).
+
+### Retirada de equipamentos (admin, passo 14b)
+
+- **Opcional:** a devolução funciona sem ela. Serve para saber o que saiu de fato e para a devolução conferir com isso.
+- `POST /api/admin/reservas/{id}/retirada` com `itens: [{equipamento_id, quantidade_retirada}]` (de 0 até a reservada). Só reserva ativa (409), de `RETIRADA_MINUTOS_ANTES` (30) minutos antes do início até o fim (422 com a hora em que abre ou "Registre a devolução"). Só itens do espaço e pedidos aprovados; inválidos voltam em `dados.itens_invalidos`.
+- Guarda `quantidade_retirada`, `retirado_em` e `retirado_por` no item. Repetir com a mesma quantidade não muda a hora; mudar a quantidade corrige, com histórico. Não pode ficar abaixo do que já foi devolvido.
+- `GET /api/admin/equipamentos/fora-agora`: itens retirados (mais de 0) e com devolução pendente, mais antigos primeiro, até 50, com `total`; cada um com o equipamento, a quantidade, a reserva (dia, horário, espaço, com quem: aluno ou responsável do evento, sem RA nem email) e `terminou`. Aparece no painel como "Equipamentos fora agora", com "Passou do horário".
+- O aluno vê "retirado N em dd/mm às hh:mm" em Minhas reservas (sem quem registrou); **sem email**. A exportação mostra "(retirado N às hh:mm)" na coluna de equipamentos.
+
+### Sugestão de compartilhamento fixo (admin, passo 14a)
+
+- Um equipamento com **3 ou mais pedidos aprovados** para o mesmo espaço nos **últimos 60 dias** (configurável), ativo, de outro espaço ativo e ainda não compartilhado com ele, vira sugestão. Recusados e vencidos não contam (a recusa costuma ser falta de estoque).
+- `GET /api/admin/equipamentos/sugestoes-compartilhamento` (`?equipamento_id=`): mais pedidos primeiro, com o equipamento, o espaço de origem, o espaço que pede, quantos pedidos e o último. Uma consulta agrupada, por índice, mais duas para os nomes (não cresce com o número de sugestões).
+- `POST .../{equipamento}/sugestoes-compartilhamento/{espaco}/aceitar`: acrescenta o espaço aos compartilhados, pelo mesmo código do cadastro (com histórico e versão da disponibilidade).
+- `POST .../dispensar`: grava em `sugestoes_dispensadas`; a sugestão só volta com 3 pedidos aprovados **depois** da dispensa.
+- No front: no painel e no detalhe do equipamento, com "Compartilhar com X" e "Agora não". Nenhum dado de aluno.
 - Pendências: `GET /api/admin/reservas?devolucao=PENDENTE` (ou `NAO_DEVOLVIDO`, `DEVOLVIDO_COM_AVARIA`).
 
 ### Admins e senhas
@@ -797,7 +822,9 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Só o POST cancela | GET pode ser disparado por leitores de email e antivírus |
 | Devolução registrada por item, na própria `item_reservas` | Cada equipamento pode voltar de um jeito; a intermediária já é a linha "item da reserva" |
 | Model `ItemReserva` como *pivot* (`->using()`) | A intermediária ganhou regras e auditoria; o `attach()` e as relações continuam iguais |
-| Só a devolução, sem registro de retirada | A retirada é implícita no horário da reserva; pode entrar depois |
+| ~~Só a devolução, sem registro de retirada~~ (substituída em 17/11/2026 pelo passo 14b) | A retirada era implícita no horário da reserva |
+| Retirada **opcional**, e a devolução confere com ela quando existe (14b, 17/11/2026) | O processo da faculdade ainda não é conhecido; obrigatória travaria a devolução quando ninguém registrasse a retirada |
+| Sugestão de compartilhamento só com pedidos **aprovados**, com dispensa (14a, 17/11/2026) | A recusa costuma ser falta de estoque, e não "não empresto"; sem dispensa a sugestão ficaria no painel para sempre |
 | Avaria/falta não reduz o estoque sozinha | O item pode ser consertado; o admin ajusta a `quantidade_total` se for perda |
 | Item não devolvido **não** bloqueia o aluno | Decisão do usuário: o controle fica no registro, na listagem de pendências e no email |
 | Listagem de reservas sem filtro de data mostra **de hoje em diante** | É o que o admin mais consulta; o histórico vem com `de`/`ate` |
@@ -930,7 +957,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026, depois do passo 13 e do `MAIL_REPLY_TO`):** 396 testes da API, 178 testes de unidade do front (Vitest) e 64 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026, depois do passo 14):** 414 testes da API, 183 testes de unidade do front (Vitest) e 70 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -976,6 +1003,8 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `CancelamentoTest` | Email de criação com link do front, só o hash no banco e validade até o início, resumo sem dados pessoais, cancelamento liberando horário e equipamentos com email, uso único, token inválido e vencido, reserva revogada, evento sem email, criação sem expor o aluno |
 | `MinhasReservasTest` | Futuras e todas, ordem, espaço/equipamentos/justificativa, sem dados pessoais nem auditoria, email sem maiúsculas, resposta igual para dados errados, inativo x anonimizado, só POST, validações, paginação |
 | `DevolucaoTest` | Itens pendentes, devolução completa, avaria/falta com email, estoque e aluno não afetados, correção com histórico, coerência de quantidades, item fora da reserva, validações, reserva ativa e iniciada, evento sem email, filtro de pendências, coluna na exportação |
+| `RetiradaTest` | Login, quantidade e quem registrou (sem email), janela de 30 min antes até o fim, só reserva ativa, itens inválidos com o motivo (acima do reservado, fora da reserva, pedido recusado), devolução conferida pela retirada, correção com histórico e nunca abaixo do devolvido, fora agora (só o que saiu e não voltou, com quem, sem RA nem email, sem N+1), Minhas reservas e exportação |
+| `SugestaoCompartilhamentoTest` | Login, 3 aprovados no período viram sugestão, recusados/vencidos/antigos não contam, já compartilhado ou desativado não aparece, aceitar compartilha com histórico, próprio espaço recusado, dispensar até 3 pedidos novos, filtro por equipamento, ordem, sem dados de aluno, consultas constantes |
 | `AlunoAdminTest` | Filtros, detalhe, edição, desativação com revogação e email, reativação, aluno inativo sem reservar, mudança de curso no limite semanal, anonimização (confirmação, dados e histórico limpos, sem email, bloqueio de alterações, RA liberado) |
 | `EspacoTest` | CRUD, PATCH, filtros, bloqueio de desativação com reservas futuras, paginação padronizada |
 | `EquipamentoTest` | Nome único por espaço, filtros, lista pública com só os compartilhados com o espaço, admin escolhendo e tirando espaços (com histórico), validações do compartilhamento, 409 ao tirar espaço com reserva futura, redução de estoque por movimentação |
@@ -1031,6 +1060,10 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `admin/cadastros/cadastros.spec.ts` | Lista de espaços com filtro e descrição do horário, criar espaço com a duração sugerida, desativar com confirmação e a recusa da API, editar equipamento (aceita pedido e compartilhados), cursos (criar, renomear, desativar), datas bloqueadas (lista de hoje em diante com feriado, excluir; criar parte do dia com o total revogado), alunos (busca por POST sem RA/email na lista; detalhe, editar e anonimizar com confirmação forte), admins (lista por POST com principal e convite pendente; convidar, reenviar convite e desativar) |
 | `admin/cadastros/estoque/estoque.spec.ts` | Utilizável e sinal de cada movimentação, resumo e lista do estoque, baixa "estava em manutenção" com o corpo enviado e a lista recarregada, ajuste vindo da devolução com a reserva já ligada e o erro da API, corrigir e remover o responsável do evento |
 | `e2e/estoque.spec.ts` | No navegador: equipamento sem campo de quantidade na edição, manda para manutenção com o estado, vê a movimentação e os números (o evento com responsável está em `calendario-admin.spec.ts`) |
+| `e2e/retirada.spec.ts` | No navegador: detalhe da reserva → "Registrar a retirada" com 2 de 3 bolas (corpo enviado), "Retirado: 2", e o painel com "Equipamentos fora agora (1)" levando à reserva |
+| `e2e/sugestao-compartilhamento.spec.ts` | No navegador: painel → "Compartilhar com Quadra Poliesportiva" (POST certo, sugestão some); detalhe do equipamento → "Agora não" |
+| `admin/reservas/detalhe-reserva/retirada.spec.ts` | Janela da retirada (antes, aberta, encerrada, fora), formulário só com os itens entregues, corpo enviado, motivo por item vindo da API, devolução partindo da quantidade retirada |
+| `admin/cadastros/equipamentos/sugestoes-compartilhamento.spec.ts` | Lista, compartilhar (URL, aviso e evento para a tela que usa), dispensar, e no detalhe só as do equipamento |
 | `admin/historico/historico.spec.ts` | Valores legíveis (Sim/Não, datas, códigos, listas, `[oculto]`), mudanças na criação e na alteração, links só para registros com página, filtros da URL com valores inválidos ignorados, página com os filtros enviados à API e a tabela antes → depois, "Sistema ou aluno" e navegação dos filtros, histórico do registro que só consulta ao abrir (10 mais recentes) e o erro da API |
 | `e2e/historico-admin.spec.ts` | No navegador: detalhe da reserva → "Mostrar o histórico" → "Ver tudo no histórico", mudanças campo a campo, filtro "Sistema ou aluno", limpar filtros e voltar à reserva pelo link; nada pessoal nas URLs |
 | `e2e/cadastros-admin.spec.ts` | No navegador: Cadastros → Espaços → criar espaço; Equipamentos → marcar "Aceita pedido de outros espaços"; criar curso; criar bloqueio de parte do dia; buscar aluno por nome (fora da URL) e corrigir o email; convidar admin |
@@ -1110,6 +1143,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Auditoria | `criado_por`/`atualizado_por` nas tabelas principais, tabela `auditorias` com antes/depois, trait `Auditavel`, campos nas respostas do admin |
 | Exportação de reservas | CSV com os filtros da listagem, atalhos de período, colunas opcionais, stream em lotes e proteção contra fórmulas; consulta movida para `ReservaRepository` |
 | Item 7 — Listagem de reservas (admin) | Lista paginada com filtros, detalhe, totais por status e dados completos de aluno, espaço, equipamentos, criador e revogador |
+| Passo 14 — Retirada e sugestão de compartilhamento (17/11/2026) | Registro opcional da retirada com a devolução conferida por ela, "Equipamentos fora agora" no painel, sugestões de compartilhamento fixo pelos pedidos aprovados com aceitar e dispensar |
 | Passo 13 — API para sistemas parceiros (17/11/2026) | `ClienteApi` (Sanctum, permissões, limite), aceite dos termos da API por link ao responsável, token mostrado uma vez e renovação anual, `/api/v1` com controllers e resources próprios, separação total dos tokens de admin e parceiro, auditoria e origem `API`, telas no admin e página de aceite, OpenAPI pelo Scramble e guia para parceiros |
 | Item 5 — Consulta de disponibilidade | Calendário público por espaço (até 31 dias), situação de cada horário, quem reservou, equipamentos por horário, limite semanal do curso por RA/curso; antecedência passa a 10 dias úteis |
 
@@ -1127,6 +1161,7 @@ Na ordem combinada (revisado em 16/11/2026). O detalhe de cada passo (o que far�
 4. ✅ **11.8 — acabamento** e **11.9 — estoque e responsável do evento** (17/11/2026).
 5. **Passo 12 — grade de aulas (importação):** aprovado com ajustes em 13/11/2026; falta decidir a reimportação e saber o formato do arquivo da faculdade. Detalhes no passo 12 do CHECKLIST.
 6. ✅ **Passo 13 — API para sistemas parceiros** (17/11/2026): cadastro com responsável, aceite dos termos da API, token de 12 meses com permissões, `/api/v1`, limite por sistema, auditoria por sistema, telas e OpenAPI + guia em `docs/`. A importação da grade pelo sistema acadêmico (`aulas:importar`) entra com o passo 12.
+6b. ✅ **Passo 14 — retirada e sugestão de compartilhamento** (17/11/2026): retirada opcional com a devolução conferida por ela e "Equipamentos fora agora"; sugestões de compartilhamento fixo pelos pedidos aprovados.
 7. **Serviço de disparo de emails:** para testes, **Resend** (decisão de 17/11/2026; passo a passo em "Enviar emails de verdade"). **⏸️ Produção pendente** até a conversa com a faculdade: recomendado o SMTP da própria faculdade; alternativa, serviço transacional com o domínio dela (SPF, DKIM, DMARC). Ver "Enviar emails de verdade (teste local)".
 8. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md); termos e aviso de privacidade revisados pela faculdade.
 

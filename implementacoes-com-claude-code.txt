@@ -3422,3 +3422,80 @@ EmailsTest: dois testes que enviam de verdade pelo mailer array (o Mail::fake n�
   endereços globais) e conferem o Reply-To com e sem configuração.
 Motivo: o remetente pode ser um "naoresponda" e a resposta do aluno vai para o setor; o
   endereço vem da faculdade. 396 testes.
+
+========================================================================
+88. CI: NPM AUDIT SÓ BLOQUEIA O QUE VAI PARA O SITE (17/11/2026)
+========================================================================
+Achado ao conferir o CI antes de documentar: os runs falhavam só no "npm audit" do front, por um
+  alerta alto do picomatch (ReDoS, GHSA-fc5q-39xc-vjpf) que vale para todas as versões, sem
+  correção publicada; o "npm audit fix --force" só propunha rebaixar o Angular para a 16.
+  O picomatch vem só de @angular/build, @angular/cli, vite e vitest (ferramentas); o
+  "npm audit --omit=dev" dá 0 vulnerabilidades.
+Aprovado pelo usuário ("arruma o erro do ci pra mim"). .github/workflows/ci.yml: o passo que
+  bloqueia virou "npm audit --omit=dev --audit-level=high"; o audit completo continua num passo
+  com continue-on-error (aparece no log como aviso). Motivo: com o CI sempre vermelho, uma falha
+  real passaria despercebida. Regra nova no CLAUDE.md: mudar política do CI só perguntando.
+
+========================================================================
+89. PASSO 14b: REGISTRO DE RETIRADA DE EQUIPAMENTO (17/11/2026)
+========================================================================
+Aprovado com todas as recomendações ("pode fazer o passo 14"), 14b primeiro.
+API
+Migration de item_reservas (editada no lugar): quantidade_retirada, retirado_em, retirado_por e
+  índice (situacao_devolucao, retirado_em). config reservas.retirada_minutos_antes
+  (RETIRADA_MINUTOS_ANTES, 30), nos dois .env de exemplo.
+ItemReserva: colunas no COLUNAS (vão no pivot), cast de retirado_em, escopo paraEntregar() (itens
+  do espaço e pedidos aprovados; antes estava escrito dentro do DevolucaoService) e
+  quantidadeEsperadaNaDevolucao() (retirada, se registrada, senão a reservada).
+RetiradaService: registrar() trava a reserva, confere situação e janela (de 30 min antes do
+  início até o fim; mensagens com a hora em que abre ou "Registre a devolução"), confere os itens
+  (acima do reservado, fora da reserva, abaixo do já devolvido) e grava; só atualiza retirado_em
+  quando a quantidade muda ou na primeira vez. foraAgora(): itens com retirada > 0 e devolução
+  pendente, mais antigos primeiro, até 50, com eager loading do equipamento, da reserva, do espaço
+  e do aluno (só as colunas usadas); a contagem total só roda se passar de 50.
+DevolucaoService: usa paraEntregar() e confere contra a quantidade esperada, dizendo "retirada"
+  ou "reservada" na mensagem; o email de pendência mostra a quantidade esperada.
+RegistrarRetiradaRequest, RetiradaController, EquipamentoForaResource ("com quem" = aluno ou
+  responsável/descrição do evento; sem RA nem email). ReservaResource: retirada (quantidade e
+  hora) em cada item, sem quem registrou. Exportação: "(retirado N às hh:mm)".
+Rotas: POST /admin/reservas/{id}/retirada e GET /admin/equipamentos/fora-agora. Achado: a rota
+  fora-agora precisa ser registrada antes do apiResource de equipamentos, senão o
+  /equipamentos/{equipamento} (show) a captura.
+Testes: RetiradaTest (10).
+FRONT
+registrar-retirada.ts (MINUTOS_ANTES_DA_RETIRADA = 30, igual ao padrão da API; se a API mudar, a
+  mensagem dela aparece), janelaDaRetirada() pura; detalhe da reserva com a seção "Registrar a
+  retirada", "Retirado: N em dd/mm às hh:mm" em cada item e a quantidade sugerida no "Ajustar o
+  estoque" partindo da retirada; registrar-devolucao parte da retirada e diz "retirado(s)";
+  painel com "Equipamentos fora agora (N)" (até 8 na tela, "Passou do horário"); cartão de
+  Minhas reservas com a retirada. Testes: retirada.spec.ts (3), painel no reservas.spec,
+  e2e/retirada.spec.ts, detalhe com retirada na acessibilidade, api-falsa com a reserva 78 (hoje,
+  00:00–23:59, para a janela estar sempre aberta). Pacote inicial 313,4 kB.
+
+========================================================================
+90. PASSO 14a: SUGESTÃO DE COMPARTILHAMENTO FIXO (17/11/2026)
+========================================================================
+API
+Migration nova 2026_11_17_140000_create_sugestoes_dispensadas_table (única por equipamento e
+  espaço) e índice (situacao_solicitacao, respondida_em) em item_reservas. config
+  reservas.sugestao_compartilhamento (minimo_pedidos 3, dias 60), nos dois .env de exemplo.
+SugestaoCompartilhamentoService::listar(): uma consulta agrupada com joins em reservas,
+  equipamentos, espaço que pede e a dispensa (left join), filtros de aprovado, período, ativos,
+  outro espaço, não compartilhado (whereNotExists) e só pedidos depois da dispensa; HAVING
+  COUNT(*) >= mínimo. Depois, duas consultas para os nomes. Ordem por pedidos e nome em PHP.
+  dispensar(): upsert (dispensar de novo atualiza a data).
+EquipamentoService::compartilharCom(): recusa o próprio espaço e espaço desativado; reaproveita
+  compartilhar() (histórico e versão da disponibilidade).
+ListarSugestoesCompartilhamentoRequest, SugestaoCompartilhamentoController,
+  SugestaoCompartilhamentoResource; rotas GET /admin/equipamentos/sugestoes-compartilhamento e
+  POST .../{equipamento}/sugestoes-compartilhamento/{espaco}/aceitar e /dispensar (registradas
+  antes do apiResource, como o fora-agora). Testes: SugestaoCompartilhamentoTest (8).
+FRONT
+cadastros/equipamentos/sugestoes-compartilhamento.ts: lista vinda da API (todas ou de um
+  equipamento), "Compartilhar com X" e "Agora não" (texto extra para leitor de tela em sr-only
+  depois do visível), remove da lista e avisa; emite o equipamento atualizado, que o formulário
+  do equipamento usa para atualizar os compartilhados. No painel e no detalhe do equipamento.
+  CadastrosService com listar/aceitar/dispensar. Testes: sugestoes-compartilhamento.spec.ts (2),
+  ajustes em cadastros.spec e reservas.spec (requisições novas), e2e/sugestao-compartilhamento
+  (2), api-falsa com as rotas. Pacote inicial 313,6 kB.
+Totais: 414 da API, 183 de unidade, 70 no navegador. O usuário precisa de migrate:fresh --seed.

@@ -4,7 +4,7 @@ Visão do modelo de dados do sistema de reservas e o porquê das principais deci
 
 > Mais detalhes: [`README.md`](README.md) (regras e endpoints) e [`CHECKLIST.md`](CHECKLIST.md) (o que já existe e o que falta).
 
-Última atualização: 17/11/2026 (passo 13: sistemas parceiros)
+Última atualização: 17/11/2026 (passo 14: retirada e sugestões de compartilhamento)
 
 ---
 
@@ -32,6 +32,8 @@ erDiagram
     reservas ||--o{ movimentacoes_estoque : "não devolvido em"
     users ||--o{ movimentacoes_estoque : "registra"
     clientes_api |o--o{ reservas : "cria pela API"
+    equipamentos ||--o{ sugestoes_dispensadas : "sugestão dispensada"
+    espacos ||--o{ sugestoes_dispensadas : "para o espaço"
     clientes_api |o--o{ auditorias : "faz"
 
     cursos {
@@ -156,6 +158,9 @@ erDiagram
         bigint reserva_id FK
         bigint equipamento_id FK
         int quantidade
+        int quantidade_retirada "retirada (14b); vazia = não registrada"
+        timestamp retirado_em
+        bigint retirado_por FK
         string situacao_devolucao "PENDENTE, DEVOLVIDO, ..."
         int quantidade_devolvida
         string observacao_devolucao
@@ -201,6 +206,14 @@ erDiagram
         bigint user_id FK "admin; null = público ou parceiro"
         bigint cliente_api_id FK "sistema parceiro"
         timestamp created_at
+    }
+
+    sugestoes_dispensadas {
+        bigint id PK
+        bigint equipamento_id FK
+        bigint espaco_id FK "espaço que pedia"
+        timestamp dispensada_em
+        bigint dispensada_por FK
     }
 
     clientes_api {
@@ -255,6 +268,12 @@ O sistema parceiro é um model próprio (`ClienteApi`) que usa os tokens do Sanc
 
 **43. Quem fez a mudança: `user_id` só para admin, `cliente_api_id` para parceiro (passo 13, 17/11/2026).**
 O trait `Auditavel` gravava `Auth::id()`. Com um parceiro logado, o id do cliente iria parar em `user_id` e em `criado_por`, que apontam para `users`. Agora o trait olha o tipo de quem entrou: admin vai para `user_id`/`criado_por`/`atualizado_por`; parceiro vai para `auditorias.cliente_api_id`, e as colunas de admin ficam vazias. Em `reservas`, `cliente_api_id` (com índice `(cliente_api_id, data_reserva)`) diz qual sistema criou a reserva e limita o que cada parceiro vê e cancela. As duas FKs usam `nullOnDelete`, embora os sistemas nunca sejam apagados (só desativados).
+
+**44. Retirada nas colunas do item da reserva (14b, 17/11/2026).**
+`item_reservas` ganhou `quantidade_retirada`, `retirado_em` e `retirado_por`, como a devolução: uma retirada por item, corrigível, com histórico pelo trait de auditoria, sem tabela nova. Vazia = não registrada (a retirada é opcional); com ela, a devolução confere com a quantidade retirada (`ItemReserva::quantidadeEsperadaNaDevolucao()`). "Equipamentos fora agora" usa o índice `(situacao_devolucao, retirado_em)`. O escopo `paraEntregar()` (itens do espaço e pedidos aprovados) é o mesmo na retirada e na devolução.
+
+**45. Sugestões calculadas na hora e só a dispensa guardada (14a, 17/11/2026).**
+A sugestão não é uma tabela: sai de uma consulta agrupada sobre `item_reservas` (pedidos aprovados por equipamento e espaço da reserva, nos últimos 60 dias, `HAVING COUNT(*) >= 3`), pelo índice `(situacao_solicitacao, respondida_em)`, sem SQL específico de banco. Só a **dispensa** é guardada (`sugestoes_dispensadas`, única por equipamento e espaço; dispensar de novo atualiza a data). A consulta ignora os pedidos anteriores à dispensa, então a sugestão volta sozinha com 3 pedidos novos. Aceitar não cria nada novo: grava em `equipamento_compartilhamentos` pelo mesmo código do cadastro.
 
 **41. Responsável do evento em colunas da reserva (11.9, 17/11/2026).**
 `responsavel_nome` (obrigatório em todo evento, decisão do usuário) e `responsavel_contato` (opcional) ficam na própria reserva: um evento tem um responsável, e uma tabela de pessoas não teria uso. Dado pessoal de terceiro: só aparece nas rotas do admin; pode ser corrigido e **removido a pedido** (`PATCH /admin/reservas/{id}/responsavel` com `remover`), o que também troca os valores por `[removido]` no histórico de auditoria. A movimentação "não houve devolução" aponta para a reserva, sem copiar o nome.
