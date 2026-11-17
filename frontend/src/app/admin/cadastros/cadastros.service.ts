@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ambiente } from '../../../ambientes/ambiente';
 import {
+  AdminCadastro,
   AlunoCadastro,
   CursoCadastro,
   DadosDoAluno,
@@ -185,6 +186,43 @@ export class CadastrosService {
         confirmar: true,
       }),
     );
+  }
+
+  consultarAdmins(
+    filtros: { busca?: string; ativo?: boolean },
+    pagina: number,
+  ): Observable<Pagina<AdminCadastro>> {
+    return this.http.post<Pagina<AdminCadastro>>(`${this.url}/admins/consulta`, {
+      ...filtros,
+      page: pagina,
+    });
+  }
+
+  detalharAdmin(id: number): Observable<AdminCadastro> {
+    return this.dados(this.http.get<Resposta<AdminCadastro>>(`${this.url}/admins/${id}`));
+  }
+
+  convidarAdmin(nome: string, email: string): Observable<AdminCadastro> {
+    return this.dados(
+      this.http.post<Resposta<AdminCadastro>>(`${this.url}/admins`, { nome, email }),
+    );
+  }
+
+  atualizarAdmin(
+    id: number,
+    admin: { nome?: string; email?: string; ativo?: boolean },
+  ): Observable<AdminCadastro> {
+    return this.dados(this.http.patch<Resposta<AdminCadastro>>(`${this.url}/admins/${id}`, admin));
+  }
+
+  desativarAdmin(id: number): Observable<AdminCadastro> {
+    return this.dados(this.http.delete<Resposta<AdminCadastro>>(`${this.url}/admins/${id}`));
+  }
+
+  reenviarConvite(id: number): Observable<string> {
+    return this.http
+      .post<{ message: string }>(`${this.url}/admins/${id}/reenviar-convite`, {})
+      .pipe(map((resposta) => resposta.message));
   }
 
   private dados<T>(pedido: Observable<Resposta<T>>): Observable<T> {

@@ -257,6 +257,7 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
   let reservaPeloAdmin: Record<string, unknown> | null = null;
   let espacoCriado: Record<string, unknown> | null = null;
   const cursosDoAdmin: Record<string, unknown>[] = [{ id: 2, nome: 'Direito', ativo: true }];
+  const adminsConvidados: Record<string, unknown>[] = [];
   let alunoDoAdmin: Record<string, unknown> = {
     id: 3,
     nome_completo: 'Carla Dias',
@@ -448,6 +449,29 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         return json({ data: alunoDoAdmin, reservas_revogadas: 0 });
       }
       return json({ data: alunoDoAdmin });
+    }
+    if (caminho === '/admin/admins/consulta') {
+      return json({
+        data: [
+          { ...adminFalso, ativo: true, convite_aceito_em: '2026-11-01T10:00:00Z' },
+          ...adminsConvidados,
+        ],
+        meta: { current_page: 1, last_page: 1, total: 1 + adminsConvidados.length, per_page: 15 },
+      });
+    }
+    if (caminho === '/admin/admins' && requisicao.method() === 'POST') {
+      const corpo = requisicao.postDataJSON();
+      adminsConvidados.push({
+        id: 6,
+        ...corpo,
+        ativo: true,
+        principal: false,
+        convite_aceito_em: null,
+      });
+      return json({ data: adminsConvidados.at(-1) }, 201);
+    }
+    if (caminho === '/admin/admins/6') {
+      return json({ data: adminsConvidados[0] });
     }
     if (caminho === '/admin/cursos') {
       if (requisicao.method() === 'POST') {

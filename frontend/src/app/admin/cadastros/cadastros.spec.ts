@@ -5,6 +5,8 @@ import { Router, provideRouter } from '@angular/router';
 import { ambiente } from '../../../ambientes/ambiente';
 import { interceptorApi } from '../../nucleo/api.interceptor';
 import { SessaoService } from '../../nucleo/sessao.service';
+import { FormAdmin } from './admins/form-admin';
+import { ListaAdmins } from './admins/lista-admins';
 import { DetalheAluno } from './alunos/detalhe-aluno';
 import { ListaAlunos } from './alunos/lista-alunos';
 import { Cursos } from './cursos/cursos';
@@ -453,5 +455,91 @@ describe('cadastros do admin', () => {
     await estabilizar(fixture);
     expect(elemento.textContent).toContain('Dados pessoais anonimizados em');
     expect(elemento.querySelector('#aluno-ra')).toBeNull();
+  });
+
+  it('lista admins por POST com principal e convite pendente marcados', async () => {
+    const fixture = TestBed.createComponent(ListaAdmins);
+    await estabilizar(fixture);
+    const consulta = controle.expectOne(`${url}/admin/admins/consulta`);
+    expect(consulta.request.body).toEqual({ page: 1 });
+    consulta.flush({
+      data: [
+        {
+          id: 1,
+          nome: 'Eric',
+          email: 'eric@fac.edu',
+          ativo: true,
+          principal: true,
+          convite_aceito_em: '2026-11-01T10:00:00Z',
+        },
+        {
+          id: 2,
+          nome: 'Ana',
+          email: 'ana@fac.edu',
+          ativo: true,
+          principal: false,
+          convite_aceito_em: null,
+        },
+      ],
+      meta: { current_page: 1, last_page: 1, total: 2, per_page: 15 },
+    });
+    await estabilizar(fixture);
+    const texto = fixture.nativeElement.textContent as string;
+    expect(texto).toContain('Principal');
+    expect(texto).toContain('Convite pendente');
+    expect(texto).not.toContain('ana@fac.edu');
+  });
+
+  it('convida um admin e, no detalhe, reenvia o convite e desativa', async () => {
+    const navegar = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    const novo = TestBed.createComponent(FormAdmin);
+    await estabilizar(novo);
+    digitar(novo.nativeElement, '#admin-nome', 'Ana Lima');
+    digitar(novo.nativeElement, '#admin-email', 'ana@fac.edu');
+    await estabilizar(novo);
+    (novo.nativeElement as HTMLElement).querySelector('form')!.dispatchEvent(new Event('submit'));
+    const convite = controle.expectOne(`${url}/admin/admins`);
+    expect(convite.request.body).toEqual({ nome: 'Ana Lima', email: 'ana@fac.edu' });
+    convite.flush({ data: { id: 5 } }, { status: 201, statusText: 'criado' });
+    expect(navegar).toHaveBeenCalledWith(['/admin/cadastros/admins', 5], {
+      state: { mensagem: 'Convite enviado por email.' },
+    });
+
+    const fixture = TestBed.createComponent(FormAdmin);
+    fixture.componentRef.setInput('id', '5');
+    await estabilizar(fixture);
+    const ana = {
+      id: 5,
+      nome: 'Ana Lima',
+      email: 'ana@fac.edu',
+      ativo: true,
+      principal: false,
+      convite_aceito_em: null,
+    };
+    controle.expectOne(`${url}/admin/admins/5`).flush({ data: ana });
+    await estabilizar(fixture);
+    const elemento = fixture.nativeElement as HTMLElement;
+    [...elemento.querySelectorAll('button')]
+      .find((b) => b.textContent?.includes('Reenviar o convite'))!
+      .click();
+    controle
+      .expectOne(`${url}/admin/admins/5/reenviar-convite`)
+      .flush({ message: 'Convite reenviado.' });
+    await estabilizar(fixture);
+    expect(elemento.textContent).toContain('Convite reenviado.');
+
+    [...elemento.querySelectorAll('button')]
+      .find((b) => b.textContent?.trim() === 'Desativar')!
+      .click();
+    await estabilizar(fixture);
+    [...elemento.querySelectorAll('button')]
+      .find((b) => b.textContent?.includes('Confirmar: desativar'))!
+      .click();
+    const desativar = controle.expectOne(`${url}/admin/admins/5`);
+    expect(desativar.request.method).toBe('DELETE');
+    desativar.flush({ data: { ...ana, ativo: false } });
+    await estabilizar(fixture);
+    expect(elemento.textContent).toContain('Admin desativado.');
+    expect(elemento.textContent).toContain('Reativar');
   });
 });

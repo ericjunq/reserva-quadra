@@ -126,6 +126,16 @@ export const rotasAdmin: Routes = [
         loadComponent: () => import('./cadastros/alunos/detalhe-aluno').then((m) => m.DetalheAluno),
       },
       {
+        path: 'cadastros/admins',
+        title: 'Admins · Administração',
+        loadComponent: () => import('./cadastros/admins/lista-admins').then((m) => m.ListaAdmins),
+      },
+      ...['cadastros/admins/novo', 'cadastros/admins/:id'].map((path) => ({
+        path,
+        title: 'Admin · Administração',
+        loadComponent: () => import('./cadastros/admins/form-admin').then((m) => m.FormAdmin),
+      })),
+      {
         path: 'minha-conta',
         title: 'Minha conta · Administração',
         loadComponent: () => import('./acesso/minha-conta').then((m) => m.MinhaConta),

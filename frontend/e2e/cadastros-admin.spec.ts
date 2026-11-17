@@ -88,3 +88,25 @@ test('o admin busca um aluno por nome e corrige o email no detalhe', async ({ pa
   await expect(page.getByText('Dados salvos.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Anonimizar os dados' })).toBeDisabled();
 });
+
+test('o admin convida outro admin, que aparece com o convite pendente', async ({ page }) => {
+  const chamadas = await prepararApi(page);
+  await entrarComoAdmin(page);
+  await expect(page.getByRole('heading', { name: 'Painel' })).toBeVisible();
+
+  await page.goto('/admin/cadastros/admins');
+  await expect(page.getByText('Principal')).toBeVisible();
+  await page.getByRole('link', { name: 'Convidar admin' }).click();
+  await expect(page.getByRole('heading', { name: 'Convidar admin' })).toBeVisible();
+  await page.getByLabel('Nome', { exact: true }).fill('Ana Lima');
+  await page.getByLabel('Email', { exact: true }).fill('ana@fac.edu');
+  await page.getByRole('button', { name: 'Enviar convite' }).click();
+
+  await expect(page.getByText('Convite enviado por email.')).toBeVisible();
+  await expect(page.getByText('Convite pendente')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reenviar o convite' })).toBeVisible();
+  expect(chamadas.find((chamada) => chamada.url === '/api/admin/admins')?.corpo).toEqual({
+    nome: 'Ana Lima',
+    email: 'ana@fac.edu',
+  });
+});

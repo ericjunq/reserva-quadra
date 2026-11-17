@@ -23,6 +23,11 @@ const CADASTROS = [
     nome: 'Alunos',
     texto: 'Busca por nome ou RA, edição, desativação e anonimização (LGPD).',
   },
+  {
+    caminho: 'admins',
+    nome: 'Admins',
+    texto: 'Convidar, reenviar convite, editar e desativar quem administra o sistema.',
+  },
 ];
 
 @Component({
@@ -43,7 +48,6 @@ const CADASTROS = [
         </li>
       }
     </ul>
-    <p class="mt-6 text-slate-600">O cadastro de admins chega no próximo passo.</p>
   `,
 })
 export class Cadastros {

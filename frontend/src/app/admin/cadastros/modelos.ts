@@ -73,6 +73,15 @@ export interface DadosDoAluno {
   curso_id: number | null;
 }
 
+export interface AdminCadastro {
+  id: number;
+  nome: string;
+  email: string;
+  ativo: boolean;
+  principal: boolean;
+  convite_aceito_em: string | null;
+}
+
 export interface DadosDoEquipamento {
   espaco_id?: number;
   nome: string;
