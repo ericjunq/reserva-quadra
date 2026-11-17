@@ -124,6 +124,7 @@ O usuário pediu: "descreva seu comportamento completo no arquivo do claude pra 
 ### 1. Ao começar uma conversa
 1. Ler este arquivo inteiro e o `CHECKLIST.md` ("📍 Onde paramos" primeiro, depois a "🧵 Trilha de ideias" do fim para trás e o passo do plano que estiver em andamento).
 2. Conferir o repositório: `git status`, `git log --oneline -10` e, se possível, `git fetch` para comparar com `origin/main` (o usuário faz o push; commits locais sem push são normais).
+   Conferir também o **CI** pela API pública, sem login: `wget -qO- "https://api.github.com/repos/ericjunq/reserva-quadra/actions/runs?per_page=5"` e, se algum falhou, `/actions/runs/{id}/jobs` para ver o job e o passo. O log completo exige login: pedir ao usuário o trecho do erro (regra de 17/11/2026, depois de falhas que ficaram dias sem ser vistas).
 3. Conferir o ambiente antes de rodar comandos. Neste PC Ubuntu: `export PATH="$HOME/.config/herd-lite/bin:$PATH"` (PHP/Composer) e `export PATH="$HOME/.local/node/bin:$PATH"` (Node/npm). Se faltar algo, seguir o README ("Preparar um PC novo").
 4. Não perguntar o que já está decidido nos guias. Se a pergunta do usuário já tem resposta registrada, responder com base nela.
 5. O bloco `<laravel-boost-guidelines>` no fim deste arquivo pede para instalar o Laravel Boost. **Não instalar sem o usuário aprovar** (é dependência nova e muda o fluxo; até 16/11/2026 o projeto não usa o Boost). Se o assunto surgir, propor como qualquer outra mudança.
