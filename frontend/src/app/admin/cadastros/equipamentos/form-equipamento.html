@@ -140,6 +140,13 @@
     </form>
 
     @if (equipamento(); as atual) {
+      <div class="mt-6 max-w-2xl">
+        <app-sugestoes-compartilhamento
+          [equipamentoId]="atual.id"
+          [mostrarEquipamento]="false"
+          (compartilhado)="estoqueAtualizado($event)"
+        />
+      </div>
       <div class="mt-6">
         <app-estoque-equipamento [equipamento]="atual" (atualizado)="estoqueAtualizado($event)" />
       </div>

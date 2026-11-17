@@ -167,6 +167,9 @@ describe('cadastros do admin', () => {
     controle
       .expectOne(`${url}/admin/equipamentos/7/movimentacoes?page=1`)
       .flush({ data: [], meta: { current_page: 1, last_page: 1, total: 0, per_page: 15 } });
+    controle
+      .expectOne(`${url}/admin/equipamentos/sugestoes-compartilhamento?equipamento_id=7`)
+      .flush({ data: [] });
     await estabilizar(fixture);
 
     const elemento = fixture.nativeElement as HTMLElement;

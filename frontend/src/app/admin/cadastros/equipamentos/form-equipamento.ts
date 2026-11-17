@@ -1,3 +1,4 @@
+import { SugestoesCompartilhamento } from './sugestoes-compartilhamento';
 import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +27,7 @@ type Carga =
     ConfirmarAcao,
     HistoricoDoRegistro,
     EstoqueEquipamento,
+    SugestoesCompartilhamento,
   ],
   templateUrl: './form-equipamento.html',
 })

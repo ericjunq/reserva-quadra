@@ -149,3 +149,11 @@ export interface DadosDoClienteApi {
   limite_por_minuto?: number;
   ativo?: boolean;
 }
+
+export interface SugestaoCompartilhamento {
+  equipamento: { id: number; nome: string };
+  espaco_de_origem: { id: number; nome: string };
+  espaco_que_pede: { id: number; nome: string };
+  pedidos: number;
+  ultimo_pedido_em: string;
+}

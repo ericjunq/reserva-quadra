@@ -19,6 +19,7 @@ import {
   MovimentacaoEstoque,
   OpcaoDePermissao,
   Pagina,
+  SugestaoCompartilhamento,
 } from './modelos';
 
 interface Resposta<T> {
@@ -304,6 +305,39 @@ export class CadastrosService {
         revogar_atual: revogarAtual,
       }),
     );
+  }
+
+  listarSugestoesCompartilhamento(equipamentoId?: number): Observable<SugestaoCompartilhamento[]> {
+    const params = equipamentoId
+      ? new HttpParams().set('equipamento_id', equipamentoId)
+      : new HttpParams();
+    return this.dados(
+      this.http.get<Resposta<SugestaoCompartilhamento[]>>(
+        `${this.url}/equipamentos/sugestoes-compartilhamento`,
+        { params },
+      ),
+    );
+  }
+
+  aceitarSugestaoCompartilhamento(
+    equipamentoId: number,
+    espacoId: number,
+  ): Observable<EquipamentoCadastro> {
+    return this.dados(
+      this.http.post<Resposta<EquipamentoCadastro>>(
+        `${this.url}/equipamentos/${equipamentoId}/sugestoes-compartilhamento/${espacoId}/aceitar`,
+        {},
+      ),
+    );
+  }
+
+  dispensarSugestaoCompartilhamento(equipamentoId: number, espacoId: number): Observable<string> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.url}/equipamentos/${equipamentoId}/sugestoes-compartilhamento/${espacoId}/dispensar`,
+        {},
+      )
+      .pipe(map((resposta) => resposta.message));
   }
 
   private dados<T>(pedido: Observable<Resposta<T>>): Observable<T> {

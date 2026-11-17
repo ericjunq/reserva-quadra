@@ -725,6 +725,9 @@ describe('reservas do admin', () => {
         ...pagina([]),
         meta: { current_page: 1, last_page: 3, total: 3, per_page: 1 },
       });
+      controle
+        .expectOne(`${url}/admin/equipamentos/sugestoes-compartilhamento`)
+        .flush({ data: [] });
       controle.expectOne(`${url}/admin/equipamentos/fora-agora`).flush({
         total: 1,
         data: [

@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
 import { formatarDiaCurto } from '../../publico/datas';
 import { EquipamentoFora } from '../reservas/modelos';
+import { SugestoesCompartilhamento } from '../cadastros/equipamentos/sugestoes-compartilhamento';
 import { ReservasAdminService } from '../reservas/reservas-admin.service';
 
 @Component({
   selector: 'app-painel',
-  imports: [RouterLink],
+  imports: [RouterLink, SugestoesCompartilhamento],
   template: `
     <h1 class="text-2xl font-semibold text-slate-900">Painel</h1>
     @if (pedidosAguardando(); as total) {
@@ -63,6 +64,7 @@ import { ReservasAdminService } from '../reservas/reservas-admin.service';
         </section>
       }
     }
+    <div class="mt-6"><app-sugestoes-compartilhamento /></div>
     <ul class="mt-6 grid gap-4 sm:grid-cols-2">
       <li>
         <a
