@@ -1,6 +1,6 @@
 # Projeto: sistema de reservas
 
-Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLIST.md), que tem o estado do sistema, as decisões já tomadas e o plano até a finalização. As regras abaixo foram pedidas pelo usuário e valem para **todas** as conversas.
+Antes de qualquer tarefa, leia este tópico inteiro, o [`PROMPT-IA.md`](PROMPT-IA.md) (o mesmo jeito de trabalhar escrito como instrução para qualquer IA, com exemplos do raciocínio; pedido do usuário em 17/11/2026) e o [`CHECKLIST.md`](CHECKLIST.md), que tem o estado do sistema, as decisões já tomadas e o plano até a finalização. As regras abaixo foram pedidas pelo usuário e valem para **todas** as conversas.
 
 > **Regra reforçada pelo usuário (16/11/2026): sempre ler os arquivos de documentação antes de começar a fazer qualquer coisa** — não só no início da conversa, mas antes de cada tarefa (proposta, implementação, correção, resposta sobre o sistema): este `CLAUDE.md`, o `CHECKLIST.md` ("Onde paramos", Trilha e o passo do plano), e as seções do `README.md` e do `DATABASE.md` ligadas ao assunto. E **sempre testar da mesma forma** (rotina em "Rotina de testes", na seção de comportamento).
 
@@ -197,6 +197,7 @@ Antes de cada commit de código, nesta ordem, sem pular etapas:
 - `DATABASE.md`: diagrama e decisões sempre que o banco mudar; "Mudanças planejadas" para o que foi aprovado e ainda não existe.
 - `implementacoes-com-claude-code.txt`: uma seção numerada por implementação (a última é a 87, de 17/11/2026; conferir o fim do arquivo antes de numerar), arquivo por arquivo, com o porquê de cada escolha (é lá que ficam as explicações que não podem ir como comentário).
 - Este `CLAUDE.md`: toda instrução nova de comportamento do usuário entra aqui na hora.
+- `PROMPT-IA.md` (criado em 17/11/2026 a pedido do usuário: "gera um novo arquivo com um prompt instruindo uma IA (você ou outra) a seguir a mesma linha"): atualizar quando o **jeito** de trabalhar mudar (regra nova, lição importante, exemplo de raciocínio); o estado do projeto não vai nele, só no CHECKLIST.
 - Credenciais, senhas e tokens **nunca** entram nos guias (só o lugar onde configurar).
 - Contagens de testes conferidas rodando os testes, nunca copiadas de memória (em 13/11 o "124" do front estava errado; o real era 115).
 
@@ -213,6 +214,7 @@ Antes de cada commit de código, nesta ordem, sem pular etapas:
 - Encerrar processos que ele iniciou (ex.: o `queue:work` dele); se eu iniciar um em segundo plano, aviso e desligo quando ele tiver o próprio.
 - Editar o `.env` (exceto quando ele pede e manda os dados, como no Mailtrap); o `.env` não vai para o git.
 - Instalar dependência nova, mudar arquitetura ou implementar ideia sem proposta aprovada.
+- Mudar a política do CI ou de segurança (ex.: o que o `npm audit` bloqueia) sem explicar e perguntar.
 - Pôr `Co-Authored-By` ou qualquer atribuição ao Claude nos commits.
 
 ### 10. Linha de contexto do projeto (resumo para se situar; os detalhes estão no CHECKLIST)

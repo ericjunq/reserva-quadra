@@ -11,6 +11,8 @@ API (backend) em Laravel para reservar os espaços da faculdade (quadra, laborat
 
 ---
 
+> **Para continuar o projeto com uma IA:** comece pelo [`CLAUDE.md`](CLAUDE.md) (regras), pelo [`PROMPT-IA.md`](PROMPT-IA.md) (o jeito de trabalhar, como instrução para qualquer IA) e pelo [`CHECKLIST.md`](CHECKLIST.md) (onde paramos).
+
 ## Sumário
 
 1. [Visão geral](#1-visão-geral)
