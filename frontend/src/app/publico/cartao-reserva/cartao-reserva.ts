@@ -1,5 +1,5 @@
 import { Component, input } from '@angular/core';
-import { formatarDia } from '../datas';
+import { formatarDataHora, formatarDia } from '../datas';
 import { ReservaDoAluno } from '../modelos';
 import { descreverDevolucao, descreverSolicitacao, itemValeNaReserva } from '../situacao-reserva';
 
@@ -20,6 +20,12 @@ import { descreverDevolucao, descreverSolicitacao, itemValeNaReserva } from '../
               <span class="text-slate-600">· {{ pedido }}</span>
             }
             @if (itemValeNaReserva(equipamento.solicitacao)) {
+              @if (equipamento.retirada; as retirada) {
+                <span class="text-slate-600"
+                  >· retirado {{ retirada.quantidade }} em
+                  {{ formatarDataHora(retirada.retirado_em) }}</span
+                >
+              }
               @if (descreverDevolucao(item, equipamento.devolucao.situacao); as devolucao) {
                 <span class="text-slate-600">· {{ devolucao }}</span>
               }
@@ -35,6 +41,7 @@ export class CartaoReserva {
   readonly reserva = input.required<ReservaDoAluno>();
 
   protected readonly formatarDia = formatarDia;
+  protected readonly formatarDataHora = formatarDataHora;
   protected readonly descreverDevolucao = descreverDevolucao;
   protected readonly descreverSolicitacao = descreverSolicitacao;
   protected readonly itemValeNaReserva = itemValeNaReserva;

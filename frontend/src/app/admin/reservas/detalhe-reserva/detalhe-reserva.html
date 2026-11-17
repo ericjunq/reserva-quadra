@@ -177,6 +177,15 @@
                     />
                   }
                   @if (
+                    itemValeNaReserva(equipamento.solicitacao) && equipamento.retirada;
+                    as retirada
+                  ) {
+                    <p class="text-sm text-slate-700">
+                      Retirado: {{ retirada.quantidade }} em
+                      {{ formatarDataHora(retirada.retirado_em) }}
+                    </p>
+                  }
+                  @if (
                     itemValeNaReserva(equipamento.solicitacao) && equipamento.devolucao.situacao;
                     as situacao
                   ) {
@@ -234,6 +243,24 @@
               <p class="mt-3 rounded-lg bg-emerald-50 px-4 py-3 text-emerald-900" role="status">
                 {{ mensagem }}
               </p>
+            }
+            @switch (janelaDaRetirada()) {
+              @case ('aberta') {
+                <h3 class="mt-6 font-semibold text-slate-900">Registrar a retirada</h3>
+                <p class="text-sm text-slate-600">
+                  Opcional: quanto foi entregue de cada item. A devolução passa a conferir com essa
+                  quantidade.
+                </p>
+                <div class="mt-3">
+                  <app-registrar-retirada [reserva]="reserva" (registrada)="atualizar($event)" />
+                </div>
+              }
+              @case ('antes') {
+                <p class="mt-3 text-sm text-slate-600">
+                  A retirada pode ser registrada a partir de {{ minutosAntesDaRetirada }} minutos
+                  antes do início.
+                </p>
+              }
             }
             @if (podeRegistrarDevolucao()) {
               <h3 class="mt-6 font-semibold text-slate-900">Registrar a devolução</h3>

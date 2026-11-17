@@ -725,8 +725,32 @@ describe('reservas do admin', () => {
         ...pagina([]),
         meta: { current_page: 1, last_page: 3, total: 3, per_page: 1 },
       });
+      controle.expectOne(`${url}/admin/equipamentos/fora-agora`).flush({
+        total: 1,
+        data: [
+          {
+            equipamento: { id: 2, nome: 'Bola' },
+            quantidade: 2,
+            retirado_em: '2026-11-09T21:40:00Z',
+            reserva: {
+              id: 9,
+              data_reserva: ontem,
+              hora_inicio: '19:00',
+              hora_fim: '20:30',
+              espaco: 'Quadra',
+              com_quem: 'Carla Mendes',
+              terminou: true,
+            },
+          },
+        ],
+      });
       await estabilizar(painel);
-      expect(painel.nativeElement.textContent).toContain('3 pedidos de equipamento aguardando');
+      const texto = painel.nativeElement.textContent as string;
+      expect(texto).toContain('3 pedidos de equipamento aguardando');
+      expect(texto).toContain('Equipamentos fora agora (1)');
+      expect(texto).toContain('Bola × 2');
+      expect(texto).toContain('Carla Mendes');
+      expect(texto).toContain('Passou do horário');
     });
 
     it('não exporta mais de 366 dias', async () => {

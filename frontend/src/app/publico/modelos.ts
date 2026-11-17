@@ -147,6 +147,7 @@ export interface ReservaDoAluno {
     id: number;
     nome: string;
     quantidade: number;
+    retirada?: { quantidade: number; retirado_em: string } | null;
     devolucao: { situacao: SituacaoDevolucao | null; observacao: string | null };
     solicitacao?: Solicitacao | null;
   }[];

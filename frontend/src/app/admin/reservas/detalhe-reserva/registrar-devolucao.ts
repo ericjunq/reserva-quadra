@@ -21,7 +21,7 @@ const SITUACOES: Situacao[] = ['DEVOLVIDO', 'DEVOLVIDO_COM_AVARIA', 'NAO_DEVOLVI
         <fieldset class="rounded-xl border border-slate-200 p-3">
           <legend class="px-1 font-semibold text-slate-900">
             {{ nomes()[item.equipamento_id] }} ({{ quantidades()[item.equipamento_id] }}
-            reservado(s))
+            {{ retirados()[item.equipamento_id] ? 'retirado(s)' : 'reservado(s)' }})
           </legend>
           <div class="grid gap-3 sm:grid-cols-3">
             <div>
@@ -118,7 +118,10 @@ export class RegistrarDevolucao {
         equipamento.devolucao.situacao && equipamento.devolucao.situacao !== 'PENDENTE'
           ? equipamento.devolucao.situacao
           : 'DEVOLVIDO',
-      quantidade_devolvida: equipamento.devolucao.quantidade_devolvida ?? equipamento.quantidade,
+      quantidade_devolvida:
+        equipamento.devolucao.quantidade_devolvida ??
+        equipamento.retirada?.quantidade ??
+        equipamento.quantidade,
       observacao: equipamento.devolucao.observacao,
     })),
   );
@@ -128,7 +131,13 @@ export class RegistrarDevolucao {
   );
 
   protected readonly quantidades = computed(() =>
-    Object.fromEntries(this.equipamentosDaDevolucao().map((e) => [e.id, e.quantidade])),
+    Object.fromEntries(
+      this.equipamentosDaDevolucao().map((e) => [e.id, e.retirada?.quantidade ?? e.quantidade]),
+    ),
+  );
+
+  protected readonly retirados = computed(() =>
+    Object.fromEntries(this.equipamentosDaDevolucao().map((e) => [e.id, !!e.retirada])),
   );
 
   protected mudar(indice: number, mudanca: Partial<ItemDevolucao>): void {

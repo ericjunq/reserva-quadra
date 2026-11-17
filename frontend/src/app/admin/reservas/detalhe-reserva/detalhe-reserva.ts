@@ -5,13 +5,18 @@ import { Router } from '@angular/router';
 import { Observable, catchError, map, of, startWith, switchMap } from 'rxjs';
 import { AvisoErro } from '../../../compartilhado/aviso-erro/aviso-erro';
 import { ErroApi } from '../../../nucleo/erro-api';
-import { formatarDia } from '../../../publico/datas';
+import { formatarDataHora, formatarDia } from '../../../publico/datas';
 import { descreverSolicitacao, itemValeNaReserva } from '../../../publico/situacao-reserva';
 import { jaComecou, linhaDoTempo } from '../linha-do-tempo';
 import { EquipamentoDaReserva, ReservaAdmin } from '../modelos';
 import { ReservasAdminService } from '../reservas-admin.service';
 import { NOMES_DAS_DEVOLUCOES, SelosReserva } from '../selos';
 import { RegistrarDevolucao } from './registrar-devolucao';
+import {
+  MINUTOS_ANTES_DA_RETIRADA,
+  RegistrarRetirada,
+  janelaDaRetirada,
+} from './registrar-retirada';
 import { ResponderSolicitacao } from './responder-solicitacao';
 import { RevogarReserva } from './revogar-reserva';
 import { HistoricoDoRegistro } from '../../historico/historico-do-registro';
@@ -30,6 +35,7 @@ type Resultado =
     SelosReserva,
     RevogarReserva,
     RegistrarDevolucao,
+    RegistrarRetirada,
     ResponderSolicitacao,
     HistoricoDoRegistro,
     ResponsavelDoEvento,
@@ -48,6 +54,8 @@ export class DetalheReserva {
   readonly id = input.required<string>();
 
   protected readonly formatarDia = formatarDia;
+  protected readonly formatarDataHora = formatarDataHora;
+  protected readonly minutosAntesDaRetirada = MINUTOS_ANTES_DA_RETIRADA;
   protected readonly nomesDasDevolucoes = NOMES_DAS_DEVOLUCOES;
   protected readonly descreverSolicitacao = descreverSolicitacao;
   protected readonly itemValeNaReserva = itemValeNaReserva;
@@ -63,7 +71,11 @@ export class DetalheReserva {
 
   protected quantidadeSugerida(equipamento: EquipamentoDaReserva): number {
     return equipamento.devolucao.situacao === 'NAO_DEVOLVIDO'
-      ? Math.max(equipamento.quantidade - (equipamento.devolucao.quantidade_devolvida ?? 0), 1)
+      ? Math.max(
+          (equipamento.retirada?.quantidade ?? equipamento.quantidade) -
+            (equipamento.devolucao.quantidade_devolvida ?? 0),
+          1,
+        )
       : 1;
   }
 
@@ -101,6 +113,13 @@ export class DetalheReserva {
   );
 
   protected readonly podeRevogar = computed(() => this.reserva()?.status === 'RESERVADO');
+
+  protected readonly janelaDaRetirada = computed(() => {
+    const reserva = this.reserva();
+    return reserva && reserva.equipamentos?.some((e) => itemValeNaReserva(e.solicitacao))
+      ? janelaDaRetirada(reserva)
+      : 'fora';
+  });
 
   protected readonly podeRegistrarDevolucao = computed(() => {
     const reserva = this.reserva();

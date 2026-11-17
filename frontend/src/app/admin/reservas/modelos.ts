@@ -25,6 +25,7 @@ export interface EquipamentoDaReserva {
   id: number;
   nome: string;
   quantidade: number;
+  retirada?: { quantidade: number; retirado_em: string } | null;
   devolucao: {
     situacao: SituacaoDevolucao | null;
     quantidade_devolvida: number | null;
@@ -95,6 +96,26 @@ export interface PaginaReservasAdmin {
   data: ReservaAdmin[];
   meta: { current_page: number; last_page: number; total: number; per_page: number };
   totais_por_status: Record<StatusReserva, number>;
+}
+
+export interface ItemRetirada {
+  equipamento_id: number;
+  quantidade_retirada: number;
+}
+
+export interface EquipamentoFora {
+  equipamento: { id: number; nome: string };
+  quantidade: number;
+  retirado_em: string;
+  reserva: {
+    id: number;
+    data_reserva: string;
+    hora_inicio: string;
+    hora_fim: string;
+    espaco: string | null;
+    com_quem: string | null;
+    terminou: boolean;
+  };
 }
 
 export interface ItemDevolucao {

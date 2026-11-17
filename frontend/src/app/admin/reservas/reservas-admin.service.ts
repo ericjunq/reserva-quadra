@@ -6,7 +6,9 @@ import {
   ArquivoExportado,
   ColunasExportacao,
   FiltrosReservas,
+  EquipamentoFora,
   ItemDevolucao,
+  ItemRetirada,
   NovoUsoPosterior,
   PaginaReservasAdmin,
   ReservaAdmin,
@@ -77,6 +79,21 @@ export class ReservasAdminService {
     return this.http
       .patch<Resposta<ReservaAdmin>>(`${this.url}/${id}/responsavel`, dados)
       .pipe(map((resposta) => resposta.data));
+  }
+
+  registrarRetirada(id: number, itens: ItemRetirada[]): Observable<ReservaAdmin> {
+    return this.http
+      .post<Resposta<ReservaAdmin>>(`${this.url}/${id}/retirada`, { itens })
+      .pipe(map((resposta) => resposta.data));
+  }
+
+  equipamentosForaAgora(): Observable<{ total: number; itens: EquipamentoFora[] }> {
+    return this.http
+      .get<{
+        data: EquipamentoFora[];
+        total: number;
+      }>(`${ambiente.urlApi}/admin/equipamentos/fora-agora`)
+      .pipe(map((resposta) => ({ total: resposta.total, itens: resposta.data })));
   }
 
   registrarDevolucao(id: number, itens: ItemDevolucao[]): Observable<ReservaAdmin> {
