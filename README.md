@@ -309,7 +309,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
   - **Tamanho:** cada tela é um pacote sob demanda (início 2,4 kB, calendário 4,2 kB, reserva 5 kB, cadastro 2,5 kB comprimidos); formulários do Angular (17 kB) e ícones (só os usados) também ficam fora do pacote inicial. O pacote inicial (~300 kB, 80 kB comprimido) é quase todo do Angular (núcleo, router) e do rxjs; o orçamento é 350 kB (aviso) e 500 kB (erro).
 - **Sessão do admin:** token e validade (`expires_at` do login) no `sessionStorage`, que some ao fechar a aba. Sessão vencida ou conteúdo inválido é descartado ao abrir e a cada uso.
 - **Datas e números em pt-BR** (`LOCALE_ID`), `<html lang="pt-BR">` e `Referrer-Policy: no-referrer` no `index.html`, para os tokens dos links de email não vazarem para outros sites.
-- **Acessibilidade:** link "Pular para o conteúdo" nos dois layouts e foco visível em todos os elementos (contorno azul).
+- **Acessibilidade:** link "Pular para o conteúdo" nos dois layouts e foco visível em todos os elementos (contorno azul). Desde o 11.8b (17/11/2026), o `e2e/acessibilidade.spec.ts` roda o **axe** (`@axe-core/playwright`, só de desenvolvimento) com as regras WCAG 2.0/2.1/2.2 A e AA em 8 páginas públicas e 11 do admin, no computador e no celular, e reserva um horário só pelo teclado. **Toda página nova entra nesse teste.** Regra que o axe cobrou: o nome lido pelo leitor de tela precisa **começar pelo texto visível** (WCAG 2.5.3); informação extra vai num `<span class="sr-only">` depois do texto, nunca num `aria-label` diferente do que aparece.
 - **Formatação** pelo Prettier (`.prettierrc`: aspas simples, 100 colunas). **Sem comentários** no código, como na API.
 
 **Convenções:**
@@ -832,7 +832,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 344 testes da API, 166 testes de unidade do front (Vitest) e 48 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 344 testes da API, 166 testes de unidade do front (Vitest) e 54 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -930,6 +930,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `e2e/cadastros-admin.spec.ts` | No navegador: Cadastros → Espaços → criar espaço; Equipamentos → marcar "Aceita pedido de outros espaços"; criar curso; criar bloqueio de parte do dia; buscar aluno por nome (fora da URL) e corrigir o email; convidar admin |
 | `e2e/registro-posterior.spec.ts` | No navegador: "Registrar uso" pela lista, formulário, detalhe com o selo e "Registrado depois do uso por", RA só no corpo |
 | `e2e/calendario-admin.spec.ts` | No navegador: calendário com quem reservou e o selo, "Reservar aqui", evento criado pela Nova reserva, e reserva para um aluno com equipamento de outro espaço (selo "Pelo admin", RA fora da URL) |
+| `e2e/acessibilidade.spec.ts` | No navegador: axe (WCAG A e AA) em início, calendários da quadra e do laboratório, reservar, cadastro, minhas reservas, termos e confirmar; e em entrar, painel, reservas, detalhe, nova reserva, calendário do admin, cadastros, espaços, equipamento, aluno, histórico e minha conta; reserva só pelo teclado com o foco visível |
 | `e2e/reservas-admin.spec.ts` | No navegador: login, lista sem RA, filtro de confirmação na URL, busca fora da URL, detalhe com RA e email, revogação e volta à lista com os filtros |
 | `e2e/acesso-admin.spec.ts` | No navegador: login com erro e certo voltando à página pedida, painel, sair e rota protegida; senha nova pelo link do email (token fora da URL, corpo enviado) |
 | `publico/minhas-reservas/minhas-reservas.spec.ts` | POST com RA e email no corpo, situação de cada reserva (confirmação, revogação, devolução, aviso de cancelar pelo email), mensagem genérica, formato sem chamar a API, paginação repetindo o POST, limpar |

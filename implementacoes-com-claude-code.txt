@@ -3078,3 +3078,28 @@ tests/Feature/AdminTest.php: test_busca_de_admins_por_post usava comoAdmin(), cu
   commits saíram porque a saída passava por "| tail" encadeado com "&& git commit" (o tail
   devolve 0). Regra nova no CLAUDE.md: conferir o código de saída.
 Totais: 344 da API, 166 do front, 48 no navegador.
+
+========================================================================
+77. PASSO 11.8b: ACESSIBILIDADE COM AXE E TESTE SÓ PELO TECLADO (17/11/2026)
+========================================================================
+frontend/package.json: @axe-core/playwright em devDependencies (só nos testes; não entra no build).
+frontend/e2e/acessibilidade.spec.ts:
+  semProblemas(page, nome): espera o h1, roda o AxeBuilder com wcag2a, wcag2aa, wcag21a, wcag21aa
+    e wcag22aa e confere com expect.soft (assim uma rodada lista os problemas de todas as páginas).
+  Páginas públicas: início, calendário da quadra, reservar (clicando no horário), calendário do
+    laboratório, cadastro, minhas reservas, termos e confirmar. Admin: entrar, painel, reservas,
+    detalhe da reserva, nova reserva, calendário, cadastros, espaços, equipamento, aluno, histórico e
+    minha conta. Tempo do teste em 120 s (o axe leva alguns segundos por página).
+  Teclado: Tab inicial cai no "Pular para o conteúdo" visível; Tab até o horário livre, com
+    contorno de foco; Enter abre a reserva; o próximo foco está visível.
+Achado pelo axe: label-content-name-mismatch (WCAG 2.5.3, "o nome inclui o texto visível"):
+  publico/calendario/calendario.html:
+    link do horário fixo tinha aria-label "Reservar Segunda-feira, 09/11, das 19:00 às 20:30"
+      enquanto mostrava "19:00–20:30 Livre · reservar": quem usa comando de voz diz o que vê e não
+      acertava o link. Agora sem aria-label; o dia vai num <span class="sr-only"> depois do texto.
+    botões dos dias (horário livre): mesma troca, com o dia completo em sr-only.
+    botões dos horários livres: "07:00–14:00" + sr-only ": começar às 07:00".
+  calendario.spec.ts, e2e/api-falsa.ts (rotuloDoHorario virou expressão regular a partir do texto
+    visível) e e2e/reserva-no-laboratorio.spec.ts ajustados aos nomes novos.
+Admin: nenhum problema encontrado.
+Totais: 344 da API, 166 do front, 54 no navegador. Pacote inicial igual (315,1 kB).
