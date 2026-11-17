@@ -60,7 +60,10 @@ class ExportacaoReservasTest extends TestCase
 
         $maria = Aluno::factory()->create(['nome_completo' => 'Maria Souza']);
         Reserva::factory()->create(['data_reserva' => '2026-11-10', 'aluno_id' => $maria->id]);
-        Reserva::factory()->create(['data_reserva' => '2026-11-10']);
+        Reserva::factory()->create([
+            'data_reserva' => '2026-11-10',
+            'aluno_id'     => Aluno::factory()->create(['nome_completo' => 'João Lima'])->id,
+        ]);
 
         $resposta = $this->post('/api/admin/reservas/exportar', ['busca' => 'souza', 'colunas' => ['curso']], ['Accept' => 'application/json'])
             ->assertOk()

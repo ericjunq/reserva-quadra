@@ -24,7 +24,10 @@ abstract class TestCase extends BaseTestCase
 
     protected function comoAdmin(): User
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create([
+            'name'  => 'Admin dos Testes',
+            'email' => 'admin.testes.'.uniqid().'@fac.edu',
+        ]);
         Sanctum::actingAs($admin);
 
         return $admin;

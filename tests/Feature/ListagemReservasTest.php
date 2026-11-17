@@ -120,7 +120,7 @@ class ListagemReservasTest extends TestCase
 
         $maria = Aluno::factory()->create(['nome_completo' => 'Maria Souza', 'registro_academico' => '2024000001']);
         $daMaria = Reserva::factory()->create(['aluno_id' => $maria->id]);
-        Reserva::factory()->create();
+        Reserva::factory()->create(['aluno_id' => Aluno::factory()->create(['nome_completo' => 'João Lima'])->id]);
 
         $resposta = $this->postJson('/api/admin/reservas/consulta', ['busca' => 'souza', 'per_page' => 5])->assertOk()
             ->assertJsonPath('meta.per_page', 5)
