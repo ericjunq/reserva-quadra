@@ -3027,3 +3027,33 @@ tests/Feature/RotasProtegidasTest.php: lê Route::getRoutes(), pega as rotas api
   falharem; removida, tudo passou.
 CLAUDE.md: regra de manter as rotas do admin no grupo.
 Totais: 332 da API, 166 do front, 48 no navegador.
+
+========================================================================
+75. PASSO 11.8a: LIMITES DAS ROTAS PÚBLICAS EM DUAS CAMADAS (17/11/2026)
+========================================================================
+11.8 aprovado com "perfeito, aprovo" (o usuário pediu a explicação do desempenho, registrada no
+CHECKLIST em "Conceitos já explicados").
+config/reservas.php: limites.ip_acoes (60), ip_consultas (120), por_pessoa (5), consulta_ra (20),
+  lidos de LIMITE_IP_ACOES_POR_MINUTO, LIMITE_IP_CONSULTAS_POR_MINUTO, LIMITE_POR_PESSOA_POR_MINUTO
+  e LIMITE_CONSULTA_POR_RA_POR_MINUTO (.env.example, .env.production.example e tabela do README).
+app/Providers/AppServiceProvider.php, definirLimites():
+  consultas-publicas: um limite por IP.
+  acoes-publicas e consulta-com-ra: limitesComPessoa() devolve dois limites, um por IP e outro por
+    pessoa. O Laravel recusa (429) quando qualquer um estoura.
+  identificadorDaPessoa(): token da rota (links do email) ou registro_academico do corpo; vira
+    hash_hmac sha256 com a APP_KEY. Um hash simples do RA seria fácil de reverter (são poucos RAs
+    possíveis); com a chave da aplicação, não.
+  A chave da pessoa leva a URI da rota: sem isso, consultar minhas reservas cinco vezes impediria
+    o mesmo aluno de reservar no mesmo minuto. A chave do IP é a mesma para todas as ações (o
+    ThrottleRequests junta o nome do limitador e a chave), então 60/min é a soma das ações.
+routes/api.php: throttle:10,1 das ações públicas → throttle:acoes-publicas; throttle:60,1 das
+  consultas → throttle:consultas-publicas; throttle:20,1 do limite do curso → consulta-com-ra.
+  Login, código, reenviar código, esqueci, redefinir e convite ficaram como estavam.
+tests/Feature/LimitesPublicosTest.php: religa o ThrottleRequests (forgetInstance, já que o
+  TestCase o desliga) e confere: 6º pedido do mesmo RA recusado e outro RA do mesmo IP passando;
+  limite por IP valendo para RAs diferentes e outro IP passando; links limitados por token;
+  consultas com o limite próprio; nenhuma chave do limitador contém o RA.
+Desempenho: cada limite = uma leitura e uma escrita no cache (no banco, com CACHE_STORE=database;
+  fora dele, com Redis). A camada por pessoa só existe nas ações.
+LGPD: RA só como HMAC no cache, nunca em claro; nada novo em log ou URL.
+Totais: 337 da API, 166 do front, 48 no navegador.

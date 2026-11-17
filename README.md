@@ -157,6 +157,10 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `CORS_MAX_AGE` | 86400 | Por quantos segundos o navegador guarda a liberação do CORS (menos requisições `OPTIONS`) |
 | `TRUSTED_PROXIES` | vazio | IPs do proxy/balanceador na frente do servidor (ou `*`), para o Laravel enxergar o HTTPS e o IP real |
 | `LOGIN_COM_CODIGO` | `true` | Login do admin com senha + código de 6 dígitos por email. `false` só em desenvolvimento (o `sistema:verificar-producao` acusa em produção) |
+| `LIMITE_IP_ACOES_POR_MINUTO` | 60 | Pedidos por minuto de um mesmo IP nas ações públicas (reservar, cadastro, minhas reservas, reenviar, links do email), somando todas. Alto porque o Wi-Fi da faculdade junta muitos alunos num IP |
+| `LIMITE_IP_CONSULTAS_POR_MINUTO` | 120 | Pedidos por minuto de um mesmo IP nas consultas do calendário e dos equipamentos |
+| `LIMITE_POR_PESSOA_POR_MINUTO` | 5 | Pedidos por minuto do mesmo RA (ou do mesmo link do email) em cada ação pública. A chave guarda só um HMAC do RA |
+| `LIMITE_CONSULTA_POR_RA_POR_MINUTO` | 20 | Consultas por minuto do limite semanal do curso com o mesmo RA |
 | `ALERTAS_EMAIL` | vazio | Email (ou lista separada por vírgula) que recebe os alertas, além dos admins ativos |
 | `ALERTAS_INTERVALO_MINUTOS` | 60 | Intervalo mínimo entre dois alertas do mesmo problema |
 | `LOG_DAILY_DAYS` | 14 | Por quantos dias os arquivos de log são guardados (um por dia) |
@@ -581,7 +585,7 @@ Reservas simultâneas são tratadas com *locks* dentro da transação:
 
 ### Reenvio do email de confirmação (17/11/2026)
 
-- Em "Minhas reservas" (RA + email), a reserva que aguarda confirmação ou reconfirmação mostra **"Reenviar o email de confirmação"**: `POST /api/minhas-reservas/reenviar-confirmacao` com `registro_academico`, `email` e `reserva_id` no corpo (10/min por IP).
+- Em "Minhas reservas" (RA + email), a reserva que aguarda confirmação ou reconfirmação mostra **"Reenviar o email de confirmação"**: `POST /api/minhas-reservas/reenviar-confirmacao` com `registro_academico`, `email` e `reserva_id` no corpo (limite das ações públicas: 60/min por IP e 5/min por RA).
 - O email novo tem links novos e **os links de confirmar e cancelar do email anterior deixam de valer**. O **prazo não muda**.
 - No máximo **3 reenvios por etapa** (confirmação ou reconfirmação), com **5 min** entre eles, contados pelos próprios links gravados (sem coluna nova). Dados errados ou reserva de outro aluno: a mesma resposta genérica de "Minhas reservas" (404); reserva que não aguarda confirmação: 409.
 
@@ -636,6 +640,12 @@ POST /api/admin/reservas/15/devolucao
 - Os links levam **só o token** (sem email na URL). Os tokens ficam com hash, um por email, em tabelas **separadas** para convite (`convites_admin_tokens`) e redefinição (`password_reset_tokens`), para um link de 60 minutos não valer 2 dias na rota do convite.
 - **Senha nova:** no mínimo 8 caracteres, com letras e números, e confirmação.
 - Ao **redefinir** ou **aceitar convite**: todas as sessões do admin caem e os links pendentes dele são invalidados. Ao **trocar logado** (`PATCH /api/me/senha`, exige a senha atual): caem as outras sessões, a atual continua. Nos três casos, o admin recebe **"Sua senha foi alterada"**.
+- **Limites de pedidos das rotas públicas (11.8a, 17/11/2026):** duas camadas, com limitadores nomeados em `AppServiceProvider`:
+  - `acoes-publicas` (reservar, cadastro do aluno, minhas reservas, reenviar a confirmação e os links do email de confirmar, cancelar e manter): **60/min por IP**, somando todas as ações, **e 5/min por pessoa em cada rota** (pessoa = o RA do corpo ou o token do link);
+  - `consulta-com-ra` (limite semanal do curso pelo RA): 120/min por IP e 20/min por RA;
+  - `consultas-publicas` (disponibilidade do calendário e dos equipamentos): 120/min por IP; a versão da disponibilidade continua em 300/min;
+  - login, código, esqueci a senha, redefinir e convite continuam com os limites próprios (5, 10 e 3 por minuto por IP).
+  - Por quê: no Wi-Fi da faculdade muitos alunos saem pelo mesmo IP, e o limite antigo (10/min por IP) recusaria todos depois do 10º pedido; o limite por pessoa impede testar um RA ou um link à vontade. A chave da pessoa é um **HMAC do RA com a `APP_KEY`** (o RA nunca vai em claro para o cache). Valores no `.env` (`LIMITE_*`). Custo: uma leitura e uma escrita no cache por limite.
 - **Proteção das rotas do admin (17/11/2026):** todas as rotas `api/admin/*`, `/me`, `/me/senha`, `/logout` e `/logout-geral` ficam no grupo `auth:sanctum` + `admin.ativo`. O `admin.ativo` (`app/Http/Middleware/AdminAtivo.php`) recusa com 401 um admin desativado mesmo que ainda tenha token, e apaga os tokens dele. O `RotasProtegidasTest` percorre a lista de rotas e exige 401 sem token em todas elas, para que uma rota nova criada fora do grupo seja pega pelo teste. Não há papéis: toda conta em `users` é admin, então autenticado = autorizado (Policies só se surgirem papéis).
 - **Desativar admin:** ele não faz mais login e perde todas as sessões na hora. Ninguém desativa a si mesmo, e sempre sobra pelo menos um admin ativo (verificado com trava). Reativar é `PATCH` com `ativo: true`.
 - **Login** de admin inativo ou com senha errada: a mesma resposta, "Credenciais inválidas".
@@ -822,7 +832,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 332 testes da API, 166 testes de unidade do front (Vitest) e 48 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 337 testes da API, 166 testes de unidade do front (Vitest) e 48 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -840,7 +850,7 @@ Arquivo: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Roda a cada **p
 - Um push novo na mesma branch cancela a execução anterior que ainda estiver rodando.
 - **Hoje se trabalha direto na `main`:** o CI avisa (❌), mas não impede o push. Para **bloquear** código que quebra os testes, usar uma branch por funcionalidade + pull request e ativar no GitHub *Settings → Branches → Branch protection rules* → "Require status checks to pass" (marcar os 5 jobs). Recomendado quando mais pessoas mexerem no projeto.
 
-Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories de `database/factories`. A data dos testes é fixada em **segunda-feira, 09/11/2026, 10:00** (`tests/TestCase.php`), para não dependerem do dia em que rodam. O limite de requisições por minuto fica desligado nos testes.
+Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories de `database/factories`. A data dos testes é fixada em **segunda-feira, 09/11/2026, 10:00** (`tests/TestCase.php`), para não dependerem do dia em que rodam. O limite de requisições por minuto fica desligado nos testes, menos no `LimitesPublicosTest`, que o religa.
 
 | Arquivo | O que cobre |
 |---|---|
@@ -853,6 +863,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
 | `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, **arredondamento para 15 min** (inclusive em conflitos e na duração máxima), espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela e arredondado, equipamentos pelo pico, redução de estoque pelo pico, **calendário com janela e ocupados** (reservas e bloqueios, sem RA), **`fim_minimo` de hoje e dia encerrado**, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
 | `VersaoDisponibilidadeTest` | Versão igual sem mudanças; muda depois de uma reserva e de um bloqueio; muda a cada faixa de 5 minutos; resposta só com a versão |
+| `LimitesPublicosTest` | Mesmo RA limitado sem afetar outro aluno do mesmo IP, limite por IP valendo para todos os RAs do IP, links do email limitados por token, consultas do calendário com o limite das consultas, RA fora da chave do limite |
 | `RotasProtegidasTest` | Toda rota do admin (e `/me`, `/logout`) responde 401 sem token; todas têm `auth:sanctum` e `admin.ativo`; admin desativado com token ainda válido é recusado e perde os tokens; admin ativo continua entrando |
 | `AuditoriaConsultaTest` | Histórico de um registro em ordem, nome curto no banco, filtros por admin e sem admin, por ação e período, senha oculta e aluno anonimizado, validações, paginação |
 | `AdminPrincipalTest` | Principal não desativado nem editado por outros, edita a si mesmo, desativa os outros, flag não muda pela API, seeder, comandos de criação (senha fraca, duplicado) e de transferência |
