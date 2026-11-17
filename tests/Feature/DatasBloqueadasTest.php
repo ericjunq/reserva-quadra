@@ -78,10 +78,11 @@ class DatasBloqueadasTest extends TestCase
         DataBloqueada::factory()->create(['data_inicio' => '2026-11-10', 'data_fim' => '2026-11-10']);
 
         $this->postJson('/api/admin/reservas/eventos', [
-            'espaco_id'    => $this->quadra->id,
-            'data_reserva' => '2026-11-10',
-            'horario'      => 'PRIMEIRO_HORARIO',
-            'descricao'    => 'Aula magna',
+            'espaco_id'        => $this->quadra->id,
+            'data_reserva'     => '2026-11-10',
+            'horario'          => 'PRIMEIRO_HORARIO',
+            'descricao'        => 'Aula magna',
+            'responsavel_nome' => 'Prof. Marcos Lima',
         ])->assertCreated();
     }
 

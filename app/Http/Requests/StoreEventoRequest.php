@@ -29,8 +29,10 @@ class StoreEventoRequest extends FormRequest
             'espaco_id'    => ['required', 'integer', Rule::exists('espacos', 'id')->where('ativo', true)],
             'data_reserva' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             ...$this->regrasHorario(),
-            'descricao'     => ['required', 'string', 'max:255'],
-            'justificativa' => ['nullable', 'string', 'min:10', 'max:500'],
+            'descricao'           => ['required', 'string', 'max:255'],
+            'responsavel_nome'    => ['required', 'string', 'min:3', 'max:100'],
+            'responsavel_contato' => ['nullable', 'string', 'max:120'],
+            'justificativa'       => ['nullable', 'string', 'min:10', 'max:500'],
         ];
     }
 

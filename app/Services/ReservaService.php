@@ -10,6 +10,7 @@ use App\Exceptions\RegraNegocioException;
 use App\Mail\ReservaRevogadaMail;
 use App\Mail\UsoRegistradoMail;
 use App\Models\Aluno;
+use App\Models\Auditoria;
 use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Models\Reserva;
@@ -101,21 +102,64 @@ class ReservaService
             $this->verificarDisponibilidadeEquipamentos($data);
 
             $reserva = Reserva::create([
-                'data_reserva' => $data['data_reserva'],
-                'horario'      => $data['horario'],
-                'hora_inicio'  => $data['hora_inicio'],
-                'hora_fim'     => $data['hora_fim'],
-                'espaco_id'    => $data['espaco_id'],
-                'descricao'    => $data['descricao'],
-                'criado_por'   => $admin->id,
-                'tipo'         => TipoReservaConstant::EVENTO,
-                'origem'       => OrigemReservaConstant::ADMIN,
+                'data_reserva'        => $data['data_reserva'],
+                'horario'             => $data['horario'],
+                'hora_inicio'         => $data['hora_inicio'],
+                'hora_fim'            => $data['hora_fim'],
+                'espaco_id'           => $data['espaco_id'],
+                'descricao'           => $data['descricao'],
+                'responsavel_nome'    => $data['responsavel_nome'],
+                'responsavel_contato' => $data['responsavel_contato'] ?? null,
+                'criado_por'          => $admin->id,
+                'tipo'                => TipoReservaConstant::EVENTO,
+                'origem'              => OrigemReservaConstant::ADMIN,
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
 
             return $reserva->load('equipamentos');
         });
+    }
+
+    public const VALOR_REMOVIDO = '[removido]';
+
+    public function atualizarResponsavel(Reserva $reserva, array $data): Reserva
+    {
+        if ($reserva->tipo !== TipoReservaConstant::EVENTO) {
+            throw new RegraNegocioException('Só eventos têm responsável.', 422);
+        }
+
+        return DB::transaction(function () use ($reserva, $data) {
+            if ($data['remover'] ?? false) {
+                $reserva->update(['responsavel_nome' => null, 'responsavel_contato' => null]);
+                $this->removerResponsavelDoHistorico($reserva);
+            } else {
+                $reserva->update([
+                    'responsavel_nome'    => $data['responsavel_nome'],
+                    'responsavel_contato' => $data['responsavel_contato'] ?? null,
+                ]);
+            }
+
+            return $reserva->load(self::RELACOES_ADMIN);
+        });
+    }
+
+    private function removerResponsavelDoHistorico(Reserva $reserva): void
+    {
+        $ocultar = function (?array $valores): ?array {
+            foreach (['responsavel_nome', 'responsavel_contato'] as $campo) {
+                if ($valores !== null && ($valores[$campo] ?? null) !== null) {
+                    $valores[$campo] = self::VALOR_REMOVIDO;
+                }
+            }
+
+            return $valores;
+        };
+
+        $reserva->auditorias()->get()->each(fn (Auditoria $auditoria) => $auditoria->update([
+            'antes'  => $ocultar($auditoria->antes),
+            'depois' => $ocultar($auditoria->depois),
+        ]));
     }
 
     public function registrarUsoPosterior(array $data, User $admin): array
@@ -139,16 +183,18 @@ class ReservaService
             $this->verificarDisponibilidadeEquipamentos($data);
 
             $reserva = Reserva::create([
-                'data_reserva' => $data['data_reserva'],
-                'horario'      => $data['horario'],
-                'hora_inicio'  => $data['hora_inicio'],
-                'hora_fim'     => $data['hora_fim'],
-                'espaco_id'    => $data['espaco_id'],
-                'aluno_id'     => $aluno?->id,
-                'descricao'    => $aluno ? null : $data['descricao'],
-                'criado_por'   => $admin->id,
-                'tipo'         => $aluno ? TipoReservaConstant::ALUNO : TipoReservaConstant::EVENTO,
-                'origem'       => OrigemReservaConstant::REGISTRO_POSTERIOR,
+                'data_reserva'        => $data['data_reserva'],
+                'horario'             => $data['horario'],
+                'hora_inicio'         => $data['hora_inicio'],
+                'hora_fim'            => $data['hora_fim'],
+                'espaco_id'           => $data['espaco_id'],
+                'aluno_id'            => $aluno?->id,
+                'descricao'           => $aluno ? null : $data['descricao'],
+                'responsavel_nome'    => $aluno ? null : $data['responsavel_nome'],
+                'responsavel_contato' => $aluno ? null : ($data['responsavel_contato'] ?? null),
+                'criado_por'          => $admin->id,
+                'tipo'                => $aluno ? TipoReservaConstant::ALUNO : TipoReservaConstant::EVENTO,
+                'origem'              => OrigemReservaConstant::REGISTRO_POSTERIOR,
             ]);
 
             $this->anexarEquipamentos($reserva, $data);

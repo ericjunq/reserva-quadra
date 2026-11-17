@@ -183,19 +183,21 @@ class HorarioLivreTest extends TestCase
         $this->comoAdmin();
 
         $this->postJson('/api/admin/reservas/eventos', [
-            'espaco_id'    => $this->lab->id,
-            'data_reserva' => '2026-11-14',
-            'hora_inicio'  => '18:00',
-            'hora_fim'     => '23:30',
-            'descricao'    => 'Maratona de programação',
+            'espaco_id'        => $this->lab->id,
+            'data_reserva'     => '2026-11-14',
+            'hora_inicio'      => '18:00',
+            'hora_fim'         => '23:30',
+            'descricao'        => 'Maratona de programação',
+            'responsavel_nome' => 'Prof. Marcos Lima',
         ])->assertCreated()->assertJsonPath('data.hora_fim', '23:30');
 
         $this->postJson('/api/admin/reservas/eventos', [
-            'espaco_id'    => $this->lab->id,
-            'data_reserva' => '2026-11-15',
-            'hora_inicio'  => '18:07',
-            'hora_fim'     => '19:08',
-            'descricao'    => 'Horário quebrado',
+            'espaco_id'        => $this->lab->id,
+            'data_reserva'     => '2026-11-15',
+            'hora_inicio'      => '18:07',
+            'hora_fim'         => '19:08',
+            'descricao'        => 'Horário quebrado',
+            'responsavel_nome' => 'Prof. Marcos Lima',
         ])->assertCreated()
             ->assertJsonPath('data.hora_inicio', '18:00')
             ->assertJsonPath('data.hora_fim', '19:15');

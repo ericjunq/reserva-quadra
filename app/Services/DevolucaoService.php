@@ -115,7 +115,13 @@ class DevolucaoService
 
     private function avisarAluno(Reserva $reserva, Collection $itens): void
     {
-        if ($itens->isEmpty() || ! $reserva->aluno) {
+        $destino = $reserva->aluno
+            ? ['email' => $reserva->aluno->email, 'nome' => $reserva->aluno->nome_completo]
+            : (filter_var($reserva->responsavel_contato, FILTER_VALIDATE_EMAIL)
+                ? ['email' => $reserva->responsavel_contato, 'nome' => $reserva->responsavel_nome]
+                : null);
+
+        if ($itens->isEmpty() || ! $destino) {
             return;
         }
 
@@ -127,8 +133,8 @@ class DevolucaoService
             'observacao'           => $item->observacao_devolucao,
         ])->values()->all();
 
-        Mail::to($reserva->aluno->email)->queue(
-            (new DevolucaoComPendenciaMail($reserva->load('aluno', 'espaco'), $resumo))->afterCommit()
+        Mail::to($destino['email'])->queue(
+            (new DevolucaoComPendenciaMail($reserva->load('espaco'), $resumo, $destino['nome']))->afterCommit()
         );
     }
 }

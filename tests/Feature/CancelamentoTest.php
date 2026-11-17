@@ -163,10 +163,11 @@ class CancelamentoTest extends TestCase
         $this->comoAdmin();
 
         $this->postJson('/api/admin/reservas/eventos', [
-            'espaco_id'    => $this->quadra->id,
-            'data_reserva' => '2026-11-12',
-            'horario'      => 'PRIMEIRO_HORARIO',
-            'descricao'    => 'Palestra',
+            'espaco_id'        => $this->quadra->id,
+            'data_reserva'     => '2026-11-12',
+            'horario'          => 'PRIMEIRO_HORARIO',
+            'descricao'        => 'Palestra',
+            'responsavel_nome' => 'Prof. Marcos Lima',
         ])->assertCreated();
 
         Mail::assertNotQueued(PedidoConfirmacaoMail::class);

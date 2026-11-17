@@ -41,11 +41,12 @@ class ReservaFactory extends Factory
     public function evento(): static
     {
         return $this->state([
-            'aluno_id'   => null,
-            'criado_por' => User::factory(),
-            'tipo'       => TipoReservaConstant::EVENTO,
-            'origem'     => OrigemReservaConstant::ADMIN,
-            'descricao'  => 'Evento da faculdade',
+            'aluno_id'         => null,
+            'criado_por'       => User::factory(),
+            'tipo'             => TipoReservaConstant::EVENTO,
+            'origem'           => OrigemReservaConstant::ADMIN,
+            'descricao'        => 'Evento da faculdade',
+            'responsavel_nome' => 'Prof. Marcos Lima',
         ]);
     }
 

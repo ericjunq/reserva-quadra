@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Constants\StatusConstant;
+use App\Constants\TipoReservaConstant;
 use App\Http\Resources\Concerns\ExibeAuditoria;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -41,7 +42,11 @@ class ReservaResource extends JsonResource
                     ? ['id' => $this->aluno->curso->id, 'nome' => $this->aluno->curso->nome]
                     : null,
             ] : null),
-            'descricao'    => $this->descricao,
+            'descricao'   => $this->descricao,
+            'responsavel' => $this->when(
+                $request->is('api/admin/*') && $this->tipo === TipoReservaConstant::EVENTO,
+                fn () => ['nome' => $this->responsavel_nome, 'contato' => $this->responsavel_contato],
+            ),
             'equipamentos' => $this->whenLoaded('equipamentos', fn () => $this->equipamentos->map(fn ($e) => [
                 'id'          => $e->id,
                 'nome'        => $e->nome,

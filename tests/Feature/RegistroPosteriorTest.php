@@ -81,10 +81,11 @@ class RegistroPosteriorTest extends TestCase
         $this->comoAdmin();
 
         $this->registrar([
-            'espaco_id'    => $this->quadra->id,
-            'data_reserva' => '2026-11-07',
-            'horario'      => HorarioReservaConstant::PRIMEIRO_HORARIO->value,
-            'descricao'    => 'Turma de Enfermagem',
+            'espaco_id'        => $this->quadra->id,
+            'data_reserva'     => '2026-11-07',
+            'horario'          => HorarioReservaConstant::PRIMEIRO_HORARIO->value,
+            'descricao'        => 'Turma de Enfermagem',
+            'responsavel_nome' => 'Prof. Marcos Lima',
         ])->assertCreated()
             ->assertJsonPath('data.tipo', 'EVENTO')
             ->assertJsonPath('data.origem', 'REGISTRO_POSTERIOR')

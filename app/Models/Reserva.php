@@ -34,6 +34,8 @@ class Reserva extends Model
         'tipo',
         'origem',
         'descricao',
+        'responsavel_nome',
+        'responsavel_contato',
         'justificativa_revogacao',
         'revogada_em',
         'revogada_por',

@@ -14,7 +14,7 @@ class DevolucaoComPendenciaMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Reserva $reserva, public array $itens) {}
+    public function __construct(public Reserva $reserva, public array $itens, public string $nome) {}
 
     public function envelope(): Envelope
     {

@@ -49,7 +49,7 @@ class EmailsTest extends TestCase
             'convite'   => [new ConviteAdminMail('Ana', self::FRONT.'/admin/convite#t', $prazo, 'Eric'), 'Convite para acessar o sistema de reservas', self::FRONT.'/admin/convite', true],
             'devolução' => [new DevolucaoComPendenciaMail($reserva, [[
                 'nome' => 'Bola', 'quantidade' => 2, 'quantidade_devolvida' => 1, 'situacao' => 'Não devolvido', 'observacao' => 'Faltou uma',
-            ]]), 'Pendência na devolução de equipamentos', 'Faltou uma', true],
+            ]], 'Carla'), 'Pendência na devolução de equipamentos', 'Faltou uma', true],
             'confirmação' => [new PedidoConfirmacaoMail(
                 $reserva, 'Carla', self::FRONT.'/reservas/confirmar#a', self::FRONT.'/reservas/cancelar#b', $prazo, EtapaConfirmacaoConstant::CONFIRMACAO,
             ), null, self::FRONT.'/reservas/confirmar', true],

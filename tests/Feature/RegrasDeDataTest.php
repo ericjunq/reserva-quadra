@@ -34,10 +34,11 @@ class RegrasDeDataTest extends TestCase
         $this->comoAdmin();
 
         $this->postJson('/api/admin/reservas/eventos', [
-            'espaco_id'    => Espaco::factory()->quadra()->create()->id,
-            'data_reserva' => '2026-11-14',
-            'horario'      => 'PRIMEIRO_HORARIO',
-            'descricao'    => 'Campeonato das atléticas',
+            'espaco_id'        => Espaco::factory()->quadra()->create()->id,
+            'data_reserva'     => '2026-11-14',
+            'horario'          => 'PRIMEIRO_HORARIO',
+            'descricao'        => 'Campeonato das atléticas',
+            'responsavel_nome' => 'Prof. Marcos Lima',
         ])->assertCreated();
     }
 

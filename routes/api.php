@@ -101,6 +101,7 @@ Route::middleware(['auth:sanctum', 'admin.ativo'])->group(function () {
         Route::post('/reservas/aluno', [ReservaController::class, 'storeParaAluno']);
         Route::post('/reservas/registro-posterior', [ReservaController::class, 'registrarUsoPosterior']);
         Route::post('/reservas/{reserva}/revogar', [ReservaController::class, 'revogar']);
+        Route::patch('/reservas/{reserva}/responsavel', [ReservaController::class, 'atualizarResponsavel']);
         Route::post('/reservas/{reserva}/devolucao', [ReservaController::class, 'registrarDevolucao']);
         Route::post('/reservas/{reserva}/solicitacoes/aprovar', [SolicitacaoController::class, 'aprovar']);
         Route::post('/reservas/{reserva}/solicitacoes/recusar', [SolicitacaoController::class, 'recusar']);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AtualizarResponsavelRequest;
 use App\Http\Requests\ListarReservasRequest;
 use App\Http\Requests\RegistrarDevolucaoRequest;
 use App\Http\Requests\RegistrarUsoPosteriorRequest;
@@ -63,6 +64,11 @@ class ReservaController extends Controller
     public function registrarDevolucao(RegistrarDevolucaoRequest $request, Reserva $reserva, DevolucaoService $devolucaoService)
     {
         return new ReservaResource($devolucaoService->registrar($reserva, $request->validated('itens'), $request->user()));
+    }
+
+    public function atualizarResponsavel(AtualizarResponsavelRequest $request, Reserva $reserva)
+    {
+        return new ReservaResource($this->reservaService->atualizarResponsavel($reserva, $request->validated()));
     }
 
     public function revogar(RevogarReservaRequest $request, Reserva $reserva)

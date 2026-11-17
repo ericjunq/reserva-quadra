@@ -1,9 +1,9 @@
 <x-mail::message>
 # Pendência na devolução de equipamentos
 
-Olá, {{ $reserva->aluno->nome_completo }}.
+Olá, {{ $nome }}.
 
-Na sua reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_reserva->format('d/m/Y') }}**, das **{{ substr($reserva->hora_inicio, 0, 5) }}** às **{{ substr($reserva->hora_fim, 0, 5) }}**, a devolução destes equipamentos foi registrada com pendência:
+Na reserva do espaço **{{ $reserva->espaco->nome }}** em **{{ $reserva->data_reserva->format('d/m/Y') }}**, das **{{ substr($reserva->hora_inicio, 0, 5) }}** às **{{ substr($reserva->hora_fim, 0, 5) }}**, a devolução destes equipamentos foi registrada com pendência:
 
 <x-mail::table>
 | Equipamento | Reservado | Devolvido | Situação | Observação |

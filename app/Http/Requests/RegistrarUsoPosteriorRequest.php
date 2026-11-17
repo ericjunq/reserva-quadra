@@ -45,7 +45,9 @@ class RegistrarUsoPosteriorRequest extends FormRequest
                 'nullable', 'required_without:descricao', 'prohibits:descricao', 'string', 'size:10',
                 Rule::exists('alunos', 'registro_academico')->where('ativo', true),
             ],
-            'descricao' => ['nullable', 'required_without:registro_academico', 'string', 'max:255'],
+            'descricao'           => ['nullable', 'required_without:registro_academico', 'string', 'max:255'],
+            'responsavel_nome'    => ['nullable', 'required_with:descricao', 'prohibits:registro_academico', 'string', 'min:3', 'max:100'],
+            'responsavel_contato' => ['nullable', 'prohibits:registro_academico', 'string', 'max:120'],
         ];
     }
 
@@ -58,6 +60,7 @@ class RegistrarUsoPosteriorRequest extends FormRequest
             'descricao.required_without'          => 'Informe o RA do aluno ou a descrição do grupo.',
             'registro_academico.prohibits'        => 'Informe o RA do aluno ou a descrição do grupo, não os dois.',
             'registro_academico.exists'           => 'Não há aluno ativo com esse RA.',
+            'responsavel_nome.required_with'      => 'Informe o responsável pelo grupo.',
         ];
     }
 

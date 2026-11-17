@@ -22,10 +22,11 @@ class EventoERevogacaoTest extends TestCase
     private function evento(Reserva $reserva, array $extra = []): array
     {
         return array_merge([
-            'espaco_id'    => $reserva->espaco_id,
-            'data_reserva' => $reserva->data_reserva->toDateString(),
-            'horario'      => 'PRIMEIRO_HORARIO',
-            'descricao'    => 'Torneio das atléticas',
+            'espaco_id'        => $reserva->espaco_id,
+            'data_reserva'     => $reserva->data_reserva->toDateString(),
+            'horario'          => 'PRIMEIRO_HORARIO',
+            'descricao'        => 'Torneio das atléticas',
+            'responsavel_nome' => 'Prof. Marcos Lima',
         ], $extra);
     }
 
