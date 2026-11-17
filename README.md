@@ -1124,7 +1124,7 @@ Na ordem combinada (revisado em 16/11/2026). O detalhe de cada passo (o que far�
 4. ✅ **11.8 — acabamento** e **11.9 — estoque e responsável do evento** (17/11/2026).
 5. **Passo 12 — grade de aulas (importação):** aprovado com ajustes em 13/11/2026; falta decidir a reimportação e saber o formato do arquivo da faculdade. Detalhes no passo 12 do CHECKLIST.
 6. ✅ **Passo 13 — API para sistemas parceiros** (17/11/2026): cadastro com responsável, aceite dos termos da API, token de 12 meses com permissões, `/api/v1`, limite por sistema, auditoria por sistema, telas e OpenAPI + guia em `docs/`. A importação da grade pelo sistema acadêmico (`aulas:importar`) entra com o passo 12.
-7. **⏸️ Pendente (decisão do usuário, 16/11/2026): serviço de disparo de emails.** Em desenvolvimento os emails vão para o Mailtrap Sandbox (não entregam no Gmail). Falta escolher o envio real para testes e o de produção (SMTP da faculdade ou serviço transacional com o domínio dela). Ver "Enviar emails de verdade (teste local)".
+7. **Serviço de disparo de emails:** para testes, **Resend** (decisão de 17/11/2026; passo a passo em "Enviar emails de verdade"). **⏸️ Produção pendente** até a conversa com a faculdade: recomendado o SMTP da própria faculdade; alternativa, serviço transacional com o domínio dela (SPF, DKIM, DMARC). Ver "Enviar emails de verdade (teste local)".
 8. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md); termos e aviso de privacidade revisados pela faculdade.
 
 ### Front-end: identidade visual
@@ -1210,6 +1210,17 @@ Para testar a confirmação recebendo o email numa caixa real (explicado ao usu�
    ```
    **Senha de app** é uma senha separada, de 16 letras, que o Google gera para um programa (aqui, o Laravel) mandar email pela conta sem usar a senha principal; só existe com a verificação em duas etapas ligada e pode ser apagada a qualquer momento sem afetar a conta. O `FRONTEND_URL` não faz parte do bloco `MAIL_*` (fica no topo do `.env`); a API o usa para montar os links dos emails (`FRONTEND_URL/reservas/confirmar/<token>`).
    Se a página de senhas de app disser "não está disponível para sua conta" (aconteceu com o usuário em 13/11, mesmo tentando ativar), usar uma das alternativas abaixo.
+   - **Resend** (entrega de verdade; **escolhido pelo usuário em 17/11/2026 para os testes**): criar a conta em resend.com entrando com o Google ou o GitHub, gerar uma chave em *API Keys* (permissão *Sending access*) e usar no `.env`:
+     ```env
+     MAIL_MAILER=smtp
+     MAIL_SCHEME=null
+     MAIL_HOST=smtp.resend.com
+     MAIL_PORT=587
+     MAIL_USERNAME=resend
+     MAIL_PASSWORD="chave da API, começa com re_"
+     MAIL_FROM_ADDRESS=onboarding@resend.dev
+     ```
+     Sem domínio próprio, o Resend **só entrega para o email da própria conta**: cadastre o aluno de teste (e o admin, para o código de login) com esse email. Grátis até 100 por dia. Os emails enviados aparecem no painel (*Emails*). Para entregar a qualquer pessoa, é preciso verificar um domínio (DNS), o que fica para a produção com a faculdade.
    - **Mailtrap Sandbox** (recomendado para testar; nada chega a ninguém, os emails aparecem no painel e os links podem ser clicados de lá): `MAIL_HOST=sandbox.smtp.mailtrap.io`, `MAIL_PORT=2525`, `MAIL_USERNAME` e `MAIL_PASSWORD` copiados de *Sandboxes → (caixa) → Integration → SMTP*; `MAIL_FROM_ADDRESS` pode ser qualquer endereço.
    - **Brevo** (entrega de verdade, grátis até 300 por dia): `MAIL_HOST=smtp-relay.brevo.com`, `MAIL_PORT=587`, `MAIL_USERNAME` = o login SMTP do painel (*SMTP & API*, algo como `xxxx@smtp-brevo.com`), `MAIL_PASSWORD` = uma chave SMTP gerada lá; o `MAIL_FROM_ADDRESS` precisa ser um remetente confirmado em *Senders*.
 2. `php artisan config:clear` e **reiniciar** o `php artisan queue:work` (o worker guarda a configuração antiga enquanto roda). Sem o worker rodando, os emails ficam parados na fila.
