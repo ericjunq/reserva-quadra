@@ -43,7 +43,7 @@ return [
     'doesnt_contain'    => 'O campo :attribute não deve conter nenhum dos seguintes: :values.',
     'doesnt_end_with'   => 'O campo :attribute não pode terminar com um dos seguintes: :values.',
     'doesnt_start_with' => 'O campo :attribute não pode começar com um dos seguintes: :values.',
-    'email'             => 'O campo :attribute não contém um endereço de e-mail válido.',
+    'email'             => 'O campo :attribute não contém um endereço de email válido.',
     'encoding'          => 'O campo :attribute deve ser codificado em :encoding.',
     'ends_with'         => 'O campo :attribute deve terminar com um dos seguintes: :values.',
     'enum'              => 'O :attribute selecionado é inválido.',
