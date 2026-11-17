@@ -334,6 +334,31 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
       link_aceite: null,
     },
   ];
+  let reservaComBola: Record<string, unknown> = {
+    ...reservaDoAdmin,
+    id: 78,
+    data_reserva: datas.hoje,
+    hora_inicio: '00:00',
+    hora_fim: '23:59',
+    espaco: { id: 1, nome: 'Quadra Poliesportiva', tipo: 'QUADRA' },
+    situacao_confirmacao: 'CONFIRMADA',
+    equipamentos: [
+      {
+        id: 2,
+        nome: 'Bola de vôlei',
+        quantidade: 3,
+        retirada: null,
+        devolucao: {
+          situacao: 'PENDENTE',
+          quantidade_devolvida: null,
+          observacao: null,
+          devolvido_em: null,
+          devolvido_por: null,
+        },
+        solicitacao: null,
+      },
+    ],
+  };
   let equipamentoDoAdmin: Record<string, unknown> = {
     id: 5,
     espaco_id: 4,
@@ -790,6 +815,55 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         meta: { current_page: 1, last_page: 1, total: lista.length, per_page: 15 },
         totais_por_status: { RESERVADO: lista.length, CANCELADO: 0, REVOGADO: 0 },
       });
+    }
+    if (caminho === '/admin/equipamentos/fora-agora') {
+      const equipamentos = reservaComBola['equipamentos'] as {
+        nome: string;
+        id: number;
+        retirada: { quantidade: number; retirado_em: string } | null;
+      }[];
+      const fora = equipamentos
+        .filter((item) => item.retirada && item.retirada.quantidade > 0)
+        .map((item) => ({
+          equipamento: { id: item.id, nome: item.nome },
+          quantidade: item.retirada!.quantidade,
+          retirado_em: item.retirada!.retirado_em,
+          reserva: {
+            id: 78,
+            data_reserva: datas.hoje,
+            hora_inicio: '00:00',
+            hora_fim: '23:59',
+            espaco: 'Quadra Poliesportiva',
+            com_quem: 'Carla Dias',
+            terminou: false,
+          },
+        }));
+      return json({ data: fora, total: fora.length });
+    }
+    if (caminho === '/admin/reservas/78') {
+      return json({ data: reservaComBola });
+    }
+    if (caminho === '/admin/reservas/78/retirada') {
+      const itens = requisicao.postDataJSON().itens as {
+        equipamento_id: number;
+        quantidade_retirada: number;
+      }[];
+      reservaComBola = {
+        ...reservaComBola,
+        equipamentos: (reservaComBola['equipamentos'] as { id: number }[]).map((item) => {
+          const enviado = itens.find((i) => i.equipamento_id === item.id);
+          return enviado
+            ? {
+                ...item,
+                retirada: {
+                  quantidade: enviado.quantidade_retirada,
+                  retirado_em: new Date().toISOString(),
+                },
+              }
+            : item;
+        }),
+      };
+      return json({ data: reservaComBola });
     }
     if (caminho === '/admin/reservas/77') {
       return json({ data: reservaDoAdmin });

@@ -72,6 +72,7 @@ test('as páginas do admin não têm problemas de acessibilidade', async ({ page
   for (const [caminho, nome] of [
     ['/admin/reservas', 'reservas'],
     ['/admin/reservas/77', 'detalhe da reserva'],
+    ['/admin/reservas/78', 'detalhe com retirada e devolução'],
     ['/admin/reservas/nova', 'nova reserva'],
     ['/admin/calendario', 'calendário do admin'],
     ['/admin/cadastros', 'cadastros'],
