@@ -19,6 +19,7 @@ use App\Http\Controllers\ReservaController;
 use App\Http\Controllers\RetiradaController;
 use App\Http\Controllers\SenhaController;
 use App\Http\Controllers\SolicitacaoController;
+use App\Http\Controllers\SugestaoCompartilhamentoController;
 use App\Http\Controllers\TermosController;
 use App\Http\Controllers\V1\EspacoParceiroController;
 use App\Http\Controllers\V1\ReservaParceiroController;
@@ -79,6 +80,9 @@ Route::middleware(['auth:sanctum', 'admin.ativo'])->group(function () {
 
     Route::prefix('admin')->group(function () {
         Route::get('/equipamentos/fora-agora', [RetiradaController::class, 'foraAgora']);
+        Route::get('/equipamentos/sugestoes-compartilhamento', [SugestaoCompartilhamentoController::class, 'index']);
+        Route::post('/equipamentos/{equipamento}/sugestoes-compartilhamento/{espaco}/aceitar', [SugestaoCompartilhamentoController::class, 'aceitar']);
+        Route::post('/equipamentos/{equipamento}/sugestoes-compartilhamento/{espaco}/dispensar', [SugestaoCompartilhamentoController::class, 'dispensar']);
 
         foreach ([
             'equipamentos' => EquipamentoController::class,

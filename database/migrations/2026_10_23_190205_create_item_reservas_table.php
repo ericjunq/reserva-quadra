@@ -36,6 +36,7 @@ return new class extends Migration
             $table->index(['situacao_devolucao', 'reserva_id']);
             $table->index(['situacao_devolucao', 'retirado_em']);
             $table->index(['situacao_solicitacao', 'responder_ate']);
+            $table->index(['situacao_solicitacao', 'respondida_em']);
         });
     }
 

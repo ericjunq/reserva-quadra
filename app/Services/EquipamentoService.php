@@ -109,6 +109,24 @@ class EquipamentoService
         });
     }
 
+    public function compartilharCom(Equipamento $equipamento, Espaco $espaco): Equipamento
+    {
+        if ($equipamento->espaco_id === $espaco->id) {
+            throw new RegraNegocioException('O equipamento já pertence a este espaço.');
+        }
+
+        if (! $espaco->ativo) {
+            throw new RegraNegocioException('O espaço está desativado.');
+        }
+
+        return DB::transaction(function () use ($equipamento, $espaco) {
+            $atuais = $equipamento->espacosCompartilhados()->pluck('espacos.id')->all();
+            $this->compartilhar($equipamento, [...$atuais, $espaco->id]);
+
+            return $equipamento->load('espacosCompartilhados:id,nome');
+        });
+    }
+
     public function desativar(Equipamento $equipamento): void
     {
         $equipamento->update(['ativo' => false]);

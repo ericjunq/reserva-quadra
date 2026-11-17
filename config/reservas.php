@@ -28,6 +28,11 @@ return [
 
     'solicitacao_tempo_minimo_resposta_horas' => (int) env('RESERVA_SOLICITACAO_TEMPO_MINIMO_RESPOSTA_HORAS', 2),
 
+    'sugestao_compartilhamento' => [
+        'minimo_pedidos' => (int) env('SUGESTAO_COMPARTILHAMENTO_MINIMO', 3),
+        'dias'           => (int) env('SUGESTAO_COMPARTILHAMENTO_DIAS', 60),
+    ],
+
     'retirada_minutos_antes' => (int) env('RETIRADA_MINUTOS_ANTES', 30),
 
     'manter_reserva_horas' => (int) env('RESERVA_MANTER_HORAS', 12),
