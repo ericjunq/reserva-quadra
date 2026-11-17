@@ -40,6 +40,13 @@ return [
 
     'jobs_falhos_retencao_horas' => (int) env('RESERVA_JOBS_FALHOS_RETENCAO_HORAS', 168),
 
+    'limites' => [
+        'ip_acoes'     => (int) env('LIMITE_IP_ACOES_POR_MINUTO', 60),
+        'ip_consultas' => (int) env('LIMITE_IP_CONSULTAS_POR_MINUTO', 120),
+        'por_pessoa'   => (int) env('LIMITE_POR_PESSOA_POR_MINUTO', 5),
+        'consulta_ra'  => (int) env('LIMITE_CONSULTA_POR_RA_POR_MINUTO', 20),
+    ],
+
     'login_com_codigo' => (bool) env('LOGIN_COM_CODIGO', true),
 
     'alertas_email' => env('ALERTAS_EMAIL'),
