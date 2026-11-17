@@ -103,6 +103,13 @@
         <p class="mt-1 text-sm text-red-700">{{ mensagem }}</p>
       }
     </div>
+    <app-campos-do-responsavel
+      prefixo="evento"
+      [(nome)]="responsavelNome"
+      [(contato)]="responsavelContato"
+      [erroNome]="erroDoCampo('responsavel_nome')"
+      [erroContato]="erroDoCampo('responsavel_contato')"
+    />
   }
 
   @if (paraQuem() === 'EVENTO' && conflito(); as conflitante) {

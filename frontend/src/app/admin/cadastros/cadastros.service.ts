@@ -13,6 +13,8 @@ import {
   DadosDoEspaco,
   EquipamentoCadastro,
   EspacoCadastro,
+  DadosDaMovimentacao,
+  MovimentacaoEstoque,
   Pagina,
 } from './modelos';
 
@@ -88,6 +90,30 @@ export class CadastrosService {
 
   desativarEquipamento(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/equipamentos/${id}`);
+  }
+
+  listarMovimentacoes(
+    equipamentoId: number,
+    pagina: number,
+  ): Observable<Pagina<MovimentacaoEstoque>> {
+    return this.http.get<Pagina<MovimentacaoEstoque>>(
+      `${this.url}/equipamentos/${equipamentoId}/movimentacoes`,
+      { params: new HttpParams().set('page', pagina) },
+    );
+  }
+
+  movimentarEstoque(
+    equipamentoId: number,
+    dados: DadosDaMovimentacao,
+  ): Observable<{ movimentacao: MovimentacaoEstoque; equipamento: EquipamentoCadastro }> {
+    return this.http
+      .post<{ data: MovimentacaoEstoque; equipamento: EquipamentoCadastro }>(
+        `${this.url}/equipamentos/${equipamentoId}/movimentacoes`,
+        dados,
+      )
+      .pipe(
+        map((resposta) => ({ movimentacao: resposta.data, equipamento: resposta.equipamento })),
+      );
   }
 
   listarCursos(pagina: number): Observable<Pagina<CursoCadastro>> {

@@ -75,6 +75,8 @@ export interface NovoEvento {
   hora_inicio?: string;
   hora_fim?: string;
   descricao: string;
+  responsavel_nome: string;
+  responsavel_contato?: string;
   equipamentos?: { id: number; quantidade: number }[];
   justificativa?: string;
 }

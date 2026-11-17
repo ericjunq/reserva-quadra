@@ -70,6 +70,15 @@ export class ReservasAdminService {
       .pipe(map((resposta) => resposta.data));
   }
 
+  atualizarResponsavel(
+    id: number,
+    dados: { responsavel_nome: string; responsavel_contato?: string } | { remover: true },
+  ): Observable<ReservaAdmin> {
+    return this.http
+      .patch<Resposta<ReservaAdmin>>(`${this.url}/${id}/responsavel`, dados)
+      .pipe(map((resposta) => resposta.data));
+  }
+
   registrarDevolucao(id: number, itens: ItemDevolucao[]): Observable<ReservaAdmin> {
     return this.http
       .post<Resposta<ReservaAdmin>>(`${this.url}/${id}/devolucao`, { itens })

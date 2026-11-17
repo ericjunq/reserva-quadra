@@ -84,6 +84,9 @@ type Resultado =
                   <p class="text-sm text-slate-700">
                     {{ nomeDoEspaco(equipamento.espaco_id) }} ·
                     {{ equipamento.quantidade_total }} no total
+                    @if (equipamento.quantidade_em_manutencao) {
+                      · {{ equipamento.quantidade_em_manutencao }} em manutenção
+                    }
                     @if (equipamento.espacos_compartilhados?.length) {
                       · compartilhado com {{ equipamento.espacos_compartilhados!.length }} espaço(s)
                     }

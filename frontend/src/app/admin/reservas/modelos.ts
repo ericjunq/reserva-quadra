@@ -51,6 +51,7 @@ export interface ReservaAdmin {
     curso: { id: number; nome: string } | null;
   } | null;
   descricao: string | null;
+  responsavel?: { nome: string | null; contato: string | null };
   equipamentos?: EquipamentoDaReserva[];
   justificativa_revogacao?: string | null;
   revogada_em?: string | null;
@@ -110,6 +111,8 @@ export interface NovoUsoPosterior {
   hora_fim?: string;
   registro_academico?: string;
   descricao?: string;
+  responsavel_nome?: string;
+  responsavel_contato?: string;
   equipamentos?: { id: number; quantidade: number }[];
 }
 

@@ -71,23 +71,28 @@
           <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
         }
       </div>
-      <div>
-        <label for="equipamento-quantidade" class="block font-semibold text-slate-900"
-          >Quantidade total</label
-        >
-        <input
-          id="equipamento-quantidade"
-          name="quantidade"
-          type="number"
-          min="1"
-          class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2"
-          [ngModel]="quantidade()"
-          (ngModelChange)="quantidade.set($event)"
-        />
-        @if (erroDoCampo('quantidade_total'); as texto) {
-          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
-        }
-      </div>
+      @if (!equipamento()) {
+        <div>
+          <label for="equipamento-quantidade" class="block font-semibold text-slate-900"
+            >Quantidade total</label
+          >
+          <input
+            id="equipamento-quantidade"
+            name="quantidade"
+            type="number"
+            min="1"
+            class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2"
+            [ngModel]="quantidade()"
+            (ngModelChange)="quantidade.set($event)"
+          />
+          @if (erroDoCampo('quantidade_total'); as texto) {
+            <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+          }
+        </div>
+        <p class="mt-1 text-sm text-slate-600">
+          Depois de criado, a quantidade muda pelo estoque, sempre com o estado do equipamento.
+        </p>
+      }
       <label class="flex items-start gap-2">
         <input
           type="checkbox"
@@ -135,6 +140,9 @@
     </form>
 
     @if (equipamento(); as atual) {
+      <div class="mt-6">
+        <app-estoque-equipamento [equipamento]="atual" (atualizado)="estoqueAtualizado($event)" />
+      </div>
       <section class="mt-6 max-w-2xl" aria-label="Situação">
         @if (atual.ativo) {
           <app-confirmar-acao

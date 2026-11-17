@@ -296,6 +296,12 @@ describe('calendário do admin', () => {
       const descricao = elemento.querySelector('#evento-descricao') as HTMLInputElement;
       descricao.value = 'Maratona de programação';
       descricao.dispatchEvent(new Event('input'));
+      const responsavel = elemento.querySelector('#evento-responsavel') as HTMLInputElement;
+      responsavel.value = 'Prof. Marcos Lima';
+      responsavel.dispatchEvent(new Event('input'));
+      const contato = elemento.querySelector('#evento-contato') as HTMLInputElement;
+      contato.value = 'marcos@fac.edu';
+      contato.dispatchEvent(new Event('input'));
       const projetor = elemento.querySelector('#equipamento-5') as HTMLInputElement;
       projetor.value = '1';
       projetor.dispatchEvent(new Event('input'));
@@ -310,6 +316,8 @@ describe('calendário do admin', () => {
         hora_inicio: '10:00',
         hora_fim: '14:00',
         descricao: 'Maratona de programação',
+        responsavel_nome: 'Prof. Marcos Lima',
+        responsavel_contato: 'marcos@fac.edu',
         equipamentos: [{ id: 5, quantidade: 1 }],
       });
       primeira.flush(

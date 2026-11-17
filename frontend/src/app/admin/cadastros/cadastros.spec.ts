@@ -164,8 +164,13 @@ describe('cadastros do admin', () => {
       },
     });
     await estabilizar(fixture);
+    controle
+      .expectOne(`${url}/admin/equipamentos/7/movimentacoes?page=1`)
+      .flush({ data: [], meta: { current_page: 1, last_page: 1, total: 0, per_page: 15 } });
+    await estabilizar(fixture);
 
     const elemento = fixture.nativeElement as HTMLElement;
+    expect(elemento.querySelector('#equipamento-quantidade')).toBeNull();
     expect((elemento.querySelector('#equipamento-espaco') as HTMLSelectElement).disabled).toBe(
       true,
     );
@@ -183,7 +188,6 @@ describe('cadastros do admin', () => {
     expect(envio.request.method).toBe('PATCH');
     expect(envio.request.body).toEqual({
       nome: 'Projetor',
-      quantidade_total: 2,
       aceita_solicitacao: true,
       espacos_compartilhados: [5, 6],
     });

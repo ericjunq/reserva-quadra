@@ -66,6 +66,12 @@
                 </dt>
                 <dd class="text-slate-900">{{ reserva.descricao || 'Sem descrição' }}</dd>
               </div>
+              <div>
+                <dt class="text-sm text-slate-600">Responsável</dt>
+                <dd>
+                  <app-responsavel-do-evento [reserva]="reserva" (atualizada)="atualizar($event)" />
+                </dd>
+              </div>
             }
             @if (reserva.status === 'REVOGADO' && reserva.justificativa_revogacao) {
               <div>
@@ -173,6 +179,32 @@
                         · {{ equipamento.devolucao.observacao }}
                       }
                     </p>
+                    @if (temPendencia(equipamento)) {
+                      @if (ajustandoEstoque() === equipamento.id) {
+                        <div class="mt-3 rounded-xl bg-slate-50 p-3">
+                          <app-ajustar-estoque
+                            [equipamento]="{ id: equipamento.id }"
+                            [reservaId]="reserva.id"
+                            [tipoInicial]="
+                              equipamento.devolucao.situacao === 'NAO_DEVOLVIDO'
+                                ? 'NAO_DEVOLVIDO'
+                                : 'MANUTENCAO'
+                            "
+                            [quantidadeInicial]="quantidadeSugerida(equipamento)"
+                            [estadoInicial]="equipamento.devolucao.observacao ?? ''"
+                            (ajustado)="estoqueAjustado($event)"
+                          />
+                        </div>
+                      } @else {
+                        <button
+                          type="button"
+                          class="mt-2 rounded-full px-3 py-1 text-sm font-semibold text-azul ring-1 ring-azul/40"
+                          (click)="ajustandoEstoque.set(equipamento.id)"
+                        >
+                          Ajustar o estoque
+                        </button>
+                      }
+                    }
                   }
                 </li>
               }
@@ -187,6 +219,11 @@
                   (respondida)="atualizar($event)"
                 />
               </div>
+            }
+            @if (mensagemDoEstoque(); as mensagem) {
+              <p class="mt-3 rounded-lg bg-emerald-50 px-4 py-3 text-emerald-900" role="status">
+                {{ mensagem }}
+              </p>
             }
             @if (podeRegistrarDevolucao()) {
               <h3 class="mt-6 font-semibold text-slate-900">Registrar a devolução</h3>

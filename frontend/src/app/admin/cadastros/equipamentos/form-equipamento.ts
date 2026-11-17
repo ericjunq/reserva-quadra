@@ -10,6 +10,7 @@ import { CadastrosService } from '../cadastros.service';
 import { ConfirmarAcao } from '../confirmar-acao';
 import { DadosDoEquipamento, EquipamentoCadastro } from '../modelos';
 import { HistoricoDoRegistro } from '../../historico/historico-do-registro';
+import { EstoqueEquipamento } from '../estoque/estoque-equipamento';
 
 type Carga =
   | { tipo: 'carregando' }
@@ -18,7 +19,14 @@ type Carga =
 
 @Component({
   selector: 'app-form-equipamento',
-  imports: [FormsModule, RouterLink, AvisoErro, ConfirmarAcao, HistoricoDoRegistro],
+  imports: [
+    FormsModule,
+    RouterLink,
+    AvisoErro,
+    ConfirmarAcao,
+    HistoricoDoRegistro,
+    EstoqueEquipamento,
+  ],
   templateUrl: './form-equipamento.html',
 })
 export class FormEquipamento {
@@ -94,11 +102,13 @@ export class FormEquipamento {
     }
     const dados: DadosDoEquipamento = {
       nome: this.nome().trim(),
-      quantidade_total: Number(this.quantidade()) || 0,
       aceita_solicitacao: this.aceitaSolicitacao(),
       espacos_compartilhados: this.compartilhados(),
     };
     const atual = this.equipamento();
+    if (!atual) {
+      dados.quantidade_total = Number(this.quantidade()) || 0;
+    }
     if (atual) {
       this.executar(this.api.atualizarEquipamento(atual.id, dados), 'Equipamento salvo.');
       return;
@@ -134,6 +144,10 @@ export class FormEquipamento {
         'Equipamento reativado.',
       );
     }
+  }
+
+  protected estoqueAtualizado(equipamento: EquipamentoCadastro): void {
+    this.estado.set({ tipo: 'pronto', equipamento });
   }
 
   private executar(pedido: Observable<EquipamentoCadastro>, mensagem: string | null): void {

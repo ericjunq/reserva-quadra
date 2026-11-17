@@ -20,10 +20,18 @@ import {
   EquipamentosDeOutrosEspacos,
   IntervaloDoUso,
 } from '../../compartilhado/equipamentos-de-outros-espacos';
+import { CamposDoResponsavel } from '../../compartilhado/campos-do-responsavel';
 
 @Component({
   selector: 'app-nova-reserva',
-  imports: [FormsModule, RouterLink, AvisoErro, CamposDoUso, EquipamentosDeOutrosEspacos],
+  imports: [
+    FormsModule,
+    RouterLink,
+    AvisoErro,
+    CamposDoUso,
+    EquipamentosDeOutrosEspacos,
+    CamposDoResponsavel,
+  ],
   templateUrl: './nova-reserva.html',
 })
 export class NovaReserva {
@@ -64,6 +72,8 @@ export class NovaReserva {
   protected readonly quantidades = signal<Record<number, number>>({});
   protected readonly deOutrosEspacos = signal<Record<number, number>>({});
   protected readonly descricao = signal('');
+  protected readonly responsavelNome = signal('');
+  protected readonly responsavelContato = signal('');
   protected readonly justificativa = signal('');
   protected readonly enviando = signal(false);
   protected readonly erro = signal<ErroApi | null>(null);
@@ -117,6 +127,10 @@ export class NovaReserva {
       espaco_id: espacoId,
       data_reserva: this.dataEscolhida(),
       descricao: this.descricao().trim(),
+      responsavel_nome: this.responsavelNome().trim(),
+      ...(this.responsavelContato().trim()
+        ? { responsavel_contato: this.responsavelContato().trim() }
+        : {}),
       ...horario,
       ...(equipamentos.length ? { equipamentos } : {}),
       ...(this.conflito() ? { justificativa: this.justificativa().trim() } : {}),

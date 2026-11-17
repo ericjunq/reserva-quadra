@@ -456,6 +456,9 @@ describe('reservas do admin', () => {
       const descricao = elemento.querySelector('#uso-descricao') as HTMLInputElement;
       descricao.value = 'Turma de Enfermagem';
       descricao.dispatchEvent(new Event('input'));
+      const responsavel = elemento.querySelector('#uso-responsavel') as HTMLInputElement;
+      responsavel.value = 'Prof. Ana Reis';
+      responsavel.dispatchEvent(new Event('input'));
       await estabilizar(fixture);
       elemento.querySelector('form')!.dispatchEvent(new Event('submit'));
       await estabilizar(fixture);
@@ -467,6 +470,7 @@ describe('reservas do admin', () => {
         hora_inicio: '14:00',
         hora_fim: '15:30',
         descricao: 'Turma de Enfermagem',
+        responsavel_nome: 'Prof. Ana Reis',
       });
       envio.flush(
         {

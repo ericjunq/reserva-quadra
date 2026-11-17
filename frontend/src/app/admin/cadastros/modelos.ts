@@ -24,6 +24,7 @@ export interface EquipamentoCadastro {
   espaco_id: number;
   nome: string;
   quantidade_total: number;
+  quantidade_em_manutencao?: number;
   ativo: boolean;
   aceita_solicitacao: boolean;
   espacos_compartilhados?: { id: number; nome: string }[];
@@ -85,7 +86,30 @@ export interface AdminCadastro {
 export interface DadosDoEquipamento {
   espaco_id?: number;
   nome: string;
-  quantidade_total: number;
+  quantidade_total?: number;
   aceita_solicitacao: boolean;
   espacos_compartilhados: number[];
+}
+
+export type TipoMovimentacao =
+  'ENTRADA' | 'BAIXA' | 'NAO_DEVOLVIDO' | 'MANUTENCAO' | 'RETORNO' | 'AJUSTE';
+
+export interface MovimentacaoEstoque {
+  id: number;
+  tipo: TipoMovimentacao;
+  quantidade: number;
+  estado: string;
+  reserva: { id: number; tipo: 'ALUNO' | 'EVENTO'; data_reserva: string } | null;
+  feito_por: { id: number; nome: string } | null;
+  quantidade_total_depois: number;
+  em_manutencao_depois: number;
+  em: string;
+}
+
+export interface DadosDaMovimentacao {
+  tipo: TipoMovimentacao;
+  quantidade: number;
+  estado: string;
+  reserva_id?: number;
+  da_manutencao?: boolean;
 }

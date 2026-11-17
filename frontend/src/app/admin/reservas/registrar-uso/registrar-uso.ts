@@ -15,12 +15,13 @@ import {
 } from '../../compartilhado/campos-do-uso';
 import { NovoUsoPosterior } from '../modelos';
 import { ReservasAdminService } from '../reservas-admin.service';
+import { CamposDoResponsavel } from '../../compartilhado/campos-do-responsavel';
 
 const DIAS_PARA_TRAS = 30;
 
 @Component({
   selector: 'app-registrar-uso',
-  imports: [FormsModule, RouterLink, AvisoErro, CamposDoUso],
+  imports: [FormsModule, RouterLink, AvisoErro, CamposDoUso, CamposDoResponsavel],
   templateUrl: './registrar-uso.html',
 })
 export class RegistrarUso {
@@ -58,6 +59,8 @@ export class RegistrarUso {
   protected readonly quem = signal<'ALUNO' | 'GRUPO'>('ALUNO');
   protected readonly registroAcademico = signal('');
   protected readonly descricao = signal('');
+  protected readonly responsavelNome = signal('');
+  protected readonly responsavelContato = signal('');
   protected readonly enviando = signal(false);
   protected readonly erro = signal<ErroApi | null>(null);
 
@@ -99,13 +102,19 @@ export class RegistrarUso {
       );
       return;
     }
+    const responsavel = {
+      responsavel_nome: this.responsavelNome().trim(),
+      ...(this.responsavelContato().trim()
+        ? { responsavel_contato: this.responsavelContato().trim() }
+        : {}),
+    };
     const { intervalo, ...horario } = escolhido;
     const equipamentos = equipamentosEscolhidos(this.quantidades());
     const uso: NovoUsoPosterior = {
       espaco_id: espacoId,
       data_reserva: this.dataEscolhida(),
       ...horario,
-      ...(this.quem() === 'ALUNO' ? { registro_academico: ra } : { descricao }),
+      ...(this.quem() === 'ALUNO' ? { registro_academico: ra } : { descricao, ...responsavel }),
       ...(equipamentos.length ? { equipamentos } : {}),
     };
 
