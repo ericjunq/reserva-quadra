@@ -335,7 +335,7 @@ O token puro (64 caracteres aleatórios) só existe no email. O banco guarda o S
 
 ### Estoque de equipamentos (11.9, aprovado em 17/11/2026)
 
-- Tabela `movimentacoes_estoque`: `equipamento_id`, `tipo` (ENTRADA, BAIXA, NAO_DEVOLVIDO, MANUTENCAO, RETORNO, AJUSTE), `quantidade`, `descricao` (o que aconteceu, até 500), `reserva_id` (opcional; obrigatório em NAO_DEVOLVIDO), `user_id`, `created_at`; índices `(equipamento_id, created_at)` e `reserva_id`.
+- Tabela `movimentacoes_estoque`: `equipamento_id`, `tipo` (ENTRADA, BAIXA, NAO_DEVOLVIDO, MANUTENCAO, RETORNO, AJUSTE), `quantidade`, `estado` (estado do equipamento, texto até 500), `reserva_id` (opcional; obrigatório em NAO_DEVOLVIDO), `user_id`, `created_at`; índices `(equipamento_id, created_at)` e `reserva_id`.
 - `equipamentos.quantidade_em_manutencao` (inteiro, padrão 0); disponível = total − manutenção − reservado.
 - `reservas.responsavel_nome` e `reservas.responsavel_contato` (só eventos; nome obrigatório quando o evento tem equipamento).
 
