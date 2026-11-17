@@ -34,7 +34,7 @@ class AuthService
 
     private function emitirToken(User $user): array
     {
-        $expira_em = now()->addMinutes(config('sanctum.expiration'));
+        $expira_em = now()->addMinutes(config('reservas.sessao_admin_minutos'));
         $token = $user->createToken('api', ['*'], $expira_em);
 
         return [

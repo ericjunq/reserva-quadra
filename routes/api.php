@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\AceiteApiController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AlunoController;
 use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CancelamentoController;
+use App\Http\Controllers\ClienteApiController;
 use App\Http\Controllers\ConfirmacaoController;
 use App\Http\Controllers\CursoController;
 use App\Http\Controllers\DataBloqueadaController;
@@ -48,6 +50,10 @@ Route::post('/esqueci-senha', [SenhaController::class, 'esqueci'])->middleware('
 Route::post('/redefinir-senha', [SenhaController::class, 'redefinir'])->middleware('throttle:10,1');
 Route::post('/convites/aceitar', [SenhaController::class, 'aceitarConvite'])->middleware('throttle:10,1');
 
+Route::get('/parceiros/termos', [AceiteApiController::class, 'termos']);
+Route::get('/parceiros/aceite/{token}', [AceiteApiController::class, 'show'])->middleware('throttle:acoes-publicas');
+Route::post('/parceiros/aceite/{token}', [AceiteApiController::class, 'aceitar'])->middleware('throttle:acoes-publicas');
+
 Route::middleware(['auth:sanctum', 'admin.ativo'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/logout-geral', [AuthController::class, 'logoutGeral']);
@@ -73,6 +79,14 @@ Route::middleware(['auth:sanctum', 'admin.ativo'])->group(function () {
         Route::patch('/admins/{admin}', [AdminController::class, 'update']);
         Route::delete('/admins/{admin}', [AdminController::class, 'destroy']);
         Route::post('/admins/{admin}/reenviar-convite', [AdminController::class, 'reenviarConvite']);
+
+        Route::get('/clientes-api/permissoes', [ClienteApiController::class, 'permissoes']);
+        Route::get('/clientes-api', [ClienteApiController::class, 'index']);
+        Route::post('/clientes-api', [ClienteApiController::class, 'store']);
+        Route::get('/clientes-api/{clienteApi}', [ClienteApiController::class, 'show']);
+        Route::patch('/clientes-api/{clienteApi}', [ClienteApiController::class, 'update']);
+        Route::delete('/clientes-api/{clienteApi}', [ClienteApiController::class, 'destroy']);
+        Route::post('/clientes-api/{clienteApi}/enviar-aceite', [ClienteApiController::class, 'enviarAceite']);
 
         Route::get('/alunos', [AlunoController::class, 'index']);
         Route::post('/alunos/consulta', [AlunoController::class, 'index']);

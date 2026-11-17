@@ -4,6 +4,7 @@ namespace App\Models\Concerns;
 
 use App\Constants\AcaoAuditoriaConstant;
 use App\Models\Auditoria;
+use App\Models\ClienteApi;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,12 +18,12 @@ trait Auditavel
     public static function bootAuditavel(): void
     {
         static::creating(function (Model $model) {
-            $model->criado_por ??= Auth::id();
+            $model->criado_por ??= self::idDoAdminLogado();
             $model->atualizado_por = $model->criado_por;
         });
 
         static::updating(function (Model $model) {
-            $model->atualizado_por = Auth::id();
+            $model->atualizado_por = self::idDoAdminLogado();
         });
 
         static::created(fn (Model $model) => $model->registrarAuditoria(
@@ -79,11 +80,26 @@ trait Auditavel
         }
 
         $this->auditorias()->create([
-            'acao'    => $acao,
-            'antes'   => $antes,
-            'depois'  => $depois,
-            'user_id' => Auth::id(),
+            'acao'           => $acao,
+            'antes'          => $antes,
+            'depois'         => $depois,
+            'user_id'        => self::idDoAdminLogado(),
+            'cliente_api_id' => self::idDoClienteApiLogado(),
         ]);
+    }
+
+    private static function idDoAdminLogado(): ?int
+    {
+        $logado = Auth::user();
+
+        return $logado instanceof User ? $logado->id : null;
+    }
+
+    private static function idDoClienteApiLogado(): ?int
+    {
+        $logado = Auth::user();
+
+        return $logado instanceof ClienteApi ? $logado->id : null;
     }
 
     private function normalizarParaAuditoria(?array $valores): ?array

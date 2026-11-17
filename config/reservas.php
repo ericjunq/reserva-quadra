@@ -49,6 +49,17 @@ return [
 
     'fila_pelo_agendador' => (bool) env('FILA_PELO_AGENDADOR', env('APP_ENV', 'production') === 'local'),
 
+    'sessao_admin_minutos' => (int) env('SESSAO_ADMIN_MINUTOS', 60 * 8),
+
+    'parceiros' => [
+        'termos_versao'     => env('PARCEIROS_TERMOS_VERSAO', '2026-11'),
+        'validade_meses'    => (int) env('PARCEIROS_VALIDADE_MESES', 12),
+        'aviso_dias_antes'  => (int) env('PARCEIROS_AVISO_DIAS_ANTES', 30),
+        'link_aceite_dias'  => (int) env('PARCEIROS_LINK_ACEITE_DIAS', 7),
+        'limite_por_minuto' => (int) env('PARCEIROS_LIMITE_POR_MINUTO', 60),
+        'horario_aviso'     => env('PARCEIROS_HORARIO_AVISO', '08:30'),
+    ],
+
     'login_com_codigo' => (bool) env('LOGIN_COM_CODIGO', true),
 
     'alertas_email' => env('ALERTAS_EMAIL'),

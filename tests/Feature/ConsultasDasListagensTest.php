@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Aluno;
+use App\Models\ClienteApi;
 use App\Models\Curso;
 use App\Models\DataBloqueada;
 use App\Models\Equipamento;
@@ -45,6 +46,10 @@ class ConsultasDasListagensTest extends TestCase
             'alunos' => [
                 fn () => Aluno::factory()->create(),
                 fn (TestCase $teste) => $teste->postJson('/api/admin/alunos/consulta', []),
+            ],
+            'sistemas parceiros' => [
+                fn () => ClienteApi::factory()->comAcesso()->create(),
+                fn (TestCase $teste) => $teste->getJson('/api/admin/clientes-api'),
             ],
             'admins' => [
                 fn () => User::factory()->create(),

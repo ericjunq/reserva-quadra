@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ClienteApi;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route as Rota;
@@ -50,6 +51,16 @@ class RotasProtegidasTest extends TestCase
             ->all();
 
         $this->assertSame([], $semProtecao);
+    }
+
+    public function test_token_de_sistema_parceiro_e_recusado_em_toda_rota_do_admin(): void
+    {
+        $token = ClienteApi::factory()->comAcesso()->create()->createToken('parceiro', ['*'])->plainTextToken;
+
+        foreach ($this->rotasDoAdmin() as [$metodo, $uri]) {
+            $this->app['auth']->forgetGuards();
+            $this->withToken($token)->json($metodo, $uri)->assertForbidden();
+        }
     }
 
     public function test_admin_desativado_com_token_ainda_valido_e_recusado_e_perde_os_tokens(): void

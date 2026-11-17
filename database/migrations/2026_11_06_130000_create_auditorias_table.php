@@ -15,8 +15,10 @@ return new class extends Migration
             $table->json('antes')->nullable();
             $table->json('depois')->nullable();
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('cliente_api_id')->nullable()->constrained('clientes_api')->nullOnDelete();
             $table->timestamp('created_at')->useCurrent();
             $table->index('user_id');
+            $table->index('cliente_api_id');
             $table->index('created_at');
         });
     }

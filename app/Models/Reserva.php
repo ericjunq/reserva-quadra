@@ -30,6 +30,7 @@ class Reserva extends Model
         'espaco_id',
         'aluno_id',
         'criado_por',
+        'cliente_api_id',
         'status',
         'tipo',
         'origem',
@@ -149,6 +150,11 @@ class Reserva extends Model
     public function espaco(): BelongsTo
     {
         return $this->belongsTo(Espaco::class);
+    }
+
+    public function clienteApi(): BelongsTo
+    {
+        return $this->belongsTo(ClienteApi::class);
     }
 
     public function equipamentos(): BelongsToMany

@@ -3,6 +3,7 @@
 namespace App\Constants;
 
 use App\Models\Aluno;
+use App\Models\ClienteApi;
 use App\Models\Curso;
 use App\Models\DataBloqueada;
 use App\Models\Equipamento;
@@ -15,6 +16,7 @@ enum TipoAuditavelConstant: string
 {
     case ADMIN = 'ADMIN';
     case ALUNO = 'ALUNO';
+    case CLIENTE_API = 'CLIENTE_API';
     case CURSO = 'CURSO';
     case DATA_BLOQUEADA = 'DATA_BLOQUEADA';
     case EQUIPAMENTO = 'EQUIPAMENTO';
@@ -32,6 +34,7 @@ enum TipoAuditavelConstant: string
         return match ($this) {
             self::ADMIN          => User::class,
             self::ALUNO          => Aluno::class,
+            self::CLIENTE_API    => ClienteApi::class,
             self::CURSO          => Curso::class,
             self::DATA_BLOQUEADA => DataBloqueada::class,
             self::EQUIPAMENTO    => Equipamento::class,

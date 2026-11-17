@@ -7,6 +7,7 @@ enum OrigemReservaConstant: string
     case SITE = 'SITE';
     case ADMIN = 'ADMIN';
     case REGISTRO_POSTERIOR = 'REGISTRO_POSTERIOR';
+    case API = 'API';
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum OrigemReservaConstant: string
             self::SITE               => 'Site',
             self::ADMIN              => 'Evento do admin',
             self::REGISTRO_POSTERIOR => 'Registro posterior',
+            self::API                => 'Sistema parceiro',
         };
     }
 }

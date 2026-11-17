@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Constants\EtapaConfirmacaoConstant;
+use App\Mail\AceiteApiMail;
 use App\Mail\AlertaSistemaMail;
 use App\Mail\CodigoLoginMail;
 use App\Mail\ConviteAdminMail;
@@ -44,10 +45,12 @@ class EmailsTest extends TestCase
         $prazo = now()->addDay();
 
         return [
-            'alerta'    => [new AlertaSistemaMail('Fila parada', 'Há jobs falhando.', now()), '[Alerta] Fila parada', 'Há jobs falhando.', false],
-            'código'    => [new CodigoLoginMail('Eric', '123456', 10), 'Seu código de acesso', '123456', false],
-            'convite'   => [new ConviteAdminMail('Ana', self::FRONT.'/admin/convite#t', $prazo, 'Eric'), 'Convite para acessar o sistema de reservas', self::FRONT.'/admin/convite', true],
-            'devolução' => [new DevolucaoComPendenciaMail($reserva, [[
+            'aceite api'    => [new AceiteApiMail('Bruno', 'App da Atlética', self::FRONT.'/parceiros/aceite/t', $prazo), 'Acesso do App da Atlética à API de reservas: aceite dos termos', self::FRONT.'/parceiros/aceite', true],
+            'renovação api' => [new AceiteApiMail('Bruno', 'App da Atlética', self::FRONT.'/parceiros/aceite/t', $prazo, now()->addDays(20)), 'O acesso do App da Atlética à API de reservas vai vencer', 'continua funcionando', true],
+            'alerta'        => [new AlertaSistemaMail('Fila parada', 'Há jobs falhando.', now()), '[Alerta] Fila parada', 'Há jobs falhando.', false],
+            'código'        => [new CodigoLoginMail('Eric', '123456', 10), 'Seu código de acesso', '123456', false],
+            'convite'       => [new ConviteAdminMail('Ana', self::FRONT.'/admin/convite#t', $prazo, 'Eric'), 'Convite para acessar o sistema de reservas', self::FRONT.'/admin/convite', true],
+            'devolução'     => [new DevolucaoComPendenciaMail($reserva, [[
                 'nome' => 'Bola', 'quantidade' => 2, 'quantidade_devolvida' => 1, 'situacao' => 'Não devolvido', 'observacao' => 'Faltou uma',
             ]], 'Carla'), 'Pendência na devolução de equipamentos', 'Faltou uma', true],
             'confirmação' => [new PedidoConfirmacaoMail(

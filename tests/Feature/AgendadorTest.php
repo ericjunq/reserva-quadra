@@ -31,6 +31,7 @@ class AgendadorTest extends TestCase
             'reservas:pedir-reconfirmacao'     => '0 8 * * *',
             'reservas:revogar-nao-confirmadas' => '*/15 * * * *',
             'reservas:vencer-solicitacoes'     => '*/15 * * * *',
+            'parceiros:avisar-vencimento'      => '30 8 * * *',
             'feriados:importar'                => '0 3 1 12 *',
             'reservas:limpar-tokens'           => '10 3 * * *',
             'model:prune'                      => '15 3 * * *',

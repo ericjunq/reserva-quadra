@@ -28,6 +28,11 @@ Schedule::command('reservas:vencer-solicitacoes')
     ->withoutOverlapping()
     ->onFailure($alertarSeFalhar('Encerramento dos pedidos de equipamento sem resposta'));
 
+Schedule::command('parceiros:avisar-vencimento')
+    ->dailyAt(config('reservas.parceiros.horario_aviso'))
+    ->withoutOverlapping()
+    ->onFailure($alertarSeFalhar('Aviso de vencimento do acesso dos sistemas parceiros'));
+
 Schedule::command('feriados:importar', array_filter([
     now()->addYear()->year,
     config('reservas.feriados_facultativos') ? '--facultativos' : null,

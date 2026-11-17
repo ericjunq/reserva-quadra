@@ -13,7 +13,7 @@ class Auditoria extends Model
 
     public const RELACOES = ['criador:id,name', 'atualizador:id,name'];
 
-    protected $fillable = ['acao', 'antes', 'depois', 'user_id'];
+    protected $fillable = ['acao', 'antes', 'depois', 'user_id', 'cliente_api_id'];
 
     protected function casts(): array
     {
@@ -32,5 +32,10 @@ class Auditoria extends Model
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function clienteApi(): BelongsTo
+    {
+        return $this->belongsTo(ClienteApi::class);
     }
 }

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('aluno_id')->nullable()->constrained('alunos')->nullOnDelete();
             $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('atualizado_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('cliente_api_id')->nullable()->constrained('clientes_api')->nullOnDelete();
             $table->string('status', 20)->default('RESERVADO');
             $table->string('tipo', 30)->default('ALUNO');
             $table->string('origem', 20)->default('SITE');
@@ -45,6 +46,7 @@ return new class extends Migration
             $table->index(['status', 'confirmar_ate']);
             $table->index(['status', 'reconfirmar_ate']);
             $table->index(['status', 'manter_ate']);
+            $table->index(['cliente_api_id', 'data_reserva']);
         });
     }
 

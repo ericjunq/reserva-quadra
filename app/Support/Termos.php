@@ -76,7 +76,14 @@ class Termos
                 'paragrafos' => [
                     'Nome completo, RA, email e curso: para identificar quem reservou, aplicar as regras por curso e enviar os avisos (confirmação, cancelamento, revogação, devolução de equipamentos).',
                     'Dados das reservas (espaço, data, horário, equipamentos, confirmação e aceite destes termos): para organizar o uso dos espaços e registrar o que foi combinado.',
-                    'No calendário público aparecem só o seu nome e o seu curso em horários reservados. RA e email nunca aparecem em páginas públicas.',
+                    'No calendário público, os horários reservados aparecem só como "Reservado". Nome, curso, RA e email de quem reservou nunca aparecem em páginas públicas; só os administradores os veem.',
+                ],
+            ],
+            [
+                'titulo'     => 'Sistemas parceiros',
+                'paragrafos' => [
+                    'Alguns sistemas autorizados pela instituição '.self::A_CONFIRMAR.' podem fazer reservas para você com o seu RA, quando você pede por eles. Cada um tem uma pessoa responsável que aceitou termos de uso próprios.',
+                    'Mesmo assim, a reserva só vale depois que você a confirma pelo seu email. Esses sistemas não recebem o seu nome, email nem curso, nem veem reservas feitas por outros meios.',
                 ],
             ],
             [

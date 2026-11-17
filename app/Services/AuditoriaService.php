@@ -10,10 +10,11 @@ class AuditoriaService
     public function listarPaginado(int $porPagina, array $filtros): LengthAwarePaginator
     {
         return Auditoria::query()
-            ->with('usuario:id,name')
+            ->with(['usuario:id,name', 'clienteApi:id,nome'])
             ->when($filtros['tipo'] ?? null, fn ($q, $tipo) => $q->where('auditavel_type', $tipo->apelido()))
             ->when($filtros['registro_id'] ?? null, fn ($q, $id) => $q->where('auditavel_id', $id))
             ->when($filtros['admin_id'] ?? null, fn ($q, $id) => $q->where('user_id', $id))
+            ->when($filtros['cliente_api_id'] ?? null, fn ($q, $id) => $q->where('cliente_api_id', $id))
             ->when(($filtros['sem_admin'] ?? null) === true, fn ($q) => $q->whereNull('user_id'))
             ->when(($filtros['sem_admin'] ?? null) === false, fn ($q) => $q->whereNotNull('user_id'))
             ->when($filtros['acao'] ?? null, fn ($q, $acao) => $q->where('acao', $acao))

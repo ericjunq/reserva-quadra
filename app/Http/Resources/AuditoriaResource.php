@@ -19,6 +19,7 @@ class AuditoriaResource extends JsonResource
             'antes'            => $this->antes,
             'depois'           => $this->depois,
             'feito_por'        => $this->usuario ? ['id' => $this->usuario->id, 'nome' => $this->usuario->name] : null,
+            'sistema_parceiro' => $this->clienteApi ? ['id' => $this->clienteApi->id, 'nome' => $this->clienteApi->nome] : null,
             'em'               => $this->created_at,
         ];
     }
