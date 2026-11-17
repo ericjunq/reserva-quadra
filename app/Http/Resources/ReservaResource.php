@@ -61,6 +61,10 @@ class ReservaResource extends JsonResource
                     'responder_ate' => $e->pivot->responder_ate,
                     'obrigatorio'   => (bool) $e->pivot->solicitacao_obrigatoria,
                 ] : null,
+                'retirada' => $e->pivot->retirado_em ? [
+                    'quantidade'  => $e->pivot->quantidade_retirada,
+                    'retirado_em' => $e->pivot->retirado_em,
+                ] : null,
                 'devolucao' => [
                     'situacao'             => $e->pivot->situacao_devolucao?->value,
                     'quantidade_devolvida' => $e->pivot->quantidade_devolvida,

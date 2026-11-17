@@ -6,6 +6,7 @@ use App\Constants\SituacaoDevolucaoConstant;
 use App\Constants\SituacaoSolicitacaoConstant;
 use App\Models\Concerns\AtualizaDisponibilidade;
 use App\Models\Concerns\Auditavel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
@@ -16,6 +17,9 @@ class ItemReserva extends Pivot
     public const COLUNAS = [
         'id',
         'quantidade',
+        'quantidade_retirada',
+        'retirado_em',
+        'retirado_por',
         'situacao_devolucao',
         'quantidade_devolvida',
         'observacao_devolucao',
@@ -41,6 +45,7 @@ class ItemReserva extends Pivot
     {
         return [
             'situacao_devolucao'      => SituacaoDevolucaoConstant::class,
+            'retirado_em'             => 'datetime',
             'devolvido_em'            => 'datetime',
             'situacao_solicitacao'    => SituacaoSolicitacaoConstant::class,
             'respondida_em'           => 'datetime',
@@ -57,6 +62,18 @@ class ItemReserva extends Pivot
     public function equipamento(): BelongsTo
     {
         return $this->belongsTo(Equipamento::class);
+    }
+
+    public function scopeParaEntregar(Builder $query): Builder
+    {
+        return $query->where(fn ($q) => $q
+            ->whereNull('situacao_solicitacao')
+            ->orWhere('situacao_solicitacao', SituacaoSolicitacaoConstant::APROVADA));
+    }
+
+    public function quantidadeEsperadaNaDevolucao(): int
+    {
+        return $this->quantidade_retirada ?? $this->quantidade;
     }
 
     public function responsavelDevolucao(): BelongsTo

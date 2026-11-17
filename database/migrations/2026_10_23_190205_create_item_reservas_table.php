@@ -13,6 +13,9 @@ return new class extends Migration
             $table->foreignId('equipamento_id')->constrained('equipamentos')->restrictOnDelete();
             $table->foreignId('reserva_id')->constrained('reservas')->cascadeOnDelete();
             $table->unsignedInteger('quantidade');
+            $table->unsignedInteger('quantidade_retirada')->nullable();
+            $table->timestamp('retirado_em')->nullable();
+            $table->foreignId('retirado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->string('situacao_devolucao', 30)->default('PENDENTE');
             $table->unsignedInteger('quantidade_devolvida')->nullable();
             $table->string('observacao_devolucao', 500)->nullable();
@@ -31,6 +34,7 @@ return new class extends Migration
             $table->unique(['reserva_id', 'equipamento_id']);
             $table->index(['equipamento_id', 'reserva_id']);
             $table->index(['situacao_devolucao', 'reserva_id']);
+            $table->index(['situacao_devolucao', 'retirado_em']);
             $table->index(['situacao_solicitacao', 'responder_ate']);
         });
     }

@@ -16,6 +16,7 @@ use App\Http\Controllers\ExportacaoReservasController;
 use App\Http\Controllers\ManterReservaController;
 use App\Http\Controllers\MinhasReservasController;
 use App\Http\Controllers\ReservaController;
+use App\Http\Controllers\RetiradaController;
 use App\Http\Controllers\SenhaController;
 use App\Http\Controllers\SolicitacaoController;
 use App\Http\Controllers\TermosController;
@@ -77,6 +78,8 @@ Route::middleware(['auth:sanctum', 'admin.ativo'])->group(function () {
     Route::patch('/me/senha', [SenhaController::class, 'trocar']);
 
     Route::prefix('admin')->group(function () {
+        Route::get('/equipamentos/fora-agora', [RetiradaController::class, 'foraAgora']);
+
         foreach ([
             'equipamentos' => EquipamentoController::class,
             'espacos'      => EspacoController::class,
@@ -132,6 +135,7 @@ Route::middleware(['auth:sanctum', 'admin.ativo'])->group(function () {
         Route::post('/reservas/registro-posterior', [ReservaController::class, 'registrarUsoPosterior']);
         Route::post('/reservas/{reserva}/revogar', [ReservaController::class, 'revogar']);
         Route::patch('/reservas/{reserva}/responsavel', [ReservaController::class, 'atualizarResponsavel']);
+        Route::post('/reservas/{reserva}/retirada', [RetiradaController::class, 'registrar']);
         Route::post('/reservas/{reserva}/devolucao', [ReservaController::class, 'registrarDevolucao']);
         Route::post('/reservas/{reserva}/solicitacoes/aprovar', [SolicitacaoController::class, 'aprovar']);
         Route::post('/reservas/{reserva}/solicitacoes/recusar', [SolicitacaoController::class, 'recusar']);

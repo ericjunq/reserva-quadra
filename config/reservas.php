@@ -28,6 +28,8 @@ return [
 
     'solicitacao_tempo_minimo_resposta_horas' => (int) env('RESERVA_SOLICITACAO_TEMPO_MINIMO_RESPOSTA_HORAS', 2),
 
+    'retirada_minutos_antes' => (int) env('RETIRADA_MINUTOS_ANTES', 30),
+
     'manter_reserva_horas' => (int) env('RESERVA_MANTER_HORAS', 12),
 
     'manter_reserva_minimo_horas_antes' => (int) env('RESERVA_MANTER_MINIMO_HORAS_ANTES', 1),

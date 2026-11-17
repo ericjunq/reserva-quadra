@@ -117,7 +117,9 @@ class ExportacaoReservasService
                 'email'              => [$reserva->aluno?->email],
                 'curso'              => [$reserva->aluno?->curso?->nome],
                 'equipamentos'       => [$reserva->equipamentos
-                    ->map(fn ($e) => "{$e->nome} x{$e->pivot->quantidade}".($e->pivot->situacao_solicitacao ? " ({$e->pivot->situacao_solicitacao->label()})" : ''))->implode(', ')],
+                    ->map(fn ($e) => "{$e->nome} x{$e->pivot->quantidade}"
+                        .($e->pivot->situacao_solicitacao ? " ({$e->pivot->situacao_solicitacao->label()})" : '')
+                        .($e->pivot->retirado_em ? " (retirado {$e->pivot->quantidade_retirada} às {$e->pivot->retirado_em->format('H:i')})" : ''))->implode(', ')],
                 'devolucao' => [$reserva->equipamentos
                     ->map(fn ($e) => "{$e->nome}: {$e->pivot->situacao_devolucao->label()} "
                         .($e->pivot->quantidade_devolvida ?? 0)."/{$e->pivot->quantidade}"

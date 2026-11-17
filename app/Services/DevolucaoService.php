@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Constants\SituacaoDevolucaoConstant;
-use App\Constants\SituacaoSolicitacaoConstant;
 use App\Constants\StatusConstant;
 use App\Exceptions\RegraNegocioException;
 use App\Mail\DevolucaoComPendenciaMail;
@@ -24,9 +23,7 @@ class DevolucaoService
             $this->verificarReserva($reserva);
 
             $registrados = ItemReserva::where('reserva_id', $reserva->id)
-                ->where(fn ($q) => $q
-                    ->whereNull('situacao_solicitacao')
-                    ->orWhere('situacao_solicitacao', SituacaoSolicitacaoConstant::APROVADA))
+                ->paraEntregar()
                 ->with('equipamento')
                 ->get()
                 ->keyBy('equipamento_id');
@@ -85,7 +82,8 @@ class DevolucaoService
             $motivo = $this->incoerencia(
                 SituacaoDevolucaoConstant::from($dados['situacao']),
                 (int) $dados['quantidade_devolvida'],
-                $item->quantidade,
+                $item->quantidadeEsperadaNaDevolucao(),
+                $item->quantidade_retirada === null ? 'reservada' : 'retirada',
             );
 
             if ($motivo) {
@@ -102,14 +100,14 @@ class DevolucaoService
         }
     }
 
-    private function incoerencia(SituacaoDevolucaoConstant $situacao, int $devolvida, int $reservada): ?string
+    private function incoerencia(SituacaoDevolucaoConstant $situacao, int $devolvida, int $esperada, string $base): ?string
     {
         return match (true) {
-            $devolvida > $reservada                                                            => "A quantidade devolvida não pode passar da reservada ({$reservada}).",
-            $situacao === SituacaoDevolucaoConstant::DEVOLVIDO && $devolvida !== $reservada    => "Devolvido exige a quantidade inteira ({$reservada}).",
-            $situacao === SituacaoDevolucaoConstant::DEVOLVIDO_COM_AVARIA && $devolvida < 1    => 'Devolvido com avaria exige ao menos 1 unidade devolvida.',
-            $situacao === SituacaoDevolucaoConstant::NAO_DEVOLVIDO && $devolvida >= $reservada => 'Não devolvido exige quantidade devolvida menor que a reservada.',
-            default                                                                            => null,
+            $devolvida > $esperada                                                            => "A quantidade devolvida não pode passar da {$base} ({$esperada}).",
+            $situacao === SituacaoDevolucaoConstant::DEVOLVIDO && $devolvida !== $esperada    => "Devolvido exige a quantidade inteira ({$esperada}).",
+            $situacao === SituacaoDevolucaoConstant::DEVOLVIDO_COM_AVARIA && $devolvida < 1   => 'Devolvido com avaria exige ao menos 1 unidade devolvida.',
+            $situacao === SituacaoDevolucaoConstant::NAO_DEVOLVIDO && $devolvida >= $esperada => "Não devolvido exige quantidade devolvida menor que a {$base}.",
+            default                                                                           => null,
         };
     }
 
@@ -127,7 +125,7 @@ class DevolucaoService
 
         $resumo = $itens->map(fn (ItemReserva $item) => [
             'nome'                 => $item->equipamento->nome,
-            'quantidade'           => $item->quantidade,
+            'quantidade'           => $item->quantidadeEsperadaNaDevolucao(),
             'quantidade_devolvida' => $item->quantidade_devolvida,
             'situacao'             => $item->situacao_devolucao->label(),
             'observacao'           => $item->observacao_devolucao,
