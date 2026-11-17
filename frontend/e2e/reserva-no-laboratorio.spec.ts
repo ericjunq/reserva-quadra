@@ -45,7 +45,7 @@ test('o aluno monta o horário pela lista de livres e pelos botões de duração
   await prepararApi(page);
   await page.goto(`/espacos/4?semana=${datas.segundaSeguinte}&dia=${datas.tercaSeguinte}`);
 
-  await page.getByRole('button', { name: 'Começar às 15:30, livre até 22:00' }).click();
+  await page.getByRole('button', { name: /^15:30–22:00 ?: começar às 15:30$/ }).click();
   await expect(page.getByRole('combobox', { name: 'Início' })).toHaveValue('15:30');
   await expect(page.getByText('Agora escolha a duração ou digite o fim.')).toBeVisible();
 

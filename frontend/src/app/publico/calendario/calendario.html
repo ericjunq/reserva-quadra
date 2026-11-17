@@ -144,7 +144,6 @@
                       : 'bg-white text-slate-900 ring-slate-200 hover:ring-azul'
                   "
                   [attr.aria-pressed]="dia.data === diaEscolhido()?.data"
-                  [attr.aria-label]="formatarDia(dia.data) + ', ' + resumoDoDia(dia)"
                   (click)="escolherDia(dia.data)"
                 >
                   <span class="block text-xs font-semibold uppercase">{{
@@ -152,6 +151,7 @@
                   }}</span>
                   <span class="block text-lg font-extrabold">{{ formatarDiaCurto(dia.data) }}</span>
                   <span class="block text-xs">{{ resumoDoDia(dia) }}</span>
+                  <span class="sr-only">, {{ formatarDia(dia.data) }}</span>
                 </button>
               }
             </div>
@@ -275,12 +275,10 @@
                               <button
                                 type="button"
                                 class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-900 hover:border-amarelo hover:bg-amarelo/20"
-                                [attr.aria-label]="
-                                  'Começar às ' + livre.inicio + ', livre até ' + livre.fim
-                                "
                                 (click)="escolherInicio(livre.inicio)"
                               >
-                                {{ livre.inicio }}–{{ livre.fim }}
+                                {{ livre.inicio }}–{{ livre.fim
+                                }}<span class="sr-only">: começar às {{ livre.inicio }}</span>
                               </button>
                             </li>
                           }
@@ -427,19 +425,12 @@
                               class="block rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm hover:border-amarelo hover:bg-amarelo/20"
                               [routerLink]="['/espacos', espaco.id, 'reservar']"
                               [queryParams]="parametrosDaReserva(dia, horario)"
-                              [attr.aria-label]="
-                                'Reservar ' +
-                                formatarDia(dia.data) +
-                                ', das ' +
-                                horario.inicio +
-                                ' às ' +
-                                horario.fim
-                              "
                             >
                               <span class="font-semibold text-slate-900">
                                 {{ horario.inicio }}–{{ horario.fim }}
                               </span>
                               <span class="block text-emerald-800">Livre · reservar</span>
+                              <span class="sr-only">, {{ formatarDia(dia.data) }}</span>
                             </a>
                           } @else {
                             <div

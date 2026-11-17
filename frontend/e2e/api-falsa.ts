@@ -30,8 +30,8 @@ export function tituloDaSemana(segunda: string): string {
   return `Semana de ${formatarDiaCurto(segunda)} a ${formatarDiaCurto(paraIso(somarDias(deIso(segunda), 4)))}`;
 }
 
-export function rotuloDoHorario(data: string, inicio: string, fim: string): string {
-  return `Reservar ${formatarDia(data)}, das ${inicio} às ${fim}`;
+export function rotuloDoHorario(data: string, inicio: string, fim: string): RegExp {
+  return new RegExp(`^${inicio}–${fim} Livre · reservar ?, ${formatarDia(data)}$`);
 }
 
 export const espacos = [

@@ -157,8 +157,9 @@ describe('Calendario', () => {
     expect(link.getAttribute('href')).toBe(
       '/espacos/1/reservar?data=2026-11-09&horario=PRIMEIRO_HORARIO',
     );
-    expect(link.getAttribute('aria-label')).toBe(
-      'Reservar Segunda-feira, 09/11, das 19:00 às 20:30',
+    expect(link.getAttribute('aria-label')).toBeNull();
+    expect(link.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      '19:00–20:30 Livre · reservar, Segunda-feira, 09/11',
     );
   });
 
@@ -492,8 +493,8 @@ describe('Calendario', () => {
       await atualizar();
       expect(pagina.querySelector('fieldset')).toBeNull();
 
-      pagina
-        .querySelector<HTMLButtonElement>('[aria-label="Começar às 15:30, livre até 22:00"]')!
+      [...pagina.querySelectorAll<HTMLButtonElement>('button')]
+        .find((item) => item.textContent?.trim().startsWith('15:30–22:00'))!
         .click();
       await atualizar();
       expect(pagina.querySelector<HTMLInputElement>('#inicio')!.value).toBe('15:30');
@@ -514,8 +515,8 @@ describe('Calendario', () => {
       pagina.querySelector<HTMLButtonElement>('[aria-label="Mostrar os horários de fim"]')!.click();
       await atualizar();
 
-      pagina
-        .querySelector<HTMLButtonElement>('[aria-label="Começar às 07:00, livre até 14:00"]')!
+      [...pagina.querySelectorAll<HTMLButtonElement>('button')]
+        .find((item) => item.textContent?.trim().startsWith('07:00–14:00'))!
         .click();
       await atualizar();
       expect(pagina.querySelector<HTMLInputElement>('#fim')!.value).toBe('');
