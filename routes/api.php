@@ -19,6 +19,8 @@ use App\Http\Controllers\ReservaController;
 use App\Http\Controllers\SenhaController;
 use App\Http\Controllers\SolicitacaoController;
 use App\Http\Controllers\TermosController;
+use App\Http\Controllers\V1\EspacoParceiroController;
+use App\Http\Controllers\V1\ReservaParceiroController;
 use App\Http\Controllers\VersaoDisponibilidadeController;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +55,20 @@ Route::post('/convites/aceitar', [SenhaController::class, 'aceitarConvite'])->mi
 Route::get('/parceiros/termos', [AceiteApiController::class, 'termos']);
 Route::get('/parceiros/aceite/{token}', [AceiteApiController::class, 'show'])->middleware('throttle:acoes-publicas');
 Route::post('/parceiros/aceite/{token}', [AceiteApiController::class, 'aceitar'])->middleware('throttle:acoes-publicas');
+
+Route::prefix('v1')->middleware(['auth:sanctum', 'parceiro', 'throttle:parceiros'])->group(function () {
+    Route::middleware('permissao:espacos:ler')->group(function () {
+        Route::get('/espacos', [EspacoParceiroController::class, 'index']);
+        Route::get('/espacos/{espaco}/disponibilidade', [EspacoParceiroController::class, 'disponibilidade']);
+        Route::get('/espacos/{espaco}/equipamentos', [EspacoParceiroController::class, 'equipamentos']);
+        Route::get('/espacos/{espaco}/equipamentos/disponibilidade', [EspacoParceiroController::class, 'equipamentosDisponiveis']);
+    });
+
+    Route::get('/reservas', [ReservaParceiroController::class, 'index'])->middleware('permissao:reservas:ler');
+    Route::get('/reservas/{reserva}', [ReservaParceiroController::class, 'show'])->middleware('permissao:reservas:ler')->whereNumber('reserva');
+    Route::post('/reservas', [ReservaParceiroController::class, 'store'])->middleware('permissao:reservas:criar');
+    Route::post('/reservas/{reserva}/cancelar', [ReservaParceiroController::class, 'cancelar'])->middleware('permissao:reservas:cancelar')->whereNumber('reserva');
+});
 
 Route::middleware(['auth:sanctum', 'admin.ativo'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

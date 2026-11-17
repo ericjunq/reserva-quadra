@@ -6,6 +6,7 @@ use App\Constants\FinalidadeTokenConstant;
 use App\Constants\StatusConstant;
 use App\Exceptions\RegraNegocioException;
 use App\Mail\ReservaCanceladaMail;
+use App\Models\ClienteApi;
 use App\Models\Reserva;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -31,26 +32,41 @@ class CancelamentoService
     {
         return DB::transaction(function () use ($token) {
             $registro = $this->tokens->buscarValido($token, FinalidadeTokenConstant::CANCELAR, travar: true);
-            $reserva = Reserva::whereKey($registro->reserva_id)->lockForUpdate()->firstOrFail();
-
-            if ($reserva->status !== StatusConstant::RESERVADO) {
-                throw new RegraNegocioException('Esta reserva não está mais ativa.', 409);
-            }
-
-            if ($reserva->iniciada()) {
-                throw new RegraNegocioException('A reserva já começou e não pode mais ser cancelada.');
-            }
-
-            $reserva->update([
-                'status'       => StatusConstant::CANCELADO,
-                'cancelada_em' => now(),
-            ]);
+            $reserva = $this->cancelarReserva(Reserva::whereKey($registro->reserva_id)->lockForUpdate()->firstOrFail());
 
             $this->tokens->marcarComoUsado($registro);
-            $this->avisarAluno($reserva);
 
             return $reserva->load('espaco', 'equipamentos');
         });
+    }
+
+    public function cancelarPeloParceiro(ClienteApi $cliente, int $reservaId): Reserva
+    {
+        return DB::transaction(function () use ($cliente, $reservaId) {
+            $reserva = $cliente->reservas()->whereKey($reservaId)->lockForUpdate()->firstOrFail();
+
+            return $this->cancelarReserva($reserva)->load(ReservaService::RELACOES_PARCEIRO);
+        });
+    }
+
+    private function cancelarReserva(Reserva $reserva): Reserva
+    {
+        if ($reserva->status !== StatusConstant::RESERVADO) {
+            throw new RegraNegocioException('Esta reserva não está mais ativa.', 409);
+        }
+
+        if ($reserva->iniciada()) {
+            throw new RegraNegocioException('A reserva já começou e não pode mais ser cancelada.');
+        }
+
+        $reserva->update([
+            'status'       => StatusConstant::CANCELADO,
+            'cancelada_em' => now(),
+        ]);
+
+        $this->avisarAluno($reserva);
+
+        return $reserva;
     }
 
     private function avisarAluno(Reserva $reserva): void

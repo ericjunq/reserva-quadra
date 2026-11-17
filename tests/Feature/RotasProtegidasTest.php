@@ -63,6 +63,49 @@ class RotasProtegidasTest extends TestCase
         }
     }
 
+    private function rotasDaV1(): array
+    {
+        return collect(Route::getRoutes()->getRoutes())
+            ->filter(fn (Rota $rota) => str_starts_with($rota->uri(), 'api/v1/'))
+            ->values()
+            ->all();
+    }
+
+    public function test_toda_rota_da_v1_exige_token_de_parceiro_limite_e_permissao(): void
+    {
+        $rotas = $this->rotasDaV1();
+
+        $this->assertGreaterThanOrEqual(8, count($rotas));
+
+        foreach ($rotas as $rota) {
+            $middlewares = $rota->gatherMiddleware();
+
+            $this->assertContains('auth:sanctum', $middlewares, $rota->uri());
+            $this->assertContains('parceiro', $middlewares, $rota->uri());
+            $this->assertContains('throttle:parceiros', $middlewares, $rota->uri());
+            $this->assertNotEmpty(preg_grep('/^permissao:/', $middlewares), $rota->uri());
+        }
+    }
+
+    public function test_rotas_da_v1_recusam_sem_token_com_token_de_admin_e_sem_a_permissao_antes_de_buscar_o_registro(): void
+    {
+        $admin = User::factory()->create()->createToken('api', ['*'], now()->addHour())->plainTextToken;
+        $parceiro = ClienteApi::factory()->comAcesso()->create()->createToken('parceiro', [], now()->addYear())->plainTextToken;
+
+        foreach ($this->rotasDaV1() as $rota) {
+            $uri = '/'.preg_replace('/\{[^}]+\}/', '999', $rota->uri());
+            $metodo = $rota->methods()[0];
+
+            $this->app['auth']->forgetGuards();
+            $this->json($metodo, $uri)->assertUnauthorized();
+            $this->app['auth']->forgetGuards();
+            $this->withToken($admin)->json($metodo, $uri)->assertForbidden();
+            $this->app['auth']->forgetGuards();
+            $this->withToken($parceiro)->json($metodo, $uri)->assertForbidden();
+            $this->flushHeaders();
+        }
+    }
+
     public function test_admin_desativado_com_token_ainda_valido_e_recusado_e_perde_os_tokens(): void
     {
         $admin = User::factory()->create();

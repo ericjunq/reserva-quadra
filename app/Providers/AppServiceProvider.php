@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Constants\TipoAuditavelConstant;
+use App\Models\ClienteApi;
 use App\Services\AlertaService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -44,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('acoes-publicas', fn (Request $request) => $this->limitesComPessoa($request, 'ip_acoes', 'por_pessoa'));
 
+        RateLimiter::for('parceiros', fn (Request $request) => $this->limitesDoParceiro($request));
+
         RateLimiter::for('consulta-com-ra', fn (Request $request) => $this->limitesComPessoa($request, 'ip_consultas', 'consulta_ra'));
     }
 
@@ -53,6 +56,24 @@ class AppServiceProvider extends ServiceProvider
 
         if ($pessoa = $this->identificadorDaPessoa($request)) {
             $limites[] = Limit::perMinute(config("reservas.limites.{$limitePessoa}"))
+                ->by('pessoa:'.$request->route()?->uri().':'.$pessoa);
+        }
+
+        return $limites;
+    }
+
+    private function limitesDoParceiro(Request $request): array
+    {
+        $cliente = $request->user();
+
+        if (! $cliente instanceof ClienteApi) {
+            return [Limit::none()];
+        }
+
+        $limites = [Limit::perMinute($cliente->limite_por_minuto)->by('cliente:'.$cliente->id)];
+
+        if ($request->isMethod('POST') && $pessoa = $this->identificadorDaPessoa($request)) {
+            $limites[] = Limit::perMinute(config('reservas.limites.por_pessoa'))
                 ->by('pessoa:'.$request->route()?->uri().':'.$pessoa);
         }
 

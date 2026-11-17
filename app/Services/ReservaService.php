@@ -11,6 +11,7 @@ use App\Mail\ReservaRevogadaMail;
 use App\Mail\UsoRegistradoMail;
 use App\Models\Aluno;
 use App\Models\Auditoria;
+use App\Models\ClienteApi;
 use App\Models\Equipamento;
 use App\Models\Espaco;
 use App\Models\Reserva;
@@ -31,7 +32,7 @@ class ReservaService
         private ConfirmacaoService $confirmacao,
     ) {}
 
-    public const RELACOES_ADMIN = ['aluno.curso', 'espaco', 'equipamentos', 'criador', 'atualizador', 'revogador'];
+    public const RELACOES_ADMIN = ['aluno.curso', 'espaco', 'equipamentos', 'criador', 'atualizador', 'revogador', 'clienteApi:id,nome'];
 
     public function listar(array $filtros, string $ordem = 'asc', int $porPagina = 15): LengthAwarePaginator
     {
@@ -47,12 +48,14 @@ class ReservaService
         return $this->reservas->totaisPorStatus($filtros);
     }
 
-    public function create(array $data, ?User $admin = null): Reserva
+    public const RELACOES_PARCEIRO = ['espaco:id,nome', 'equipamentos'];
+
+    public function create(array $data, ?User $admin = null, ?ClienteApi $cliente = null): Reserva
     {
         $aluno = Aluno::where('registro_academico', $data['registro_academico'])->firstOrFail();
         $data = $this->resolverIntervalo($data);
 
-        return DB::transaction(function () use ($aluno, $data, $admin) {
+        return DB::transaction(function () use ($aluno, $data, $admin, $cliente) {
             $espaco = $this->travarEspaco($data['espaco_id']);
             $this->verificarConflitoDeEspaco($data);
             $this->verificarLimiteSemanalDoCurso($aluno, $espaco, $data);
@@ -68,15 +71,24 @@ class ReservaService
                 'hora_fim'     => $data['hora_fim'],
                 'espaco_id'    => $data['espaco_id'],
                 'tipo'         => TipoReservaConstant::ALUNO,
-                'origem'       => $admin ? OrigemReservaConstant::ADMIN : OrigemReservaConstant::SITE,
-                'criado_por'   => $admin?->id,
+                'origem'       => match (true) {
+                    $admin !== null   => OrigemReservaConstant::ADMIN,
+                    $cliente !== null => OrigemReservaConstant::API,
+                    default           => OrigemReservaConstant::SITE,
+                },
+                'criado_por'     => $admin?->id,
+                'cliente_api_id' => $cliente?->id,
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
             $this->anexarSolicitacoes($reserva, $data['solicitacoes'] ?? [], $admin);
             $this->confirmacao->pedirNaCriacao($reserva, $aluno);
 
-            return $admin ? $reserva->load(self::RELACOES_ADMIN) : $reserva->load('equipamentos');
+            return match (true) {
+                $admin !== null   => $reserva->load(self::RELACOES_ADMIN),
+                $cliente !== null => $reserva->load(self::RELACOES_PARCEIRO),
+                default           => $reserva->load('equipamentos'),
+            };
         });
     }
 

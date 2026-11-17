@@ -42,6 +42,9 @@ class ReservaResource extends JsonResource
                     ? ['id' => $this->aluno->curso->id, 'nome' => $this->aluno->curso->nome]
                     : null,
             ] : null),
+            'sistema_parceiro' => $this->whenLoaded('clienteApi', fn () => $this->clienteApi
+                ? ['id' => $this->clienteApi->id, 'nome' => $this->clienteApi->nome]
+                : null),
             'descricao'   => $this->descricao,
             'responsavel' => $this->when(
                 $request->is('api/admin/*') && $this->tipo === TipoReservaConstant::EVENTO,
