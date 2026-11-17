@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Constants\FinalidadeTokenConstant;
 use App\Models\Aluno;
 use App\Models\DataBloqueada;
 use App\Models\Equipamento;
@@ -286,6 +287,6 @@ class HorarioLivreTest extends TestCase
     {
         $id = $this->reservar('14:00', '15:00')->assertCreated()->json('data.id');
 
-        $this->assertSame('2026-11-12 14:00:00', TokenReserva::where('reserva_id', $id)->value('expira_em')->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-11-12 14:00:00', TokenReserva::where('reserva_id', $id)->where('finalidade', FinalidadeTokenConstant::CANCELAR)->value('expira_em')->format('Y-m-d H:i:s'));
     }
 }
