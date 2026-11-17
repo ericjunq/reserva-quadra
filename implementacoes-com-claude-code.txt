@@ -3057,3 +3057,24 @@ Desempenho: cada limite = uma leitura e uma escrita no cache (no banco, com CACH
   fora dele, com Redis). A camada por pessoa só existe nas ações.
 LGPD: RA só como HMAC no cache, nunca em claro; nada novo em log ou URL.
 Totais: 337 da API, 166 do front, 48 no navegador.
+
+========================================================================
+76. PASSO 11.8c: ORÇAMENTO DO FRONT E CONTAGEM DE CONSULTAS (17/11/2026)
+========================================================================
+frontend/angular.json: orçamento do pacote inicial de 350/500 kB para 330 kB (aviso) e 380 kB
+  (erro). O pacote está em 315,1 kB (82,9 kB transferidos); o limite antigo deixava quase dobrar
+  sem aviso. Conferido no build que textos e rotas do admin ("Histórico deste registro",
+  "Registrar a devolução", "Datas bloqueadas", "admin/auditorias") não estão no main: o aluno
+  não baixa nada do admin.
+tests/Feature/ConsultasDasListagensTest.php: um DataProvider com as 7 listas do admin (histórico,
+  espaços, equipamentos, cursos, datas bloqueadas, alunos e admins por POST); cria 2 itens, conta
+  as consultas, cria mais 10 e confere que o número é o mesmo. As factories criam relações
+  diferentes por item (espaço do equipamento, curso do aluno), então uma relação sem eager loading
+  faria o número crescer. Verificado: tirando o with('usuario') do AuditoriaService, o teste do
+  histórico falha.
+tests/Feature/AdminTest.php: test_busca_de_admins_por_post usava comoAdmin(), cujo nome e email
+  aleatórios podiam conter "ana" e aparecer na busca (falha de vez em quando). Agora o admin logado
+  tem nome e email fixos. Achado porque a suíte inteira falhou numa rodada; nesta mesma rodada dois
+  commits saíram porque a saída passava por "| tail" encadeado com "&& git commit" (o tail
+  devolve 0). Regra nova no CLAUDE.md: conferir o código de saída.
+Totais: 344 da API, 166 do front, 48 no navegador.

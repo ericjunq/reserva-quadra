@@ -168,7 +168,7 @@ Antes de cada commit de código, nesta ordem, sem pular etapas:
    - `npx ng test --watch=false` (a suíte inteira). Testes de unidade com `HttpTestingController` conferindo URL, método, cabeçalho e **corpo** das requisições, e o texto que aparece na tela; funções puras testadas à parte;
    - `npx ng build` (confere o orçamento; comparar o "Initial total" com o anterior e explicar se crescer);
    - `npx playwright test` (a suíte inteira, computador e celular). Todo fluxo de tela novo ganha um teste em `frontend/e2e` que clica como uma pessoa, com a API simulada em `e2e/api-falsa.ts` (datas relativas ao dia real; `filter({ visible: true })` quando o texto existe na tabela e nos cartões; conferir que dados pessoais não vão na URL).
-3. Contar os testes pelo resultado real (nunca de memória) e registrar os números no CHECKLIST, no README (seção 8, "Hoje") e no txt.
+3. Conferir o **código de saída** de cada suíte antes de commitar (nunca `php artisan test | tail ... && git commit`, porque o `tail` esconde a falha; achado em 17/11/2026). Contar os testes pelo resultado real (nunca de memória) e registrar os números no CHECKLIST, no README (seção 8, "Hoje") e no txt.
 4. Se um teste falhar, achar a causa (não afrouxar o teste para passar); se for defeito real, corrigir e registrar como "achado pelo teste".
 5. Servidores de teste só nas portas 8123 (API) e 4300 (front), desligados ao terminar.
 
@@ -192,7 +192,7 @@ Antes de cada commit de código, nesta ordem, sem pular etapas:
 - `CHECKLIST.md`: "📍 Onde paramos" (estado, último subpasso, em andamento, próximo passo, o que o usuário precisa fazer, pendências, conceitos explicados, lições para o Claude) reescrito sem linhas velhas; "🧵 Trilha de ideias" com uma linha por ideia/decisão/defeito/mudança, citando o usuário, e a linha "Agora:" sempre no fim; o passo do plano com a proposta, a aprovação, as decisões de implementação e a data de conclusão com o número de testes.
 - `README.md`: estrutura do código (pastas do front), endpoints, regras, "Decisões tomadas" (antigas riscadas como substituídas), testes (o que cada arquivo cobre e a contagem atual), histórico, próximos passos, "Ideias registradas para depois", conceitos úteis (ex.: "Enviar emails de verdade").
 - `DATABASE.md`: diagrama e decisões sempre que o banco mudar; "Mudanças planejadas" para o que foi aprovado e ainda não existe.
-- `implementacoes-com-claude-code.txt`: uma seção numerada por implementação (a última é a 75, de 17/11/2026; conferir o fim do arquivo antes de numerar), arquivo por arquivo, com o porquê de cada escolha (é lá que ficam as explicações que não podem ir como comentário).
+- `implementacoes-com-claude-code.txt`: uma seção numerada por implementação (a última é a 76, de 17/11/2026; conferir o fim do arquivo antes de numerar), arquivo por arquivo, com o porquê de cada escolha (é lá que ficam as explicações que não podem ir como comentário).
 - Este `CLAUDE.md`: toda instrução nova de comportamento do usuário entra aqui na hora.
 - Credenciais, senhas e tokens **nunca** entram nos guias (só o lugar onde configurar).
 - Contagens de testes conferidas rodando os testes, nunca copiadas de memória (em 13/11 o "124" do front estava errado; o real era 115).

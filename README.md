@@ -832,7 +832,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 337 testes da API, 166 testes de unidade do front (Vitest) e 48 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 344 testes da API, 166 testes de unidade do front (Vitest) e 48 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -863,6 +863,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
 | `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, **arredondamento para 15 min** (inclusive em conflitos e na duração máxima), espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela e arredondado, equipamentos pelo pico, redução de estoque pelo pico, **calendário com janela e ocupados** (reservas e bloqueios, sem RA), **`fim_minimo` de hoje e dia encerrado**, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
 | `VersaoDisponibilidadeTest` | Versão igual sem mudanças; muda depois de uma reserva e de um bloqueio; muda a cada faixa de 5 minutos; resposta só com a versão |
+| `ConsultasDasListagensTest` | Histórico, espaços, equipamentos, cursos, datas bloqueadas, alunos e admins fazem o mesmo número de consultas com 2 e com 12 itens (sem N+1) |
 | `LimitesPublicosTest` | Mesmo RA limitado sem afetar outro aluno do mesmo IP, limite por IP valendo para todos os RAs do IP, links do email limitados por token, consultas do calendário com o limite das consultas, RA fora da chave do limite |
 | `RotasProtegidasTest` | Toda rota do admin (e `/me`, `/logout`) responde 401 sem token; todas têm `auth:sanctum` e `admin.ativo`; admin desativado com token ainda válido é recusado e perde os tokens; admin ativo continua entrando |
 | `AuditoriaConsultaTest` | Histórico de um registro em ordem, nome curto no banco, filtros por admin e sem admin, por ação e período, senha oculta e aluno anonimizado, validações, paginação |
