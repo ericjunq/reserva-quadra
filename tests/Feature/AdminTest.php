@@ -8,6 +8,7 @@ use App\Services\AdminService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AdminTest extends TestCase
@@ -189,7 +190,7 @@ class AdminTest extends TestCase
 
     public function test_busca_de_admins_por_post(): void
     {
-        $this->comoAdmin();
+        Sanctum::actingAs(User::factory()->create(['name' => 'Eric Souza', 'email' => 'eric@fac.edu']));
         $ana = User::factory()->create(['name' => 'Ana Lima']);
 
         $ids = collect($this->postJson('/api/admin/admins/consulta', ['busca' => 'ana'])->assertOk()->json('data'))->pluck('id')->all();
