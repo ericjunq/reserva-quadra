@@ -275,6 +275,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/admin/reservas/detalhe-reserva/responder-solicitacao.ts` | Aprovar ou recusar (com motivo) um pedido de equipamento no detalhe da reserva |
 | `app/admin/compartilhado/campos-do-uso.ts` | Campos de espaço, data, horário (fixo ou início/fim) e equipamentos com o disponível no intervalo, usados pelo novo evento e pelo registro de uso; funções `horarioDoUso`, `horarioDaUrl` e `equipamentosEscolhidos` |
 | `app/admin/reservas/registrar-uso/` | `/admin/reservas/registrar?espaco=&data=&horario=` ou `&inicio=&fim=` (11.5c): registro de uso posterior (aluno pelo RA, só no corpo, ou grupo), conflito com link, aviso do limite levado ao detalhe |
+| `app/admin/cadastros/` | Cadastros do admin (11.6): página índice (`/admin/cadastros`), `CadastrosService`, `Paginacao` e `ConfirmarAcao` (botão com confirmação que diz a consequência) reaproveitados em todos os cadastros. **11.6a:** `espacos/` (lista com filtro de tipo; formulário de criar e editar com horário fixo ou livre, janela, duração máxima sugerida de 180 min e limite por curso; desativar e reativar) e `equipamentos/` (lista com filtro de espaço e situação; formulário com "Aceita pedido de outros espaços" e "Compartilhado com"; o espaço não muda depois de criado; desativar e reativar). Salvar um espaço limpa a lista de espaços guardada na memória (admin e público) |
 | `app/admin/reservas/nova-reserva/` | `/admin/reservas/nova?espaco=&data=&horario=` ou `&inicio=&fim=` e `&tipo=evento` (11.5e): "Para um aluno (RA)" ou "Evento da faculdade"; para aluno, RA só no corpo e equipamento de outro espaço já aprovado; para evento, descrição e conflito com justificativa. Antiga página de novo evento (`/admin/eventos/novo` redireciona) |
 | `app/admin/compartilhado/equipamentos-de-outros-espacos.ts` | Seção "Equipamento de outro espaço" da Nova reserva: busca na rota do admin só ao abrir, itens entram aprovados |
 | `app/compartilhado/caminho-interno.ts` | Aceita só caminhos do próprio site no `?voltar=` (cadastro e login) |
@@ -818,7 +819,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 325 testes da API, 147 testes de unidade do front (Vitest) e 38 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 325 testes da API, 151 testes de unidade do front (Vitest) e 40 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -907,6 +908,8 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `admin/reservas/reservas.spec.ts` | Filtros da URL (valores inválidos ignorados, período antes das datas), dias do período, linha do tempo (prazo, versão dos termos, prazo da reconfirmação às 23:59, revogação), lista por POST com os filtros e os selos sem RA/email, busca só no corpo, totais que filtram, detalhe com RA e email, revogação com justificativa, devolução com erro do item, exportação com as colunas e o nome do arquivo, limite de 366 dias |
 | `admin/calendario/calendario.spec.ts` | Itens do dia (fixo: livre para evento no fim de semana, não no passado; livre: ocupados e intervalos em ordem), link do evento, calendário pela rota do admin de segunda a domingo com quem reservou e espaço desativado, novo evento preenchido, conflito com justificativa e reenvio |
 | `e2e/pedido-equipamento.spec.ts` | No navegador: aluno abre "Pedir equipamento de outro espaço", vê o prazo da resposta, pede, vê no resumo e na tela de sucesso (o corpo leva `solicitacoes`); e mantém a reserva pelo link do email |
+| `admin/cadastros/cadastros.spec.ts` | Lista de espaços com filtro e descrição do horário, criar espaço com a duração sugerida, desativar com confirmação e a recusa da API, editar equipamento (aceita pedido e compartilhados) |
+| `e2e/cadastros-admin.spec.ts` | No navegador: Cadastros → Espaços → criar espaço; Equipamentos → marcar "Aceita pedido de outros espaços" |
 | `e2e/registro-posterior.spec.ts` | No navegador: "Registrar uso" pela lista, formulário, detalhe com o selo e "Registrado depois do uso por", RA só no corpo |
 | `e2e/calendario-admin.spec.ts` | No navegador: calendário com quem reservou e o selo, "Reservar aqui", evento criado pela Nova reserva, e reserva para um aluno com equipamento de outro espaço (selo "Pelo admin", RA fora da URL) |
 | `e2e/reservas-admin.spec.ts` | No navegador: login, lista sem RA, filtro de confirmação na URL, busca fora da URL, detalhe com RA e email, revogação e volta à lista com os filtros |
@@ -941,6 +944,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
+| Cadastros: espaços e equipamentos (passo 11.6a, 17/11/2026) | Página Cadastros no menu; lista e formulário de espaços e de equipamentos (compartilhamento e aceita pedido), desativar/reativar com confirmação |
 | Pedidos com um email só e reenvio da confirmação (17/11/2026) | Marca de obrigatório, aprovar/recusar todos, um email por reserva quando todos os pedidos têm resposta; reenvio do email de confirmação por "Minhas reservas" invalidando os links anteriores |
 | Reserva pelo admin para um aluno (passo 11.5e, 17/11/2026) | API: `POST /admin/reservas/aluno` (regras do site, confirmação, origem ADMIN, pedidos aprovados) e itens de outros espaços sem prazo. Front: página Nova reserva (aluno ou evento), "Reservar aqui" no calendário, selo "Pelo admin" |
 | Ajuste do pedido de equipamento (16/11/2026) | Prazo de resposta gravado (24 h / curto 3 h / mínimo 2 h / presencial) e lógica invertida (reserva cancelada se o aluno não mantiver em 12 h); página "Manter a reserva" |
@@ -982,7 +986,7 @@ Na ordem combinada (revisado em 16/11/2026). O detalhe de cada passo (o que far�
 **Pronto:** API (passos 1 a 10), área pública (11.1 a 11.3), acesso do admin (11.4) com senha + código por email (11.4b), reservas do admin (11.5a), calendário do admin e eventos (11.5b), registro de uso posterior (11.5c), pedido de equipamento de outro espaço com prazos e reserva mantida (11.5d e ajuste) e reserva pelo admin para um aluno (11.5e).
 
 1. ✅ **11.5e — reservar pelo admin para um aluno** (feito em 17/11/2026).
-2. **11.6 — cadastros do admin:** espaços, equipamentos (compartilhamento e "aceita solicitação"), cursos, alunos (com anonimização), datas bloqueadas e feriados, admins.
+2. **11.6 — cadastros do admin** (11.6a espaços e equipamentos pronto em 17/11/2026): espaços, equipamentos (compartilhamento e "aceita solicitação"), cursos, alunos (com anonimização), datas bloqueadas e feriados, admins.
 3. **11.7 — histórico de auditoria** no admin.
 4. **11.8 — acabamento:** acessibilidade, desempenho, guia de deploy do front, limites por IP das rotas públicas.
 5. **Passo 12 — grade de aulas (importação):** aprovado com ajustes em 13/11/2026; falta decidir a reimportação e saber o formato do arquivo da faculdade. Detalhes no passo 12 do CHECKLIST.

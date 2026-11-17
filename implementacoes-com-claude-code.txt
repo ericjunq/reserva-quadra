@@ -2851,3 +2851,28 @@ Testes: reservar.spec (obrigatório), reservas.spec (+1 aprovar todos), minhas-r
   reenvio), e2e pedido-equipamento (obrigatório) e pos-reserva (reenvio).
 
 Totais: 325 da API, 147 do front, 38 no navegador.
+
+========================================================================
+68. PASSO 11.6a: CADASTROS DE ESPAÇOS E EQUIPAMENTOS (17/11/2026)
+========================================================================
+Proposta do 11.6 aprovada em 17/11 ("Aprovo"; depois "siga com as implementações").
+
+FRONT (frontend/src/app/admin/cadastros/)
+modelos.ts (Pagina, EspacoCadastro, DadosDoEspaco, EquipamentoCadastro, DadosDoEquipamento) e
+  cadastros.service.ts (listar/detalhar/criar/atualizar/desativar espaços e equipamentos; reativar
+  é o PATCH com ativo true).
+paginacao.ts e confirmar-acao.ts: peças reaproveitadas por todos os cadastros (a confirmação diz a
+  consequência; a recusa da API aparece no formulário).
+cadastros.ts: página índice com os cadastros em cartões; menu "Cadastros" no layout e atalho no
+  painel.
+espacos/lista-espacos.ts (filtro de tipo e página na URL) e espacos/form-espaco.ts/.html (criar e
+  editar no mesmo componente; horário fixo ou livre com janela e duração sugerida de 180 min;
+  limite por curso vazio = sem limite; desativar/reativar). Ao salvar, limpa a lista de espaços
+  guardada no CalendarioAdminService e no ApiPublicaService (métodos esquecerEspacos novos).
+equipamentos/lista-equipamentos.ts (filtro de espaço e situação; nome do espaço pela lista de
+  espaços do admin) e equipamentos/form-equipamento.ts/.html (espaço só na criação; "Aceita pedido de
+  outros espaços"; "Compartilhado com" em caixas; desativar/reativar).
+admin.routes.ts: cadastros, cadastros/espacos[/novo|/:id], cadastros/equipamentos[/novo|/:id].
+Testes: cadastros.spec.ts (4) e e2e/cadastros-admin.spec.ts; api-falsa com as rotas de cadastro.
+
+Totais: 325 da API, 151 do front, 40 no navegador. Build: inicial 314,6 kB (82,8 kB transferidos).
