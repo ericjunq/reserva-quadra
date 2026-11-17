@@ -47,6 +47,15 @@ test('as páginas públicas não têm problemas de acessibilidade', async ({ pag
 
   await page.goto(`/reservas/confirmar/${tokenDoEmail}`);
   await semProblemas(page, 'confirmar reserva');
+
+  await page.goto(`/parceiros/aceite/${tokenDoEmail}`);
+  await expect(page.getByRole('heading', { name: 'Pedido de acesso' })).toBeVisible();
+  await semProblemas(page, 'aceite dos termos da API');
+
+  await page.getByLabel(/Li e aceito os termos de uso da API/).check();
+  await page.getByRole('button', { name: 'Aceitar e gerar o token' }).click();
+  await expect(page.getByRole('heading', { name: 'Termos aceitos' })).toBeVisible();
+  await semProblemas(page, 'token gerado');
 });
 
 test('as páginas do admin não têm problemas de acessibilidade', async ({ page }) => {
@@ -69,6 +78,9 @@ test('as páginas do admin não têm problemas de acessibilidade', async ({ page
     ['/admin/cadastros/espacos', 'espaços'],
     ['/admin/cadastros/equipamentos/5', 'equipamento'],
     ['/admin/cadastros/alunos/3', 'aluno'],
+    ['/admin/cadastros/sistemas-parceiros', 'sistemas parceiros'],
+    ['/admin/cadastros/sistemas-parceiros/3', 'sistema parceiro'],
+    ['/admin/cadastros/sistemas-parceiros/novo', 'cadastrar sistema parceiro'],
     ['/admin/historico', 'histórico'],
     ['/admin/minha-conta', 'minha conta'],
   ]) {

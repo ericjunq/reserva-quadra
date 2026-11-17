@@ -316,6 +316,24 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
     ativo: true,
     anonimizado_em: null,
   };
+  const daquiAUmAno = new Date(Date.now() + 365 * 86_400_000).toISOString();
+  const sistemasDoAdmin: Record<string, unknown>[] = [
+    {
+      id: 3,
+      nome: 'App da Atlética',
+      organizacao: 'Atlética de Computação',
+      responsavel: { nome: 'Bruno Lima', email: 'bruno@atletica.org' },
+      finalidade: 'Reservar a quadra para os treinos.',
+      permissoes: ['espacos:ler', 'reservas:criar'],
+      limite_por_minuto: 60,
+      ativo: true,
+      situacao: 'ATIVO',
+      termos_versao: '2026-11',
+      termos_aceitos_em: new Date(Date.now() - 86_400_000).toISOString(),
+      acesso_expira_em: daquiAUmAno,
+      link_aceite: null,
+    },
+  ];
   let equipamentoDoAdmin: Record<string, unknown> = {
     id: 5,
     espaco_id: 4,
@@ -535,6 +553,100 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
     }
     if (caminho === '/admin/admins/6') {
       return json({ data: adminsConvidados[0] });
+    }
+    if (caminho === '/admin/clientes-api/permissoes') {
+      return json({
+        data: [
+          { valor: 'espacos:ler', nome: 'Ver espaços, calendário e equipamentos' },
+          { valor: 'reservas:criar', nome: 'Reservar para um aluno pelo RA' },
+          { valor: 'reservas:ler', nome: 'Ver as reservas criadas pelo sistema' },
+          { valor: 'reservas:cancelar', nome: 'Cancelar as reservas criadas pelo sistema' },
+        ],
+      });
+    }
+    if (caminho === '/admin/clientes-api' && requisicao.method() === 'POST') {
+      const corpo = requisicao.postDataJSON();
+      sistemasDoAdmin.push({
+        id: 8,
+        nome: corpo.nome,
+        organizacao: corpo.organizacao,
+        responsavel: { nome: corpo.responsavel_nome, email: corpo.responsavel_email },
+        finalidade: corpo.finalidade,
+        permissoes: corpo.permissoes,
+        limite_por_minuto: corpo.limite_por_minuto,
+        ativo: true,
+        situacao: 'AGUARDANDO_ACEITE',
+        termos_versao: null,
+        termos_aceitos_em: null,
+        acesso_expira_em: null,
+        link_aceite: { expira_em: new Date(Date.now() + 7 * 86_400_000).toISOString() },
+      });
+      return json({ data: sistemasDoAdmin.at(-1) }, 201);
+    }
+    if (caminho === '/admin/clientes-api') {
+      return json({
+        data: sistemasDoAdmin,
+        meta: { current_page: 1, last_page: 1, total: sistemasDoAdmin.length, per_page: 15 },
+      });
+    }
+    const sistema = /^\/admin\/clientes-api\/(\d+)(\/enviar-aceite)?$/.exec(caminho);
+    if (sistema) {
+      const indice = sistemasDoAdmin.findIndex((item) => item.id === Number(sistema[1]));
+      if (indice < 0) {
+        return json({ message: 'Não encontrado.' }, 404);
+      }
+      if (sistema[2]) {
+        const revogar = requisicao.postDataJSON().revogar_atual === true;
+        sistemasDoAdmin[indice] = {
+          ...sistemasDoAdmin[indice],
+          ...(revogar ? { situacao: 'AGUARDANDO_ACEITE', acesso_expira_em: null } : {}),
+          link_aceite: { expira_em: new Date(Date.now() + 7 * 86_400_000).toISOString() },
+        };
+      } else if (requisicao.method() === 'DELETE') {
+        sistemasDoAdmin[indice] = {
+          ...sistemasDoAdmin[indice],
+          ativo: false,
+          situacao: 'DESATIVADO',
+          acesso_expira_em: null,
+          link_aceite: null,
+        };
+      }
+      return json({ data: sistemasDoAdmin[indice] });
+    }
+    if (caminho === `/parceiros/aceite/${tokenDoEmail}`) {
+      if (requisicao.method() === 'POST') {
+        return json({
+          data: {
+            token: '12|tokenDoParceiroGeradoUmaVezSo',
+            expira_em: daquiAUmAno,
+            permissoes: ['espacos:ler', 'reservas:criar'],
+          },
+        });
+      }
+      return json({
+        data: {
+          sistema: 'App da Atlética',
+          organizacao: 'Atlética de Computação',
+          responsavel_nome: 'Bruno Lima',
+          finalidade: 'Reservar a quadra para os treinos.',
+          permissoes: [
+            { valor: 'espacos:ler', nome: 'Ver espaços, calendário e equipamentos' },
+            { valor: 'reservas:criar', nome: 'Reservar para um aluno pelo RA' },
+          ],
+          renovacao: false,
+          link_expira_em: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+          termos: {
+            versao: '2026-11',
+            rascunho: true,
+            secoes: [
+              {
+                titulo: 'Dados pessoais',
+                paragrafos: ['Envie à API só o RA de um aluno que pediu a reserva.'],
+              },
+            ],
+          },
+        },
+      });
     }
     if (caminho === '/admin/cursos') {
       if (requisicao.method() === 'POST') {

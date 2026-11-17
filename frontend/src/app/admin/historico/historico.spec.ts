@@ -8,7 +8,7 @@ import { SessaoService } from '../../nucleo/sessao.service';
 import { Historico, filtrosDaUrl } from './historico';
 import { HistoricoDoRegistro } from './historico-do-registro';
 import { Auditoria } from './modelos';
-import { formatarQuando, formatarValor, linkDoRegistro, mudancasDe } from './rotulos';
+import { formatarQuando, formatarValor, linkDoRegistro, mudancasDe, quemFez } from './rotulos';
 
 const url = ambiente.urlApi;
 
@@ -84,6 +84,16 @@ describe('rótulos do histórico', () => {
     expect(linkDoRegistro('ADMIN', 2)).toBe('/admin/cadastros/admins/2');
     expect(linkDoRegistro('CURSO', 1)).toBeNull();
     expect(linkDoRegistro('ITEM_RESERVA', 1)).toBeNull();
+    expect(linkDoRegistro('CLIENTE_API', 4)).toBe('/admin/cadastros/sistemas-parceiros/4');
+  });
+
+  it('diz quem fez: admin, sistema parceiro ou sistema e aluno', () => {
+    expect(quemFez(revogacao)).toBe('Eric');
+    expect(quemFez({ ...anonimizacao, sistema_parceiro: { id: 4, nome: 'App da Atlética' } })).toBe(
+      'Sistema parceiro: App da Atlética',
+    );
+    expect(quemFez(anonimizacao)).toBe('Sistema ou aluno');
+    expect(formatarValor('origem', 'API')).toBe('Por sistema parceiro');
   });
 
   it('lê os filtros da URL e ignora valores inválidos', () => {
