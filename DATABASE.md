@@ -4,7 +4,7 @@ Visão do modelo de dados do sistema de reservas e o porquê das principais deci
 
 > Mais detalhes: [`README.md`](README.md) (regras e endpoints) e [`CHECKLIST.md`](CHECKLIST.md) (o que já existe e o que falta).
 
-Última atualização: 06/11/2026
+Última atualização: 17/11/2026 (passo 13: sistemas parceiros)
 
 ---
 
@@ -31,6 +31,8 @@ erDiagram
     equipamentos ||--o{ movimentacoes_estoque : "tem movimentações"
     reservas ||--o{ movimentacoes_estoque : "não devolvido em"
     users ||--o{ movimentacoes_estoque : "registra"
+    clientes_api |o--o{ reservas : "cria pela API"
+    clientes_api |o--o{ auditorias : "faz"
 
     cursos {
         bigint id PK
@@ -116,7 +118,8 @@ erDiagram
         bigint atualizado_por FK
         string status "RESERVADO, CANCELADO, REVOGADO"
         string tipo "ALUNO, EVENTO"
-        string origem "SITE, ADMIN, REGISTRO_POSTERIOR"
+        string origem "SITE, ADMIN, REGISTRO_POSTERIOR, API"
+        bigint cliente_api_id FK "sistema parceiro que criou"
         timestamp manter_ate "pedido não liberado: prazo para o aluno manter"
         timestamp mantida_em
         string descricao "eventos"
@@ -195,8 +198,27 @@ erDiagram
         string acao "CRIACAO, ATUALIZACAO, EXCLUSAO"
         json antes
         json depois
-        bigint user_id FK "admin; null = público"
+        bigint user_id FK "admin; null = público ou parceiro"
+        bigint cliente_api_id FK "sistema parceiro"
         timestamp created_at
+    }
+
+    clientes_api {
+        bigint id PK
+        string nome "único sem diferenciar maiúsculas"
+        string organizacao
+        string responsavel_nome
+        string responsavel_email
+        text finalidade
+        json permissoes "abilities do token"
+        smallint limite_por_minuto
+        boolean ativo
+        string termos_versao "termos da API aceitos"
+        timestamp termos_aceitos_em
+        string aceite_token_hash UK "SHA-256 do link de aceite"
+        timestamp aceite_expira_em
+        timestamp acesso_expira_em "vencimento do token atual"
+        timestamp aviso_vencimento_enviado_em
     }
 ```
 
@@ -227,6 +249,12 @@ Cada espaço tem sua regra: a quadra limita a 3 reservas por curso por semana, e
 
 **40. Estoque por movimentações, com a quantidade guardada no equipamento (11.9, 17/11/2026).**
 Toda mudança de quantidade vira uma linha em `movimentacoes_estoque` (tipo, quantidade, **estado do equipamento**, quem, quando, reserva quando houver e o estoque depois). `quantidade_total` e `quantidade_em_manutencao` continuam em `equipamentos` e são atualizadas na mesma transação, com trava de linha: a disponibilidade lê duas colunas e nunca soma movimentações (desempenho). O **utilizável** é `quantidade_total − quantidade_em_manutencao`; é ele que entra no cálculo do disponível, na validação da reserva e no que o aluno vê. Nenhuma movimentação deixa o utilizável abaixo do maior uso reservado **a partir de agora** (as reservas de hoje que já terminaram não contam). A quantidade não muda mais pelo `PATCH` do equipamento; o cadastro registra a entrada inicial ("Cadastro do equipamento."). As movimentações não entram no histórico de auditoria (elas já são o histórico), mas a mudança de quantidade no equipamento entra.
+
+**42. Sistemas parceiros em `clientes_api`, com o token no Sanctum (passo 13, 17/11/2026).**
+O sistema parceiro é um model próprio (`ClienteApi`) que usa os tokens do Sanctum (`personal_access_tokens`, polimórfica pelo morph map `cliente_api`), com as permissões como *abilities* e `expires_at` de 12 meses. O token fica só como hash na tabela do Sanctum, e a página de aceite o mostra uma vez. O link de aceite é uma coluna do próprio cliente (`aceite_token_hash` + `aceite_expira_em`), porque só existe um link válido por vez; um link novo sobrescreve o anterior, sem tabela extra nem limpeza. A **situação** (aguardando aceite, ativo, vencido, desativado) é calculada de `ativo` e `acesso_expira_em`, sem consultar os tokens. `acesso_expira_em` é o vencimento do token mais novo; na renovação, o token antigo continua até o próprio `expires_at`. Índice `(ativo, acesso_expira_em)` para o comando diário de renovação. A validade global do Sanctum (`sanctum.expiration`) passou a `null`, e cada token carrega a sua (admin: 8 h; parceiro: 12 meses). A tabela é criada antes de `reservas` (migration `2026_10_23_190131`), porque `reservas` e `auditorias` apontam para ela.
+
+**43. Quem fez a mudança: `user_id` só para admin, `cliente_api_id` para parceiro (passo 13, 17/11/2026).**
+O trait `Auditavel` gravava `Auth::id()`. Com um parceiro logado, o id do cliente iria parar em `user_id` e em `criado_por`, que apontam para `users`. Agora o trait olha o tipo de quem entrou: admin vai para `user_id`/`criado_por`/`atualizado_por`; parceiro vai para `auditorias.cliente_api_id`, e as colunas de admin ficam vazias. Em `reservas`, `cliente_api_id` (com índice `(cliente_api_id, data_reserva)`) diz qual sistema criou a reserva e limita o que cada parceiro vê e cancela. As duas FKs usam `nullOnDelete`, embora os sistemas nunca sejam apagados (só desativados).
 
 **41. Responsável do evento em colunas da reserva (11.9, 17/11/2026).**
 `responsavel_nome` (obrigatório em todo evento, decisão do usuário) e `responsavel_contato` (opcional) ficam na própria reserva: um evento tem um responsável, e uma tabela de pessoas não teria uso. Dado pessoal de terceiro: só aparece nas rotas do admin; pode ser corrigido e **removido a pedido** (`PATCH /admin/reservas/{id}/responsavel` com `remover`), o que também troca os valores por `[removido]` no histórico de auditoria. A movimentação "não houve devolução" aponta para a reserva, sem copiar o nome.
@@ -360,5 +388,5 @@ O token puro (64 caracteres aleatórios) só existe no email. O banco guarda o S
 
 | Mudança | Para quê |
 |---|---|
-| Clientes de API (passo 13) | Terceiros autorizados, com permissões por cliente e um **responsável** cadastrado (organização, pessoa, email) que aceita os termos de uso da API (versão guardada) |
+| ~~Clientes de API (passo 13)~~ | ✅ Feito em 17/11/2026: decisões 42 e 43 |
 | Grade de aulas (passo 12, aprovado em 13/11/2026; reimportação em discussão) | `aulas` (espaço, dia da semana, início, fim, descrição curta, importação), sem professores nem alunos, índice `(espaco_id, dia_semana)`; `grade_importacoes` (nome, vigência, totais, quem importou, substituída por); `espacos.codigo` para reconhecer o espaço na importação. Recomendação: vigência guardada só na importação; reimportar corta a vigência da grade substituída, sem apagar |

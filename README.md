@@ -156,6 +156,13 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `CORS_ALLOWED_ORIGINS` | `FRONTEND_URL` | Endereços (separados por vírgula) que podem chamar a API pelo navegador |
 | `CORS_MAX_AGE` | 86400 | Por quantos segundos o navegador guarda a liberação do CORS (menos requisições `OPTIONS`) |
 | `TRUSTED_PROXIES` | vazio | IPs do proxy/balanceador na frente do servidor (ou `*`), para o Laravel enxergar o HTTPS e o IP real |
+| `SESSAO_ADMIN_MINUTOS` | 480 | Validade do token de login do admin (8 h). Fica no próprio token: a validade global do Sanctum é `null` desde o passo 13, senão os tokens de 12 meses dos parceiros venceriam em 8 h |
+| `PARCEIROS_TERMOS_VERSAO` | 2026-11 | Versão dos termos de uso da API (gravada no sistema parceiro no aceite) |
+| `PARCEIROS_VALIDADE_MESES` | 12 | Validade do token de um sistema parceiro |
+| `PARCEIROS_AVISO_DIAS_ANTES` | 30 | Quantos dias antes do vencimento o responsável recebe o link de renovação |
+| `PARCEIROS_LINK_ACEITE_DIAS` | 7 | Validade do link de aceite dos termos da API (o de renovação vale até o vencimento, no mínimo isso) |
+| `PARCEIROS_LIMITE_POR_MINUTO` | 60 | Limite padrão de requisições por minuto de um sistema parceiro (ajustável no cadastro, até 600) |
+| `PARCEIROS_HORARIO_AVISO` | 08:30 | Horário diário do comando que manda os links de renovação |
 | `LOGIN_COM_CODIGO` | `true` | Login do admin com senha + código de 6 dígitos por email. `false` só em desenvolvimento (o `sistema:verificar-producao` acusa em produção) |
 | `FILA_PELO_AGENDADOR` | `true` em `APP_ENV=local`, `false` nos outros | O agendador roda `queue:work --stop-when-empty --max-time=55 --tries=3` a cada minuto, em segundo plano e sem sobreposição. Em desenvolvimento, basta o `schedule:work` para os emails saírem. Em produção, `false` com supervisor; `true` só se a hospedagem não tiver supervisor |
 | `LIMITE_IP_ACOES_POR_MINUTO` | 60 | Pedidos por minuto de um mesmo IP nas ações públicas (reservar, cadastro, minhas reservas, reenviar, links do email), somando todas. Alto porque o Wi-Fi da faculdade junta muitos alunos num IP |
@@ -189,6 +196,7 @@ Definidas em `routes/console.php`, no fuso `APP_TIMEZONE` (America/Sao_Paulo). N
 | `model:prune` (`DesafioLogin`) | Todo dia, 03:15 | Apaga os códigos de login vencidos há mais de 1 dia |
 | `sanctum:prune-expired --hours=24` | Todo dia, 03:20 | Apaga tokens de login vencidos |
 | `queue:prune-failed --hours=168` | Todo dia, 03:30 | Apaga jobs que falharam há mais de 7 dias |
+| `parceiros:avisar-vencimento` | Todo dia, 08:30 | Manda ao responsável de cada sistema parceiro com acesso vencendo em até 30 dias um link para aceitar os termos de novo e gerar um token novo (uma vez por vencimento) |
 | `reservas:pedir-reconfirmacao` | Todo dia, 08:00 | Pede a reconfirmação das reservas que acontecem em até 3 dias úteis |
 | `feriados:importar {ano seguinte}` | 1º de dezembro, 03:00 | Importa os feriados do próximo ano (sem os facultativos, salvo `RESERVA_FERIADOS_FACULTATIVOS=true`) |
 
@@ -283,6 +291,8 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/Console/Commands` | Comandos de terminal (importação de feriados) |
 | `database/factories` + `database/seeders` | Dados de teste e de demonstração |
 | `tests/Feature` | Testes da API, separados por assunto |
+| `app/Http/Controllers/V1`, `app/Http/Resources/V1`, `app/Http/Requests/V1` | API para sistemas parceiros (`/api/v1`, passo 13): controllers e resources próprios, com tipos explícitos, para a v1 não mudar quando as rotas do front mudarem |
+| `docs/` | `api-v1.openapi.json` (especificação gerada pelo Scramble e conferida no `DocumentacaoApiTest`) e `API-PARCEIROS.md` (guia para quem desenvolve um sistema parceiro) |
 
 **Front-end (`frontend/src`):**
 
@@ -311,6 +321,8 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/admin/cadastros/` | Cadastros do admin (11.6): página índice (`/admin/cadastros`), `CadastrosService`, `Paginacao` e `ConfirmarAcao` (botão com confirmação que diz a consequência) reaproveitados em todos os cadastros. **11.6a:** `espacos/` (lista com filtro de tipo; formulário de criar e editar com horário fixo ou livre, janela, duração máxima sugerida de 180 min e limite por curso; desativar e reativar) e `equipamentos/` (lista com filtro de espaço e situação; formulário com "Aceita pedido de outros espaços" e "Compartilhado com"; o espaço não muda depois de criado; desativar e reativar). Salvar um espaço limpa a lista de espaços guardada na memória (admin e público). **11.6b:** `cursos/` (uma página: criar, renomear e desativar/reativar na própria lista; salvar limpa a lista de cursos guardada do cadastro do aluno) e `datas-bloqueadas/` (lista de hoje em diante com filtros de período e espaço, feriados marcados, editar o motivo e excluir com confirmação; `form-bloqueio` para criar dia inteiro ou parte do dia, num espaço ou em todos, mostrando quantas reservas foram revogadas). **11.6c:** `alunos/` (lista com busca por nome ou RA por POST, filtro de curso e situação, sem RA e email; detalhe com RA e email, editar, desativar/reativar com o total de reservas revogadas, as 10 últimas reservas e a anonimização com confirmação forte: marcar "Entendo que não dá para desfazer" e digitar ANONIMIZAR). **11.6d:** `admins/` (lista com busca por nome ou email por POST e filtro de situação, admin principal e convite pendente marcados, sem email na lista; convidar com nome e email; detalhe com editar, reenviar o convite enquanto pendente e desativar/reativar com confirmação; o principal não mostra desativar; as proteções vêm da API) |
 | `app/admin/historico/` | Histórico de auditoria (11.7): `historico.ts` (página `/admin/historico`, filtros na URL: `periodo` ou `de`/`ate`, `tipo`, `registro`, `acao`, `quem` = id do admin ou `sistema`; só ids e códigos, nada pessoal), `entrada-historico.ts` (uma mudança: quando, quem, ação, link do registro e a tabela antes → depois), `historico-do-registro.ts` (seção dos detalhes de reserva, aluno, espaço, equipamento e admin; só consulta ao abrir, as 10 mais recentes e "Ver tudo no histórico"), `rotulos.ts` (nomes dos tipos, ações e campos; Sim/Não, datas dd/mm/aaaa hh:mm, códigos traduzidos; `[oculto]` e `[anonimizado]` como vêm da API), `historico.service.ts`. Sem busca por texto: os valores guardam dados pessoais (decisão de 17/11/2026) |
 | `app/admin/cadastros/estoque/` | Estoque (11.9): `estoque-equipamento.ts` (resumo total/manutenção/para reservar, ajuste e lista paginada de movimentações no detalhe do equipamento), `ajustar-estoque.ts` (formulário reaproveitado no detalhe da reserva, com tipo, quantidade e reserva já preenchidos a partir da devolução), `tipos.ts` (nomes e ajudas dos tipos). Também: `admin/compartilhado/campos-do-responsavel.ts` (responsável do evento na Nova reserva e no Registrar uso) e `reservas/detalhe-reserva/responsavel-do-evento.ts` (mostra, corrige e remove a pedido) |
+| `app/admin/cadastros/sistemas-parceiros/` | Sistemas parceiros (13c): lista com busca por sistema ou organização e situação (aguardando aceite, ativo, acesso vencido, desativado); formulário com responsável, finalidade, permissões e limite por minuto; no detalhe, termos aceitos, vencimento, link pendente, "Enviar link de aceite/renovação", "Revogar o token", desativar/reativar e o histórico. O admin nunca vê o token |
+| `app/publico/aceite-parceiro/` | `/parceiros/aceite/:token` (13c): tira o token da barra, mostra o cadastro, as permissões e os termos da API, exige "Li e aceito" e mostra o token **uma única vez**, com "Copiar"; nada é guardado no navegador |
 | `app/admin/reservas/nova-reserva/` | `/admin/reservas/nova?espaco=&data=&horario=` ou `&inicio=&fim=` e `&tipo=evento` (11.5e): "Para um aluno (RA)" ou "Evento da faculdade"; para aluno, RA só no corpo e equipamento de outro espaço já aprovado; para evento, descrição e conflito com justificativa. Antiga página de novo evento (`/admin/eventos/novo` redireciona) |
 | `app/admin/compartilhado/equipamentos-de-outros-espacos.ts` | Seção "Equipamento de outro espaço" da Nova reserva: busca na rota do admin só ao abrir, itens entram aprovados |
 | `app/compartilhado/caminho-interno.ts` | Aceita só caminhos do próprio site no `?voltar=` (cadastro e login) |
@@ -339,7 +351,7 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
   - **Tamanho:** cada tela é um pacote sob demanda (início 2,4 kB, calendário 4,2 kB, reserva 5 kB, cadastro 2,5 kB comprimidos); formulários do Angular (17 kB) e ícones (só os usados) também ficam fora do pacote inicial. O pacote inicial (~300 kB, 80 kB comprimido) é quase todo do Angular (núcleo, router) e do rxjs; o orçamento é 350 kB (aviso) e 500 kB (erro).
 - **Sessão do admin:** token e validade (`expires_at` do login) no `sessionStorage`, que some ao fechar a aba. Sessão vencida ou conteúdo inválido é descartado ao abrir e a cada uso.
 - **Datas e números em pt-BR** (`LOCALE_ID`), `<html lang="pt-BR">` e `Referrer-Policy: no-referrer` no `index.html`, para os tokens dos links de email não vazarem para outros sites.
-- **Acessibilidade:** link "Pular para o conteúdo" nos dois layouts e foco visível em todos os elementos (contorno azul). Desde o 11.8b (17/11/2026), o `e2e/acessibilidade.spec.ts` roda o **axe** (`@axe-core/playwright`, só de desenvolvimento) com as regras WCAG 2.0/2.1/2.2 A e AA em 8 páginas públicas e 11 do admin, no computador e no celular, e reserva um horário só pelo teclado. **Toda página nova entra nesse teste.** Regra que o axe cobrou: o nome lido pelo leitor de tela precisa **começar pelo texto visível** (WCAG 2.5.3); informação extra vai num `<span class="sr-only">` depois do texto, nunca num `aria-label` diferente do que aparece.
+- **Acessibilidade:** link "Pular para o conteúdo" nos dois layouts e foco visível em todos os elementos (contorno azul). Desde o 11.8b (17/11/2026), o `e2e/acessibilidade.spec.ts` roda o **axe** (`@axe-core/playwright`, só de desenvolvimento) com as regras WCAG 2.0/2.1/2.2 A e AA em 10 páginas públicas e 15 do admin, no computador e no celular, e reserva um horário só pelo teclado. **Toda página nova entra nesse teste.** Regra que o axe cobrou: o nome lido pelo leitor de tela precisa **começar pelo texto visível** (WCAG 2.5.3); informação extra vai num `<span class="sr-only">` depois do texto, nunca num `aria-label` diferente do que aparece.
 - **Formatação** pelo Prettier (`.prettierrc`: aspas simples, 100 colunas). **Sem comentários** no código, como na API.
 
 **Convenções:**
@@ -444,10 +456,39 @@ POST /api/reservas
 
 Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim": "15:30"`.
 
+### Aceite dos termos da API (público, link do email do responsável)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/parceiros/termos` | Termos de uso da API em vigor (versão e seções) |
+| GET | `/api/parceiros/aceite/{token}` | Resumo do pedido de acesso (sistema, organização, responsável, finalidade, permissões, se é renovação) e os termos |
+| POST | `/api/parceiros/aceite/{token}` | Aceita os termos (`aceite_termos: true`) e devolve o token **uma única vez** (`Cache-Control: no-store`) |
+
+### Sistemas parceiros (`/api/v1`, token de parceiro)
+
+Guia completo em [`docs/API-PARCEIROS.md`](docs/API-PARCEIROS.md) e especificação em [`docs/api-v1.openapi.json`](docs/api-v1.openapi.json). Toda rota passa por `auth:sanctum`, `parceiro` (só token de sistema parceiro ativo; token de admin recebe 403), `throttle:parceiros` (limite do sistema e por RA) e `permissao:<permissão>` (403 com `dados.permissoes_necessarias`).
+
+| Método | Rota | Permissão | Descrição |
+|---|---|---|---|
+| GET | `/api/v1/espacos` | `espacos:ler` | Espaços ativos (`?tipo=`) |
+| GET | `/api/v1/espacos/{id}/disponibilidade` | `espacos:ler` | Calendário, igual ao público (sem quem reservou) |
+| GET | `/api/v1/espacos/{id}/equipamentos` | `espacos:ler` | Equipamentos usáveis no espaço |
+| GET | `/api/v1/espacos/{id}/equipamentos/disponibilidade` | `espacos:ler` | Disponível de cada equipamento no intervalo |
+| POST | `/api/v1/reservas` | `reservas:criar` | Reserva para um aluno pelo RA (regras do site, confirmação pelo email do aluno, origem `API`) |
+| GET | `/api/v1/reservas` | `reservas:ler` | Só as reservas do próprio sistema (`?de=&ate=&status=`), paginadas, sem dados pessoais |
+| GET | `/api/v1/reservas/{id}` | `reservas:ler` | Uma reserva do próprio sistema (404 para as outras) |
+| POST | `/api/v1/reservas/{id}/cancelar` | `reservas:cancelar` | Cancela uma reserva do próprio sistema antes do início; o aluno recebe o email de cancelamento |
+
 ### Admin (exigem `Authorization: Bearer <token>`)
 
 | Método | Rota | Descrição |
 |---|---|---|
+| GET | `/api/admin/clientes-api` | Sistemas parceiros (`?busca=` sistema ou organização, `?ativo=`) |
+| GET | `/api/admin/clientes-api/permissoes` | Permissões que um sistema pode receber, com o nome de cada uma |
+| POST | `/api/admin/clientes-api` | Cadastra (`nome`, `organizacao`, `responsavel_nome`, `responsavel_email`, `finalidade`, `permissoes[]`, `limite_por_minuto`) e manda o link de aceite ao responsável |
+| GET/PATCH | `/api/admin/clientes-api/{id}` | Detalhe (com `situacao`, termos, vencimento e link pendente; nunca o token) e edição (trocar permissões vale para o token atual; trocar o email do responsável invalida o link pendente e manda outro; reativar manda link novo) |
+| DELETE | `/api/admin/clientes-api/{id}` | Desativa e apaga os tokens na hora |
+| POST | `/api/admin/clientes-api/{id}/enviar-aceite` | Manda um link novo ao responsável; com `revogar_atual: true`, apaga o token atual na hora (vazamento) |
 | POST | `/api/logout` · `/api/logout-geral` | Encerra o token atual ou todos os tokens |
 | GET | `/api/me` | Admin logado (`UserResource`) |
 | PATCH | `/api/me/senha` | Troca a própria senha (`senha_atual`, `password`, `password_confirmation`) |
@@ -582,6 +623,16 @@ Exemplo: 2 microscópios compartilhados com 3 labs e os 3 labs no mesmo horário
 - `GET /api/admin/equipamentos/{id}/movimentacoes` (paginado, da mais recente) e `POST` no mesmo endereço (resposta com a movimentação e o equipamento atualizado).
 - Tela: no detalhe do equipamento, resumo (total, em manutenção, para reservar), "Ajustar estoque" e a lista; no detalhe da reserva, item devolvido com avaria ou não devolvido ganha "Ajustar o estoque" já preenchido (manutenção ou não houve devolução, com a quantidade e a observação). A tela avisa para não escrever nomes no estado.
 - Desempenho: a disponibilidade lê duas colunas (nada de somar movimentações); a lista é paginada pelo índice `(equipamento_id, created_at)`.
+
+### Sistemas parceiros (passo 13)
+
+- **Quem é quem:** a instituição é a controladora; cada sistema parceiro tem uma **pessoa responsável** (nome e email) que aceita os **termos de uso da API** (`app/Support/TermosApi.php`, rascunho versionado em `PARCEIROS_TERMOS_VERSAO`) e responde pelo uso.
+- **Cadastro pelo admin → link ao responsável → aceite → token.** O link vale 7 dias e guarda só o hash (`aceite_token_hash`). O token é do Sanctum, pertence ao `ClienteApi`, tem as permissões como *abilities* e vence em 12 meses. Aparece uma única vez na página de aceite. O admin nunca vê o token.
+- **Situações** (calculadas, sem coluna): `DESATIVADO` (`ativo = false`), `AGUARDANDO_ACEITE` (sem acesso), `VENCIDO` (`acesso_expira_em` passou), `ATIVO`.
+- **Renovação:** 30 dias antes do vencimento, o comando diário manda um link de renovação (uma vez). No aceite, sai um token novo; **o antigo continua até vencer**, para o parceiro trocar sem parar. Em caso de vazamento, o admin usa "Revogar o token" (`revogar_atual`), que apaga na hora.
+- **Separação dos tokens:** o middleware `admin.ativo` recusa com 403 qualquer token que não seja de admin, e o `parceiro` recusa o de admin na v1. Os dois rodam **antes** da busca do registro da rota (prioridade antes do `SubstituteBindings`): sem isso, um parceiro receberia 404 ou 403 conforme o id existisse.
+- **Auditoria:** `auditorias.cliente_api_id` diz qual sistema fez a mudança (`user_id` fica nulo). Na tela, "Sistema parceiro: nome". `criado_por` das reservas só guarda admins.
+- **Reservas:** origem `API` e `reservas.cliente_api_id`; selo "Por sistema parceiro" e o nome do sistema no detalhe do admin. O parceiro só vê e cancela as próprias reservas, sem nome, email, curso nem RA.
 
 ### Datas bloqueadas (admin)
 
@@ -876,7 +927,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 358 testes da API, 170 testes de unidade do front (Vitest) e 58 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026, depois do passo 13):** 394 testes da API, 178 testes de unidade do front (Vitest) e 64 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -907,10 +958,13 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
 | `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, **arredondamento para 15 min** (inclusive em conflitos e na duração máxima), espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela e arredondado, equipamentos pelo pico, redução de estoque pelo pico, **calendário com janela e ocupados** (reservas e bloqueios, sem RA), **`fim_minimo` de hoje e dia encerrado**, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
 | `VersaoDisponibilidadeTest` | Versão igual sem mudanças; muda depois de uma reserva e de um bloqueio; muda a cada faixa de 5 minutos; resposta só com a versão |
-| `EmailsTest` | Os 11 emails montam com o assunto e o conteúdo esperados, sem link para a API ou `localhost`, e só o alerta e o código de login saem sem fila |
-| `ConsultasDasListagensTest` | Histórico, espaços, equipamentos, cursos, datas bloqueadas, alunos e admins fazem o mesmo número de consultas com 2 e com 12 itens (sem N+1) |
+| `EmailsTest` | Os 13 emails (com o aceite e a renovação do acesso à API) montam com o assunto e o conteúdo esperados, sem link para a API ou `localhost`, e só o alerta e o código de login saem sem fila |
+| `ConsultasDasListagensTest` | Histórico, espaços, equipamentos, cursos, datas bloqueadas, alunos, sistemas parceiros e admins fazem o mesmo número de consultas com 2 e com 12 itens (sem N+1) |
 | `LimitesPublicosTest` | Mesmo RA limitado sem afetar outro aluno do mesmo IP, limite por IP valendo para todos os RAs do IP, links do email limitados por token, consultas do calendário com o limite das consultas, RA fora da chave do limite |
-| `RotasProtegidasTest` | Toda rota do admin (e `/me`, `/logout`) responde 401 sem token; todas têm `auth:sanctum` e `admin.ativo`; admin desativado com token ainda válido é recusado e perde os tokens; admin ativo continua entrando |
+| `RotasProtegidasTest` | Toda rota do admin (e `/me`, `/logout`) responde 401 sem token; todas têm `auth:sanctum` e `admin.ativo`; token de sistema parceiro recebe 403 em **todas** as rotas do admin; toda rota `/api/v1` tem `auth:sanctum`, `parceiro`, `throttle:parceiros` e uma `permissao:*`, e responde 401 sem token, 403 com token de admin e 403 sem a permissão **antes** de buscar o registro (com teste de mutação); admin desativado com token ainda válido é recusado e perde os tokens; admin ativo continua entrando |
+| `ClienteApiTest` | Cadastro do sistema parceiro com link ao responsável e nenhum token na resposta, nome único e permissões válidas, página de aceite com os termos e o aceite obrigatório, token gerado uma vez com permissões e validade de 12 meses, link usado/vencido/inventado com a mesma resposta, token de parceiro barrado no admin, desativar cortando o acesso e reativar mandando link, link novo com e sem revogar o token atual, trocar permissões valendo para o token, trocar o responsável invalidando o link, renovação 30 dias antes uma vez só, situação vencida, histórico sem o hash e com o sistema parceiro, busca, sessão do admin ainda em 8 h |
+| `ApiParceirosTest` | `/api/v1`: 401 sem token, 403 com token de admin, 403 sem a permissão com a permissão que falta, sistema desativado perde os tokens, token vencido recusado, espaços e calendário sem quem reservou, reserva pelo RA com origem `API`, histórico com o sistema e email de confirmação ao aluno (mesmas regras do site), admin vê o sistema e filtra pela origem, só as próprias reservas e sem dados pessoais, listagem sem N+1, cancelar só as próprias com email ao aluno, limite por minuto de cada sistema |
+| `DocumentacaoApiTest` | O `docs/api-v1.openapi.json` é igual ao gerado do código (no SQLite; `ATUALIZAR_OPENAPI=1` regrava), cobre só a v1, com token Bearer e sem dados pessoais do aluno no formato da reserva |
 | `AuditoriaConsultaTest` | Histórico de um registro em ordem, nome curto no banco, filtros por admin e sem admin, por ação e período, senha oculta e aluno anonimizado, validações, paginação |
 | `AdminPrincipalTest` | Principal não desativado nem editado por outros, edita a si mesmo, desativa os outros, flag não muda pela API, seeder, comandos de criação (senha fraca, duplicado) e de transferência |
 | `SenhaTest` | Esqueci a senha (link só com token, 60 min), resposta igual para inexistente/inativo, redefinição derrubando sessões com email de aviso, uso único e vencimento, token/email errados, regras da senha, aceite de convite em até 2 dias, link de redefinição não serve no convite, troca logado mantendo a sessão atual |
@@ -980,7 +1034,10 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `e2e/registro-posterior.spec.ts` | No navegador: "Registrar uso" pela lista, formulário, detalhe com o selo e "Registrado depois do uso por", RA só no corpo |
 | `e2e/calendario-admin.spec.ts` | No navegador: calendário com quem reservou e o selo, "Reservar aqui", evento criado pela Nova reserva, e reserva para um aluno com equipamento de outro espaço (selo "Pelo admin", RA fora da URL) |
 | `e2e/seguranca-do-front.spec.ts` | No navegador: o site carregado com a CSP do `frontend/deploy/nginx.conf` (lida do arquivo) não tem nada bloqueado, aplica a fonte e funciona no calendário, na reserva e no admin |
-| `e2e/acessibilidade.spec.ts` | No navegador: axe (WCAG A e AA) em início, calendários da quadra e do laboratório, reservar, cadastro, minhas reservas, termos e confirmar; e em entrar, painel, reservas, detalhe, nova reserva, calendário do admin, cadastros, espaços, equipamento, aluno, histórico e minha conta; reserva só pelo teclado com o foco visível |
+| `e2e/acessibilidade.spec.ts` | No navegador: axe (WCAG A e AA) em início, calendários da quadra e do laboratório, reservar, cadastro, minhas reservas, termos, confirmar, aceite dos termos da API e token gerado; e em entrar, painel, reservas, detalhe, nova reserva, calendário do admin, cadastros, espaços, equipamento, aluno, sistemas parceiros (lista, detalhe e cadastro), histórico e minha conta; reserva só pelo teclado com o foco visível |
+| `e2e/sistemas-parceiros.spec.ts` | No navegador: Cadastros → Sistemas parceiros → cadastrar (corpo enviado, email fora das URLs, nenhum token na tela do admin); revogar o token de um sistema ativo; o responsável abre o link (token sai do endereço), lê os termos, só aceita com a caixa marcada e vê o token uma vez, sem nada guardado no navegador |
+| `admin/cadastros/sistemas-parceiros/sistemas-parceiros.spec.ts` | Lista com a situação e o filtro na URL da API; cadastro com permissões e limite no corpo; erros por campo; no detalhe, link de renovação (`revogar_atual: false`), revogar (`true`) e desativar |
+| `publico/aceite-parceiro/aceite-parceiro.spec.ts` | Token tirado do endereço, pedido e termos na tela, botão só com a caixa marcada, POST com `aceite_termos` e sem `Authorization`, token mostrado com a validade; link inválido; sem token |
 | `e2e/reservas-admin.spec.ts` | No navegador: login, lista sem RA, filtro de confirmação na URL, busca fora da URL, detalhe com RA e email, revogação e volta à lista com os filtros |
 | `e2e/acesso-admin.spec.ts` | No navegador: login com erro e certo voltando à página pedida, painel, sair e rota protegida; senha nova pelo link do email (token fora da URL, corpo enviado) |
 | `publico/minhas-reservas/minhas-reservas.spec.ts` | POST com RA e email no corpo, situação de cada reserva (confirmação, revogação, devolução, aviso de cancelar pelo email), mensagem genérica, formato sem chamar a API, paginação repetindo o POST, limpar |
@@ -1050,6 +1107,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Auditoria | `criado_por`/`atualizado_por` nas tabelas principais, tabela `auditorias` com antes/depois, trait `Auditavel`, campos nas respostas do admin |
 | Exportação de reservas | CSV com os filtros da listagem, atalhos de período, colunas opcionais, stream em lotes e proteção contra fórmulas; consulta movida para `ReservaRepository` |
 | Item 7 — Listagem de reservas (admin) | Lista paginada com filtros, detalhe, totais por status e dados completos de aluno, espaço, equipamentos, criador e revogador |
+| Passo 13 — API para sistemas parceiros (17/11/2026) | `ClienteApi` (Sanctum, permissões, limite), aceite dos termos da API por link ao responsável, token mostrado uma vez e renovação anual, `/api/v1` com controllers e resources próprios, separação total dos tokens de admin e parceiro, auditoria e origem `API`, telas no admin e página de aceite, OpenAPI pelo Scramble e guia para parceiros |
 | Item 5 — Consulta de disponibilidade | Calendário público por espaço (até 31 dias), situação de cada horário, quem reservou, equipamentos por horário, limite semanal do curso por RA/curso; antecedência passa a 10 dias úteis |
 
 ---
@@ -1063,9 +1121,9 @@ Na ordem combinada (revisado em 16/11/2026). O detalhe de cada passo (o que far�
 1. ✅ **11.5e — reservar pelo admin para um aluno** (feito em 17/11/2026).
 2. ✅ **11.6 — cadastros do admin** (11.6a a 11.6d prontos em 17/11/2026): espaços, equipamentos (compartilhamento e "aceita solicitação"), cursos, alunos (com anonimização), datas bloqueadas e feriados, admins.
 3. ✅ **11.7 — histórico de auditoria** no admin (17/11/2026).
-4. **11.8 — acabamento:** acessibilidade, desempenho, guia de deploy do front, limites por IP das rotas públicas.
+4. ✅ **11.8 — acabamento** e **11.9 — estoque e responsável do evento** (17/11/2026).
 5. **Passo 12 — grade de aulas (importação):** aprovado com ajustes em 13/11/2026; falta decidir a reimportação e saber o formato do arquivo da faculdade. Detalhes no passo 12 do CHECKLIST.
-6. **Passo 13 — API para terceiros autorizados**, com responsável por cliente e as devidas restrições de segurança. O sistema acadêmico da faculdade pode ser um dos clientes, enviando a grade de aulas.
+6. ✅ **Passo 13 — API para sistemas parceiros** (17/11/2026): cadastro com responsável, aceite dos termos da API, token de 12 meses com permissões, `/api/v1`, limite por sistema, auditoria por sistema, telas e OpenAPI + guia em `docs/`. A importação da grade pelo sistema acadêmico (`aulas:importar`) entra com o passo 12.
 7. **⏸️ Pendente (decisão do usuário, 16/11/2026): serviço de disparo de emails.** Em desenvolvimento os emails vão para o Mailtrap Sandbox (não entregam no Gmail). Falta escolher o envio real para testes e o de produção (SMTP da faculdade ou serviço transacional com o domínio dela). Ver "Enviar emails de verdade (teste local)".
 8. **No deploy:** escolher a plataforma ([`HOSPEDAGEM.md`](HOSPEDAGEM.md)), definir o backup e o monitor externo, seguir o [`DEPLOY.md`](DEPLOY.md); termos e aviso de privacidade revisados pela faculdade.
 
@@ -1164,11 +1222,11 @@ LGPD e segurança: a senha fica só no `.env` (fora do git); testar só com emai
 
 - **Exportação muito grande:** o `lazy()` busca os lotes por OFFSET, e cada lote fica um pouco mais lento. Só pesa com dezenas de milhares de linhas num arquivo; a solução seria paginar por chave (keyset) na ordem de data/horário/id.
 
-### Implementação final: API para terceiros autorizados
+### Implementação final: API para terceiros autorizados (✅ feita no passo 13, 17/11/2026)
 
-Permitir que sistemas de terceiros autorizados (ex.: portal da faculdade, app das atléticas, outras unidades da rede) consumam a API.
+Feita como descrito em "Sistemas parceiros (passo 13)" (regras), nos endpoints `/api/v1` e em [`docs/API-PARCEIROS.md`](docs/API-PARCEIROS.md). As decisões abaixo eram os pontos em aberto antes da proposta: venceram Sanctum com *abilities*, cadastro pelo admin com aceite do responsável, `/api/v1`, limite por sistema, OpenAPI pelo Scramble e auditoria por sistema.
 
-Pontos a decidir quando chegar a hora:
+Pontos que estavam em aberto:
 
 - **Autenticação de sistemas:** tokens do Sanctum com *abilities* por cliente (ex.: `reservas:ler`, `reservas:criar`) ou OAuth2 *client credentials* (Laravel Passport), se os parceiros exigirem um padrão.
 - **Cadastro de clientes:** tabela de clientes de API, gerenciada pelos admins, com permissões e possibilidade de revogação.

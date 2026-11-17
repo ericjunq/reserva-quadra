@@ -3266,3 +3266,145 @@ Testes: estoque.spec.ts (4), ajustes em cadastros/calendario/reservas.spec; e2e/
   calendario-admin.spec.ts com o responsável (fora da URL); api-falsa com movimentações.
 Pacote inicial 315,2 kB.
 Totais: 358 da API, 170 do front, 58 no navegador. O usuário precisa de migrate:fresh --seed.
+
+========================================================================
+83. PASSO 13a: SISTEMAS PARCEIROS, ACEITE DOS TERMOS DA API E TOKEN (17/11/2026)
+========================================================================
+Aprovado pelo usuário com todas as recomendações ("entendi. faz sentido... deixa documentado a
+decisão e o por quê dela. Pode seguir com a implementação"). A decisão do /api/v1 e o porquê
+estão no CHECKLIST (passo 13, decisão 11) e no README (Decisões tomadas).
+
+config/sanctum.php: expiration passou de 60*8 para null. Motivo (achado ao implementar): a
+  validade global do Sanctum vale para TODOS os tokens, comparando com created_at; os tokens de
+  12 meses dos parceiros morreriam em 8 h. Cada token agora carrega a própria validade
+  (expires_at). config/reservas.php: sessao_admin_minutos (SESSAO_ADMIN_MINUTOS, 480), usado
+  pelo AuthService no expires_at do login; bloco parceiros (termos_versao, validade_meses 12,
+  aviso_dias_antes 30, link_aceite_dias 7, limite_por_minuto 60, horario_aviso 08:30), também
+  nos dois .env de exemplo. Teste: a sessão do admin continua vencendo em 8 h.
+Migration 2026_10_23_190131_create_clientes_api_table: criada antes de reservas, porque reservas
+  e auditorias apontam para ela (migrations editadas no lugar; exige migrate:fresh). Colunas do
+  cadastro, permissoes (json), limite_por_minuto, ativo, termos_versao/termos_aceitos_em,
+  aceite_token_hash (único) + aceite_expira_em (um link válido por vez: o novo sobrescreve, sem
+  tabela nem limpeza), acesso_expira_em (vencimento do token mais novo) e
+  aviso_vencimento_enviado_em; índice (ativo, acesso_expira_em) para o comando de renovação.
+  reservas.cliente_api_id (índice com data_reserva) e auditorias.cliente_api_id (índice).
+Constants: PermissaoApiConstant (espacos:ler, reservas:criar, reservas:ler, reservas:cancelar,
+  com label), SituacaoClienteApiConstant, OrigemReservaConstant::API ("Sistema parceiro"),
+  TipoAuditavelConstant::CLIENTE_API (entra no morph map: serve ao histórico e ao tokenable_type
+  dos tokens).
+Model ClienteApi: Authenticatable (contrato + trait, para Auth::user() funcionar), Auditavel,
+  HasApiTokens; aceite_token_hash oculto e "[oculto]" no histórico; email do responsável em
+  minúsculas; situacao() calculada (sem consultar tokens); linkDeAceitePendente().
+Auditavel: user_id/criado_por/atualizado_por só recebem o id se quem entrou for User; se for
+  ClienteApi, vai para auditorias.cliente_api_id. Antes gravava Auth::id() sem olhar o tipo: com
+  parceiro logado, o id do cliente iria parar numa FK de users (achado ao implementar).
+AdminAtivo: token que não é de admin recebe 403 ("Esta rota é só para os admins do sistema.").
+  bootstrap/app.php: AdminAtivo antes do SubstituteBindings na prioridade. Achado pelo teste:
+  sem isso, /admin/reservas/1 com token de parceiro respondia 404 (registro buscado antes da
+  conferência), o que revela quais ids existem.
+ClienteApiService: criar (manda o link), atualizar (trava a linha; desativar apaga tokens, link
+  e vencimento; trocar permissões atualiza as abilities dos tokens numa consulta; trocar o email
+  do responsável invalida o link pendente e manda outro ao novo; reativar manda link),
+  enviarLinkDeAceite (revogar_atual apaga os tokens na hora; sem ele, o token atual segue até
+  vencer), buscarPeloLink/aceitar (resposta genérica 404 para link inválido, vencido ou usado;
+  o aceite cria o token com as permissões e 12 meses, grava versão e data dos termos e zera o
+  link), avisarVencimentos (ativos vencendo em até 30 dias, uma vez por vencimento; o link vale
+  até o vencimento, no mínimo 7 dias). Hash do link: SHA-256, como os links das reservas.
+AceiteApiMail + emails/aceite-api.blade.php (aceite ou renovação, botão "Ler e aceitar os
+  termos", aviso de que o token aparece uma vez e de não mandar por email).
+TermosApi (rascunho versionado): finalidade, dados pessoais (só o RA de quem pediu, confirmação
+  do aluno, nada de nome/email/curso), segurança do token, validade/limites/suspensão, versões.
+Termos.php (aviso de privacidade): seção "Sistemas parceiros". Ajuste além do aprovado: o texto
+  ainda dizia que o calendário público mostra nome e curso de quem reservou (decisão de 13/11
+  tirou); agora diz "Reservado" e que só os admins veem quem reservou.
+Requests StoreClienteApiRequest (POST obrigatório, PATCH opcional; NomeUnico; permissões
+  distintas e válidas, gravadas na ordem do enum), UpdateClienteApiRequest (+ativo),
+  ListarClientesApiRequest (busca e ativo), EnviarAceiteApiRequest, AceitarTermosApiRequest
+  (accepted, mensagem em português). ClienteApiResource: nunca o token nem o hash; link_aceite
+  só com a validade. Controllers ClienteApiController (admin) e AceiteApiController (público:
+  termos, resumo do link sem o email do responsável, aceite com Cache-Control no-store).
+Rotas: /parceiros/termos, /parceiros/aceite/{token} (GET/POST, throttle acoes-publicas);
+  /admin/clientes-api (+permissoes, {id}, enviar-aceite) dentro do grupo do admin.
+Comando parceiros:avisar-vencimento, todo dia às 08:30, com alerta se falhar.
+Auditoria: filtro cliente_api_id, sistema_parceiro na resposta, eager loading de clienteApi.
+Testes: ClienteApiTest (18), RotasProtegidasTest (token de parceiro barrado em todas as rotas do
+  admin), EmailsTest (13 emails), ConsultasDasListagensTest (+sistemas parceiros), AgendadorTest
+  e AlertaTest (10 tarefas). 378 testes.
+
+========================================================================
+84. PASSO 13b: ROTAS /api/v1 E LIMITE POR SISTEMA (17/11/2026)
+========================================================================
+Middleware ClienteApiAtivo (alias parceiro): só ClienteApi (admin recebe 403 "Esta rota é só
+  para sistemas parceiros."); sistema desativado perde os tokens e recebe 401. Prioridade antes
+  do ThrottleRequests, para o limite nunca contar pedidos de quem não é parceiro.
+Alias permissao = CheckForAnyAbility do Sanctum, com prioridade antes do SubstituteBindings (sem
+  a permissão, 403 antes de buscar o espaço; teste de mutação confirmou). MissingAbilityException
+  vira 403 em português com dados.permissoes_necessarias; o Laravel converte a exceção em
+  AccessDeniedHttpException antes dos render, por isso o render olha o getPrevious().
+AppServiceProvider: limitador parceiros = limite do sistema (limite_por_minuto, chave
+  cliente:id) + o limite por RA (por_pessoa) nos POST, com a mesma chave HMAC do site.
+Rotas /api/v1 num grupo auth:sanctum + parceiro + throttle:parceiros, cada uma com
+  permissao:<x>; {reserva} como número (whereNumber), sem route model binding, e a busca sempre
+  por $cliente->reservas() (404 para reserva de outro sistema ou do site).
+Controllers V1 (EspacoParceiroController, ReservaParceiroController) e resources V1 próprios:
+  a v1 não pode mudar quando o resource do front mudar (é o motivo do versionamento). Os
+  services são os mesmos.
+ReservaService::create ganhou o ClienteApi (origem API, cliente_api_id, criado_por vazio);
+  RELACOES_PARCEIRO (espaco:id,nome e equipamentos; equipamentos sem lista de colunas porque o
+  belongsToMany com select deixaria o id ambíguo). RELACOES_ADMIN com clienteApi:id,nome;
+  ReservaResource do admin com sistema_parceiro.
+CancelamentoService: cancelarReserva() compartilhado entre o link do email e
+  cancelarPeloParceiro() (trava a linha, só reservas do sistema, aluno avisado por email).
+ReservaParceiroService: lista paginada (de, ate, status) e detalhe, sempre pelo índice
+  (cliente_api_id, data_reserva) e com eager loading.
+Testes: ApiParceirosTest (12) e RotasProtegidasTest (varredura da v1: middlewares, 401 sem
+  token, 403 com token de admin, 403 sem permissão antes do 404). 392 testes.
+
+========================================================================
+85. PASSO 13c: TELAS DOS SISTEMAS PARCEIROS (17/11/2026)
+========================================================================
+admin/cadastros/sistemas-parceiros/: situacao.ts (nomes e cores das situações, sempre com
+  texto), lista-sistemas-parceiros.ts (busca por sistema ou organização com espera de 400 ms,
+  filtro de situação e página na URL; a busca vai por GET porque nome de sistema e organização
+  não são dados pessoais, e a lista não mostra o responsável), form-sistema-parceiro.ts/.html
+  (criar e editar com responsável, finalidade, permissões em caixas vindas da API e limite;
+  detalhe com termos aceitos, vencimento e link pendente; "Enviar link de aceite" ou "de
+  renovação", "Revogar o token" só quando ativo, desativar/reativar, todos com ConfirmarAcao
+  dizendo a consequência; histórico do registro). O admin nunca vê o token.
+publico/aceite-parceiro/: lê o token da rota e tira da barra (Location.replaceState, como nos
+  outros links de email); mostra o pedido, as permissões e os termos (SecoesTermos); botão só
+  com "Li e aceito"; depois do aceite, o token num campo só de leitura com "Copiar"
+  (navigator.clipboard) e a validade. O token fica só no signal da tela.
+Ligações: rotas do admin e pública, cartão em Cadastros, origem API ("Por sistema parceiro") nos
+  selos, no filtro de origem, no detalhe da reserva (nome do sistema) e no histórico
+  (CLIENTE_API, link para o cadastro, "Sistema parceiro: nome" em quem fez, filtro "Sistema,
+  aluno ou parceiro"). Ajuste além do aprovado: rótulos do histórico para responsavel_nome e
+  responsavel_contato, que faltavam desde o 11.9.
+Testes: sistemas-parceiros.spec.ts (4), aceite-parceiro.spec.ts (3), historico.spec (quem fez),
+  e2e/sistemas-parceiros.spec.ts (3, computador e celular), acessibilidade com 5 páginas novas,
+  api-falsa com as rotas novas. Pacote inicial 313,4 kB (não cresceu; as telas novas ficam em
+  pacotes sob demanda). 178 de unidade e 64 no navegador.
+
+========================================================================
+86. PASSO 13d: OPENAPI E GUIA PARA PARCEIROS (17/11/2026)
+========================================================================
+composer require --dev dedoc/scramble (aprovado: só desenvolvimento; a produção usa --no-dev).
+config/scramble.php sem comentários: api_path api/v1, servidor https://{dominio}/api/v1 com
+  a variável dominio (o arquivo não depende do APP_URL de quem gera), "Try it" desligado, UI em
+  /docs/api só em APP_ENV=local. Sem a chave openapi_version: o valor era uma constante de enum
+  do pacote, que quebraria o config:cache na produção, onde o pacote não existe; o padrão do
+  pacote é o mesmo.
+AppServiceProvider::register: só com class_exists(Scramble) configura a variável do servidor e
+  o esquema Bearer.
+Resources V1 renomeados para EspacoResource, EquipamentoResource e ReservaResource (namespace
+  V1) e com tipos explícitos ((int), (string), (bool), datas em ISO 8601 com fuso): o Scramble
+  descobre o model por comentário PHPDoc, proibido no projeto; sem isso, id saía como texto.
+  EquipamentoDaReservaResource para a lista de itens da reserva sair como array tipado.
+docs/api-v1.openapi.json gerado pelo DocumentacaoApiTest: o Scramble lê os tipos das colunas no
+  banco de quem gera, então o arquivo mudaria de PC para PC e entre SQLite, MySQL e Postgres.
+  O teste gera no SQLite em memória (migrado) e compara; ATUALIZAR_OPENAPI=1 regrava. Nos jobs
+  MySQL e Postgres do CI a comparação é pulada. Outro teste confere que só a v1 está no arquivo,
+  com Bearer e sem dados pessoais do aluno.
+docs/API-PARCEIROS.md: pedir acesso, aceite e token, autenticação, permissões, rotas com exemplo,
+  limites, erros, LGPD, versões e como atualizar o arquivo.
+394 testes da API.

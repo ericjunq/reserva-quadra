@@ -27,6 +27,7 @@ Copie `.env.production.example` para `.env` no servidor e preencha. O `.env` **n
 | `MAIL_*` | dados do SMTP |
 | `ALERTAS_EMAIL` | email (ou lista separada por vírgula) que recebe os alertas, além dos admins ativos |
 | `ADMIN_INICIAL_*` | deixe **vazio** (ver passo 4) |
+| `PARCEIROS_*` | só se a instituição quiser mudar os padrões dos sistemas parceiros (termos da API, validade de 12 meses, aviso 30 dias antes, limite de 60 por minuto). A versão dos termos (`PARCEIROS_TERMOS_VERSAO`) muda quando o texto mudar |
 
 ## 3. Implantação (toda atualização)
 
@@ -172,6 +173,8 @@ Por decisão do usuário (09/11/2026), o backup é definido na hora do deploy. A
 - [ ] `ADMIN_INICIAL_SENHA` vazio.
 - [ ] Backups criptografados, com acesso restrito e prazo de guarda (quando forem definidos). Depois de restaurar um backup, refazer as anonimizações pedidas depois da data dele.
 - [ ] Definir com a faculdade o prazo de guarda do histórico de auditoria (hoje sem prazo, por decisão do usuário).
+- [ ] Termos de uso da API (`app/Support/TermosApi.php`) e o trecho "Sistemas parceiros" do aviso de privacidade revisados pela faculdade antes de cadastrar o primeiro sistema parceiro.
+- [ ] A documentação da API (`/docs/api`) **não** existe na produção (o Scramble é só de desenvolvimento): para os parceiros, mande o `docs/API-PARCEIROS.md` e o `docs/api-v1.openapi.json`.
 - [ ] `php artisan sistema:verificar-producao` todo ✅.
 
 ## 11. Front-end (Angular)
