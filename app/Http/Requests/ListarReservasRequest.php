@@ -28,6 +28,7 @@ class ListarReservasRequest extends FormRequest
             'de'          => ['nullable', 'date_format:Y-m-d'],
             'ate'         => ['nullable', 'date_format:Y-m-d', 'after_or_equal:de'],
             'espaco_id'   => ['nullable', 'integer', 'exists:espacos,id'],
+            'aluno_id'    => ['nullable', 'integer'],
             'tipo_espaco' => ['nullable', Rule::enum(TipoEspacoConstant::class)],
             'curso_id'    => ['nullable', 'integer', 'exists:cursos,id'],
             'busca'       => ['nullable', 'string', 'max:100'],

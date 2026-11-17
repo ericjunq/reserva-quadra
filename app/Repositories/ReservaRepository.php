@@ -20,6 +20,7 @@ class ReservaRepository
             ->when($filtros['de'] ?? null, fn ($q, $de) => $q->where('data_reserva', '>=', $de))
             ->when($filtros['ate'] ?? null, fn ($q, $ate) => $q->where('data_reserva', '<=', $ate))
             ->when($filtros['espaco_id'] ?? null, fn ($q, $id) => $q->where('espaco_id', $id))
+            ->when($filtros['aluno_id'] ?? null, fn ($q, $id) => $q->where('aluno_id', $id))
             ->when($filtros['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->when($filtros['tipo'] ?? null, fn ($q, $tipo) => $q->where('tipo', $tipo))
             ->when($filtros['origem'] ?? null, fn ($q, $origem) => $q->where('origem', $origem))

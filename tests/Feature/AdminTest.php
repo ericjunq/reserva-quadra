@@ -186,4 +186,15 @@ class AdminTest extends TestCase
         $this->assertStringNotContainsString($admin->fresh()->password, $json);
         $this->assertSame('[oculto]', $historico->last()->depois['password']);
     }
+
+    public function test_busca_de_admins_por_post(): void
+    {
+        $this->comoAdmin();
+        $ana = User::factory()->create(['name' => 'Ana Lima']);
+
+        $ids = collect($this->postJson('/api/admin/admins/consulta', ['busca' => 'ana'])->assertOk()->json('data'))->pluck('id')->all();
+
+        $this->assertContains($ana->id, $ids);
+        $this->assertCount(1, $ids);
+    }
 }

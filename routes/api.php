@@ -67,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auditorias', [AuditoriaController::class, 'index']);
 
         Route::get('/admins', [AdminController::class, 'index']);
+        Route::post('/admins/consulta', [AdminController::class, 'index']);
         Route::post('/admins', [AdminController::class, 'store']);
         Route::get('/admins/{admin}', [AdminController::class, 'show']);
         Route::patch('/admins/{admin}', [AdminController::class, 'update']);
@@ -74,6 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admins/{admin}/reenviar-convite', [AdminController::class, 'reenviarConvite']);
 
         Route::get('/alunos', [AlunoController::class, 'index']);
+        Route::post('/alunos/consulta', [AlunoController::class, 'index']);
         Route::get('/alunos/{aluno}', [AlunoController::class, 'show']);
         Route::patch('/alunos/{aluno}', [AlunoController::class, 'update']);
         Route::delete('/alunos/{aluno}', [AlunoController::class, 'destroy']);

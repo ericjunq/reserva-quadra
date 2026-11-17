@@ -234,4 +234,27 @@ class AlunoAdminTest extends TestCase
             'curso_id'           => $curso->id,
         ])->assertCreated();
     }
+
+    public function test_busca_por_post_mantem_nome_e_ra_fora_da_url(): void
+    {
+        $this->comoAdmin();
+        $maria = Aluno::factory()->create(['nome_completo' => 'Maria Souza']);
+        Aluno::factory()->create(['nome_completo' => 'João Lima']);
+
+        $ids = collect($this->postJson('/api/admin/alunos/consulta', ['busca' => 'souza'])->assertOk()->json('data'))->pluck('id')->all();
+
+        $this->assertSame([$maria->id], $ids);
+    }
+
+    public function test_reservas_filtradas_pelo_aluno(): void
+    {
+        $this->comoAdmin();
+        $aluno = Aluno::factory()->create();
+        $dele = Reserva::factory()->create(['aluno_id' => $aluno->id, 'data_reserva' => '2026-11-10']);
+        Reserva::factory()->create(['data_reserva' => '2026-11-10']);
+
+        $ids = collect($this->postJson('/api/admin/reservas/consulta', ['aluno_id' => $aluno->id, 'de' => '2026-01-01'])->assertOk()->json('data'))->pluck('id')->all();
+
+        $this->assertSame([$dele->id], $ids);
+    }
 }
