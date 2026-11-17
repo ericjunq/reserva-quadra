@@ -2949,3 +2949,57 @@ tests/Feature/HorarioLivreTest.php: o teste do link de cancelamento passou a fil
   finalidade = CANCELAR. Desde o 11.3a cada reserva tem dois tokens; sem filtro nem ordenação, o
   Postgres devolvia o de confirmar (vence em 24 h). Defeito só do teste.
 CLAUDE.md: conferir o CI pela API pública no início de cada conversa e depois de cada push.
+
+========================================================================
+73. PASSO 11.7: HISTÓRICO DE AUDITORIA NO ADMIN (17/11/2026)
+========================================================================
+Proposta aprovada com "aprovo" (7 recomendações, sem ajustes). A API não mudou: GET
+/api/admin/auditorias já tinha os filtros (tipo + registro_id, admin_id ou sem_admin, acao,
+periodo ou de/ate) e a paginação (per_page).
+
+FRONT (frontend/src/app/admin/historico/)
+modelos.ts: Auditoria, TipoAuditavel, AcaoAuditoria, FiltrosHistorico, Mudanca.
+historico.service.ts: listar(filtros, pagina, porPagina?) monta os parâmetros só com o que tem
+  valor (booleano vira 1/0); listarAdmins() usa POST /admin/admins/consulta com per_page 100 para o
+  filtro "Quem fez" (nome de admin só no corpo da resposta, nunca na URL).
+rotulos.ts: nomes dos tipos e das ações; rótulos em português dos campos dos models auditados
+  (campo sem rótulo aparece com o nome técnico, para nada sumir); formatarValor() com Sim/Não,
+  "—" para vazio, listas separadas por vírgula ("Nenhum" se vazia), códigos traduzidos só nos campos
+  de código (status, tipo, origem, situações, modo de horário: assim uma descrição com a palavra
+  REVOGADO não é traduzida), datas e datas com hora do banco mostradas como estão (o banco grava no
+  horário de Brasília); formatarQuando() converte o "em" (UTC no JSON) para Brasília com o ano;
+  mudancasDe() monta campo/antes/depois (criação sem antes, exclusão sem depois); linkDoRegistro()
+  só para reserva, aluno, espaço, equipamento e admin (curso, data bloqueada e item de reserva não
+  têm página própria); quemFez() devolve "Sistema ou aluno" quando não há admin.
+entrada-historico.ts: uma linha (ação, registro com link, resumo "quando · quem · N campos") e o
+  botão "Ver mudanças" com aria-expanded/aria-controls que abre a tabela Campo/Antes/Depois.
+  O resumo é um computed único para não depender de espaços do template.
+historico.ts/.html: página /admin/historico. filtrosDaUrl() (exportada e testada) valida tudo o
+  que vem da URL: tipo e ação só se existirem, registro só com tipo (a API exige), quem = id
+  positivo ou "sistema", período da lista de atalhos ou datas ISO, nunca os dois (a API proíbe).
+  Um computed único (filtros + página) dispara a consulta com switchMap, cancelando a anterior.
+  Atalhos de período com aria-pressed (clicar de novo tira o filtro); trocar o tipo apaga o
+  registro; aviso "Só o registro X nº N" com "Mostrar todos"; "Limpar filtros"; total de mudanças;
+  paginação; aria-live no resultado; selects com [selected] nas opções (lista de admins chega
+  depois).
+historico-do-registro.ts: seção recolhida "Histórico deste registro"; só consulta ao abrir
+  (per_page=10), fechar cancela o pedido; mostra "Mostrando as 10 mais recentes de N" e o link
+  "Ver tudo no histórico" (/admin/historico?tipo=&registro=).
+Usada em: reservas/detalhe-reserva, cadastros/alunos/detalhe-aluno, cadastros/espacos/form-espaco,
+  cadastros/equipamentos/form-equipamento e cadastros/admins/form-admin (só no modo de edição).
+admin.routes.ts (rota historico, pacote separado), layout-admin.html (item "Histórico" no menu),
+  painel.ts (cartão "Histórico"; saiu o aviso "O histórico chega no próximo passo").
+
+Desempenho: consultas paginadas, ordenadas por created_at (índice) e filtradas por
+  auditavel_type/auditavel_id (índice do morphs); a seção dos detalhes não consulta nada até ser
+  aberta; a página é um pacote separado (8,9 kB); o pacote inicial foi de 314,6 para 315,1 kB.
+LGPD: só admins logados; nenhum dado pessoal na URL (ids e códigos); sem busca por texto, porque os
+  valores antes/depois guardam nome, RA e email; senha [oculto] e aluno [anonimizado] como vêm da
+  API.
+Limite conhecido: as mudanças dos itens de uma reserva (devolução, pedido de equipamento) ficam no
+  tipo "Equipamento de reserva" e não aparecem no histórico da reserva.
+
+Testes: admin/historico/historico.spec.ts (8: rótulos, filtros da URL, página, histórico do
+  registro, erro) e e2e/historico-admin.spec.ts (computador e celular); api-falsa com
+  /admin/auditorias.
+Totais: 328 da API, 166 do front, 48 no navegador.
