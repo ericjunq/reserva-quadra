@@ -294,6 +294,19 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
   let espacoCriado: Record<string, unknown> | null = null;
   const cursosDoAdmin: Record<string, unknown>[] = [{ id: 2, nome: 'Direito', ativo: true }];
   const adminsConvidados: Record<string, unknown>[] = [];
+  const movimentacoesDoAdmin: Record<string, unknown>[] = [
+    {
+      id: 1,
+      tipo: 'ENTRADA',
+      quantidade: 2,
+      estado: 'Cadastro do equipamento.',
+      reserva: null,
+      feito_por: { id: 1, nome: 'Eric' },
+      quantidade_total_depois: 2,
+      em_manutencao_depois: 0,
+      em: new Date(Date.now() - 86_400_000).toISOString(),
+    },
+  ];
   let alunoDoAdmin: Record<string, unknown> = {
     id: 3,
     nome_completo: 'Carla Dias',
@@ -545,6 +558,34 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         meta: { current_page: 1, last_page: 1, total: 1, per_page: 15 },
       });
     }
+    if (caminho === '/admin/equipamentos/5/movimentacoes') {
+      if (requisicao.method() === 'POST') {
+        const corpo = requisicao.postDataJSON();
+        const total = equipamentoDoAdmin.quantidade_total as number;
+        const manutencao = (equipamentoDoAdmin.quantidade_em_manutencao as number | undefined) ?? 0;
+        equipamentoDoAdmin = {
+          ...equipamentoDoAdmin,
+          quantidade_em_manutencao:
+            corpo.tipo === 'MANUTENCAO' ? manutencao + corpo.quantidade : manutencao,
+        };
+        movimentacoesDoAdmin.unshift({
+          id: movimentacoesDoAdmin.length + 1,
+          tipo: corpo.tipo,
+          quantidade: corpo.quantidade,
+          estado: corpo.estado,
+          reserva: null,
+          feito_por: { id: 1, nome: 'Eric' },
+          quantidade_total_depois: total,
+          em_manutencao_depois: equipamentoDoAdmin.quantidade_em_manutencao,
+          em: new Date().toISOString(),
+        });
+        return json({ data: movimentacoesDoAdmin[0], equipamento: equipamentoDoAdmin }, 201);
+      }
+      return json({
+        data: movimentacoesDoAdmin,
+        meta: { current_page: 1, last_page: 1, total: movimentacoesDoAdmin.length, per_page: 15 },
+      });
+    }
     if (caminho === '/admin/equipamentos/5') {
       if (requisicao.method() === 'PATCH') {
         equipamentoDoAdmin = { ...equipamentoDoAdmin, ...requisicao.postDataJSON() };
@@ -572,6 +613,7 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         tipo: 'EVENTO',
         aluno: null,
         descricao: corpo.descricao,
+        responsavel: { nome: corpo.responsavel_nome, contato: corpo.responsavel_contato ?? null },
         data_reserva: corpo.data_reserva,
         hora_inicio: corpo.hora_inicio,
         hora_fim: corpo.hora_fim,

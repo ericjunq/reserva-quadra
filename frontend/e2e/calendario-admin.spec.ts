@@ -26,6 +26,7 @@ test('o admin vê quem reservou no calendário e cria um evento num horário liv
   await expect(page.getByLabel('Início')).toHaveValue('07:00');
   await page.getByLabel('Evento da faculdade').check();
   await page.getByLabel('Descrição').fill('Maratona de programação');
+  await page.getByLabel('Responsável', { exact: true }).fill('Prof. Marcos Lima');
   await page.getByRole('button', { name: 'Criar evento' }).click();
 
   await expect(page.getByRole('heading', { name: 'Reserva nº 31' })).toBeVisible();
@@ -36,7 +37,10 @@ test('o admin vê quem reservou no calendário e cria um evento num horário liv
     data_reserva: datas.segundaSeguinte,
     hora_inicio: '07:00',
     descricao: 'Maratona de programação',
+    responsavel_nome: 'Prof. Marcos Lima',
   });
+  await expect(page.getByText('Prof. Marcos Lima')).toBeVisible();
+  expect(page.url()).not.toContain('Marcos');
 });
 
 test('o admin reserva um horário para um aluno pela coordenação', async ({ page }) => {
