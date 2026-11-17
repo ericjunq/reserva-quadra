@@ -1031,6 +1031,8 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 
 ### Ideias registradas para depois
 
+- **Estoque de equipamentos com movimentações (17/11/2026, ideia do usuário; 11.9 no CHECKLIST):** ajuste manual com tipo e motivo (entrada, baixa, manutenção, retorno, ajuste), quantidade em manutenção descontada do disponível, histórico das movimentações no detalhe do equipamento e atalho a partir da devolução com avaria. A quantidade total continua numa coluna, então a disponibilidade não fica mais lenta.
+
 - **Importação de equipamentos por planilha (17/11/2026, ideia do usuário; passo 12c no CHECKLIST):** segundo import do sistema, ao lado da grade de aulas, com a mesma base (CSV/XLSX em fluxo, prévia, tudo ou nada, espaço pelo código). Atualiza o equipamento já existente (mesmo espaço e nome), cria o novo, recusa quantidade menor do que a já reservada em datas futuras e não desativa o que faltar no arquivo. Aguarda o formato da planilha da faculdade.
 
 - **✅ Feito em 16/11/2026 (11.5d). Solicitação de equipamento pelo aluno (11.2f, aprovada em 13/11/2026):** por padrão um equipamento só aparece no próprio espaço; o admin escolhe com quais espaços ele é compartilhado (11.2c); para os outros, o aluno pode pedir o item na reserva, o admin aprova ou recusa e o aluno recebe email. Perguntas em aberto (itens que aceitam pedido, se o pedido segura a quantidade, prazo de resposta) e recomendações no passo 11 do CHECKLIST.
