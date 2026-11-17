@@ -2919,3 +2919,22 @@ admin.routes.ts e cadastros.ts: rotas e cartão de alunos.
 Testes: cadastros.spec.ts (+2) e e2e/cadastros-admin.spec.ts (+1); api-falsa com alunos.
 
 Totais: 328 da API, 156 do front, 44 no navegador.
+
+========================================================================
+71. PASSO 11.6d: CADASTRO DE ADMINS; 11.6 COMPLETO (17/11/2026)
+========================================================================
+FRONT (frontend/src/app/admin/cadastros/)
+modelos.ts (AdminCadastro) e cadastros.service.ts (consultarAdmins por POST, detalhar, convidar,
+  atualizar, desativar, reenviarConvite).
+admins/lista-admins.ts: busca por nome ou email só na memória (espera de 400 ms), situação na URL;
+  lista com nome, "Principal" e a situação (Ativo, Convite pendente, Desativado), sem email;
+  situacaoDoAdmin() exportada e reaproveitada no formulário.
+admins/form-admin.ts: convidar (nome e email; abre o detalhe com "Convite enviado por email." pelo
+  state); detalhe com editar, "Reenviar o convite" (só pendente e ativo) e desativar/reativar com
+  confirmação (o principal não mostra desativar); as mensagens de proteção vêm da API.
+admin.routes.ts e cadastros.ts: rotas e cartão de admins.
+Testes: cadastros.spec.ts (+2) e e2e/cadastros-admin.spec.ts (+1); api-falsa com admins.
+Achado no navegador: o rótulo "Nome" casava com o campo de busca da página anterior durante a
+  troca de página; o teste espera o título da página nova e usa rótulo exato (regra no CLAUDE.md).
+
+Totais: 328 da API, 158 do front, 46 no navegador.
