@@ -136,6 +136,11 @@ export const rotasAdmin: Routes = [
         loadComponent: () => import('./cadastros/admins/form-admin').then((m) => m.FormAdmin),
       })),
       {
+        path: 'historico',
+        title: 'Histórico · Administração',
+        loadComponent: () => import('./historico/historico').then((m) => m.Historico),
+      },
+      {
         path: 'minha-conta',
         title: 'Minha conta · Administração',
         loadComponent: () => import('./acesso/minha-conta').then((m) => m.MinhaConta),

@@ -12,6 +12,7 @@ import { CalendarioAdminService } from '../../calendario/calendario-admin.servic
 import { CadastrosService } from '../cadastros.service';
 import { ConfirmarAcao } from '../confirmar-acao';
 import { DadosDoEspaco, EspacoCadastro } from '../modelos';
+import { HistoricoDoRegistro } from '../../historico/historico-do-registro';
 
 type Carga =
   | { tipo: 'carregando' }
@@ -22,7 +23,7 @@ const DURACAO_SUGERIDA = 180;
 
 @Component({
   selector: 'app-form-espaco',
-  imports: [FormsModule, RouterLink, AvisoErro, ConfirmarAcao],
+  imports: [FormsModule, RouterLink, AvisoErro, ConfirmarAcao, HistoricoDoRegistro],
   templateUrl: './form-espaco.html',
 })
 export class FormEspaco {

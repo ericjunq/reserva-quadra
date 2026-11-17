@@ -212,6 +212,10 @@
           <app-revogar-reserva [reserva]="reserva" (revogada)="atualizar($event)" />
         </section>
       }
+
+      <div class="mt-6">
+        <app-historico-do-registro tipo="RESERVA" [registroId]="reserva.id" />
+      </div>
     }
   }
 }

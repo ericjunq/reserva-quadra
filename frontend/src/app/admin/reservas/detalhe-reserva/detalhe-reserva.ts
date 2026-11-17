@@ -14,6 +14,7 @@ import { NOMES_DAS_DEVOLUCOES, SelosReserva } from '../selos';
 import { RegistrarDevolucao } from './registrar-devolucao';
 import { ResponderSolicitacao } from './responder-solicitacao';
 import { RevogarReserva } from './revogar-reserva';
+import { HistoricoDoRegistro } from '../../historico/historico-do-registro';
 
 type Resultado =
   | { tipo: 'carregando' }
@@ -22,7 +23,14 @@ type Resultado =
 
 @Component({
   selector: 'app-detalhe-reserva',
-  imports: [AvisoErro, SelosReserva, RevogarReserva, RegistrarDevolucao, ResponderSolicitacao],
+  imports: [
+    AvisoErro,
+    SelosReserva,
+    RevogarReserva,
+    RegistrarDevolucao,
+    ResponderSolicitacao,
+    HistoricoDoRegistro,
+  ],
   templateUrl: './detalhe-reserva.html',
 })
 export class DetalheReserva {

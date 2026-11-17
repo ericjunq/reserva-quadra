@@ -9,6 +9,7 @@ import { CalendarioAdminService } from '../../calendario/calendario-admin.servic
 import { CadastrosService } from '../cadastros.service';
 import { ConfirmarAcao } from '../confirmar-acao';
 import { DadosDoEquipamento, EquipamentoCadastro } from '../modelos';
+import { HistoricoDoRegistro } from '../../historico/historico-do-registro';
 
 type Carga =
   | { tipo: 'carregando' }
@@ -17,7 +18,7 @@ type Carga =
 
 @Component({
   selector: 'app-form-equipamento',
-  imports: [FormsModule, RouterLink, AvisoErro, ConfirmarAcao],
+  imports: [FormsModule, RouterLink, AvisoErro, ConfirmarAcao, HistoricoDoRegistro],
   templateUrl: './form-equipamento.html',
 })
 export class FormEquipamento {

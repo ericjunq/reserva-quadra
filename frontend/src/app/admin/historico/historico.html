@@ -1,0 +1,152 @@
+<h1 class="text-2xl font-semibold text-slate-900">Histórico</h1>
+<p class="mt-1 text-slate-600">
+  Tudo o que foi criado, alterado ou excluído no sistema, da mudança mais recente para a mais
+  antiga.
+</p>
+
+@if (filtros().registro_id && filtros().tipo; as tipo) {
+  <div
+    class="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-sky-50 px-4 py-3 text-sky-900"
+    role="status"
+  >
+    <span
+      >Só o registro <strong>{{ nomesDosTipos[tipo] }} nº {{ filtros().registro_id }}</strong></span
+    >
+    <button
+      type="button"
+      class="text-sm font-semibold underline"
+      (click)="filtrar({ registro: null })"
+    >
+      Mostrar todos
+    </button>
+  </div>
+}
+
+<div class="mt-4 space-y-4">
+  <div role="group" aria-label="Período" class="flex flex-wrap gap-2">
+    @for (periodo of periodos; track periodo.valor) {
+      <button
+        type="button"
+        class="rounded-full px-4 py-2 text-sm font-semibold ring-1"
+        [class]="
+          filtros().periodo === periodo.valor
+            ? 'bg-azul text-white ring-azul'
+            : 'bg-white text-azul ring-azul/40'
+        "
+        [attr.aria-pressed]="filtros().periodo === periodo.valor"
+        (click)="escolherPeriodo(periodo.valor)"
+      >
+        {{ periodo.nome }}
+      </button>
+    }
+  </div>
+
+  <div class="flex flex-wrap items-end gap-4">
+    <div>
+      <label for="filtro-de" class="block text-sm font-semibold text-slate-900">De</label>
+      <input
+        id="filtro-de"
+        type="date"
+        class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtros().de ?? ''"
+        (change)="escolherData('de', $any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="filtro-ate" class="block text-sm font-semibold text-slate-900">Até</label>
+      <input
+        id="filtro-ate"
+        type="date"
+        class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtros().ate ?? ''"
+        (change)="escolherData('ate', $any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="filtro-tipo" class="block text-sm font-semibold text-slate-900">Registro</label>
+      <select
+        id="filtro-tipo"
+        class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtros().tipo ?? ''"
+        (change)="escolherTipo($any($event.target).value)"
+      >
+        <option value="">Todos</option>
+        @for (tipo of tipos; track tipo[0]) {
+          <option [value]="tipo[0]" [selected]="tipo[0] === filtros().tipo">{{ tipo[1] }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="filtro-acao" class="block text-sm font-semibold text-slate-900">Ação</label>
+      <select
+        id="filtro-acao"
+        class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+        [value]="filtros().acao ?? ''"
+        (change)="filtrar({ acao: $any($event.target).value })"
+      >
+        <option value="">Todas</option>
+        @for (acao of acoes; track acao[0]) {
+          <option [value]="acao[0]" [selected]="acao[0] === filtros().acao">{{ acao[1] }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="filtro-quem" class="block text-sm font-semibold text-slate-900">Quem fez</label>
+      <select
+        id="filtro-quem"
+        class="mt-1 rounded-lg border border-slate-300 px-3 py-2"
+        [value]="quemEscolhido()"
+        (change)="filtrar({ quem: $any($event.target).value })"
+      >
+        <option value="">Todos</option>
+        <option [value]="semAdmin" [selected]="quemEscolhido() === semAdmin">
+          Sistema ou aluno
+        </option>
+        @for (admin of admins(); track admin.id) {
+          <option [value]="admin.id" [selected]="admin.id === filtros().admin_id">
+            {{ admin.nome }}
+          </option>
+        }
+      </select>
+    </div>
+    <button
+      type="button"
+      class="rounded-full px-4 py-2 font-semibold text-azul ring-1 ring-azul/40"
+      (click)="limpar()"
+    >
+      Limpar filtros
+    </button>
+  </div>
+</div>
+
+<div aria-live="polite">
+  @switch (resultado().tipo) {
+    @case ('carregando') {
+      <p class="mt-6 text-slate-600">Carregando o histórico…</p>
+    }
+    @case ('erro') {
+      <div class="mt-6"><app-aviso-erro [mensagem]="$any(resultado()).erro.mensagem" /></div>
+    }
+    @case ('pronto') {
+      @if (paginaPronta(); as pagina) {
+        <p class="mt-6 text-sm text-slate-600">
+          {{ pagina.meta.total }} {{ pagina.meta.total === 1 ? 'mudança' : 'mudanças' }}
+        </p>
+        <ul
+          class="mt-2 divide-y divide-slate-200 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200"
+        >
+          @for (entrada of pagina.data; track entrada.id) {
+            <li class="p-4"><app-entrada-historico [entrada]="entrada" /></li>
+          } @empty {
+            <li class="p-4 text-slate-700">Nenhuma mudança com esses filtros.</li>
+          }
+        </ul>
+        <app-paginacao
+          [atual]="pagina.meta.current_page"
+          [ultima]="pagina.meta.last_page"
+          (ir)="irParaPagina($event)"
+        />
+      }
+    }
+  }
+</div>

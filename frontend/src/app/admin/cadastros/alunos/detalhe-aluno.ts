@@ -12,6 +12,7 @@ import { SelosReserva } from '../../reservas/selos';
 import { CadastrosService } from '../cadastros.service';
 import { ConfirmarAcao } from '../confirmar-acao';
 import { AlunoCadastro } from '../modelos';
+import { HistoricoDoRegistro } from '../../historico/historico-do-registro';
 
 type Carga =
   | { tipo: 'carregando' }
@@ -22,7 +23,7 @@ const PALAVRA_DE_CONFIRMACAO = 'ANONIMIZAR';
 
 @Component({
   selector: 'app-detalhe-aluno',
-  imports: [FormsModule, RouterLink, AvisoErro, ConfirmarAcao, SelosReserva],
+  imports: [FormsModule, RouterLink, AvisoErro, ConfirmarAcao, SelosReserva, HistoricoDoRegistro],
   templateUrl: './detalhe-aluno.html',
 })
 export class DetalheAluno {

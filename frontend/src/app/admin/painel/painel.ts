@@ -57,8 +57,18 @@ import { ReservasAdminService } from '../reservas/reservas-admin.service';
           <span class="text-slate-700">Espaços, equipamentos e os demais cadastros.</span>
         </a>
       </li>
+      <li>
+        <a
+          routerLink="/admin/historico"
+          class="block rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 hover:ring-azul"
+        >
+          <span class="block text-lg font-semibold text-azul">Histórico</span>
+          <span class="text-slate-700"
+            >Quem criou, alterou ou excluiu cada registro, e quando.</span
+          >
+        </a>
+      </li>
     </ul>
-    <p class="mt-6 text-slate-600">O histórico chega no próximo passo.</p>
   `,
 })
 export class Painel {

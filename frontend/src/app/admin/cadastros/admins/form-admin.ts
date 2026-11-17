@@ -9,6 +9,7 @@ import { CadastrosService } from '../cadastros.service';
 import { ConfirmarAcao } from '../confirmar-acao';
 import { AdminCadastro } from '../modelos';
 import { situacaoDoAdmin } from './lista-admins';
+import { HistoricoDoRegistro } from '../../historico/historico-do-registro';
 
 type Carga =
   | { tipo: 'carregando' }
@@ -17,7 +18,7 @@ type Carga =
 
 @Component({
   selector: 'app-form-admin',
-  imports: [FormsModule, RouterLink, AvisoErro, ConfirmarAcao],
+  imports: [FormsModule, RouterLink, AvisoErro, ConfirmarAcao, HistoricoDoRegistro],
   template: `
     <a routerLink="/admin/cadastros/admins" class="text-sm font-semibold text-azul underline"
       >Admins</a
@@ -126,6 +127,9 @@ type Carga =
               }
             }
           </section>
+          <div class="mt-6 max-w-2xl">
+            <app-historico-do-registro tipo="ADMIN" [registroId]="atual.id" />
+          </div>
         }
       }
     }
