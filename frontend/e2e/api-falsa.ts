@@ -232,6 +232,42 @@ const reservaDoAdmin = {
   atualizado_em: null,
 };
 
+const historicoFalso = [
+  {
+    id: 12,
+    tipo: 'RESERVA',
+    registro_id: 77,
+    acao: 'ATUALIZACAO',
+    campos_alterados: ['status', 'justificativa_revogacao'],
+    antes: { status: 'RESERVADO', justificativa_revogacao: null },
+    depois: { status: 'REVOGADO', justificativa_revogacao: 'Manutenção' },
+    feito_por: { id: 1, nome: 'Eric' },
+    em: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 11,
+    tipo: 'RESERVA',
+    registro_id: 77,
+    acao: 'CRIACAO',
+    campos_alterados: ['data_reserva', 'status'],
+    antes: null,
+    depois: { data_reserva: datas.tercaSeguinte, status: 'RESERVADO' },
+    feito_por: null,
+    em: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 10,
+    tipo: 'CURSO',
+    registro_id: 2,
+    acao: 'CRIACAO',
+    campos_alterados: ['nome', 'ativo'],
+    antes: null,
+    depois: { nome: 'Direito', ativo: true },
+    feito_por: { id: 1, nome: 'Eric' },
+    em: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
 const termos = {
   versao: '2026-11',
   rascunho: true,
@@ -449,6 +485,20 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         return json({ data: alunoDoAdmin, reservas_revogadas: 0 });
       }
       return json({ data: alunoDoAdmin });
+    }
+    if (caminho === '/admin/auditorias') {
+      const filtros = url.searchParams;
+      const lista = historicoFalso.filter(
+        (entrada) =>
+          (!filtros.get('tipo') || entrada.tipo === filtros.get('tipo')) &&
+          (!filtros.get('registro_id') ||
+            entrada.registro_id === Number(filtros.get('registro_id'))) &&
+          (filtros.get('sem_admin') !== '1' || entrada.feito_por === null),
+      );
+      return json({
+        data: lista,
+        meta: { current_page: 1, last_page: 1, total: lista.length, per_page: 15 },
+      });
     }
     if (caminho === '/admin/admins/consulta') {
       return json({
