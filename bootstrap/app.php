@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\RegraNegocioException;
+use App\Http\Middleware\AdminAtivo;
 use App\Http\Middleware\CabecalhosDeSeguranca;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(CabecalhosDeSeguranca::class);
+        $middleware->alias(['admin.ativo' => AdminAtivo::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

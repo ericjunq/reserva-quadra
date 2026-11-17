@@ -48,7 +48,7 @@ Route::post('/esqueci-senha', [SenhaController::class, 'esqueci'])->middleware('
 Route::post('/redefinir-senha', [SenhaController::class, 'redefinir'])->middleware('throttle:10,1');
 Route::post('/convites/aceitar', [SenhaController::class, 'aceitarConvite'])->middleware('throttle:10,1');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'admin.ativo'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/logout-geral', [AuthController::class, 'logoutGeral']);
     Route::get('/me', [AuthController::class, 'me']);
