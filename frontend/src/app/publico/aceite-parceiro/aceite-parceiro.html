@@ -1,0 +1,128 @@
+<div class="mx-auto max-w-3xl px-4 py-8">
+  <h1 class="text-3xl font-extrabold italic text-azul">Acesso à API de reservas</h1>
+
+  @if (acesso(); as acesso) {
+    <section class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200" role="status">
+      <h2 class="text-2xl font-extrabold italic text-azul">Termos aceitos</h2>
+      <p class="mt-2 text-slate-700">
+        Este é o token do sistema. <strong>Ele aparece só agora</strong>: copie e guarde num cofre
+        de senhas ou na configuração do servidor. Se perder, peça a um administrador um link para
+        gerar outro.
+      </p>
+      <label for="token-gerado" class="mt-4 block font-semibold text-slate-900"
+        >Token de acesso</label
+      >
+      <div class="mt-1 flex flex-wrap gap-2">
+        <input
+          id="token-gerado"
+          readonly
+          autocomplete="off"
+          spellcheck="false"
+          class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-sm"
+          [value]="acesso.token"
+        />
+        <button
+          type="button"
+          class="rounded-full bg-azul px-4 py-2 font-semibold text-white hover:bg-azul-medio"
+          (click)="copiar()"
+        >
+          {{ copiado() ? 'Copiado' : 'Copiar' }}
+        </button>
+      </div>
+      <p class="mt-3 text-sm text-slate-700">
+        Vale até <strong>{{ acessoValeAte() }}</strong
+        >. Envie no cabeçalho
+        <code class="rounded bg-slate-100 px-1">Authorization: Bearer</code> de cada requisição à
+        <code class="rounded bg-slate-100 px-1">/api/v1</code>.
+      </p>
+    </section>
+  } @else {
+    @switch (estado().tipo) {
+      @case ('carregando') {
+        <p class="mt-6 text-slate-600">Carregando o pedido de acesso…</p>
+      }
+      @case ('sem-token') {
+        <p class="mt-6 text-slate-700">
+          Abra esta página pelo botão "Ler e aceitar os termos" do email que você recebeu.
+        </p>
+      }
+      @case ('erro') {
+        <div class="mt-6"><app-aviso-erro [mensagem]="$any(estado()).mensagem" /></div>
+      }
+      @case ('pronto') {
+        @if (resumo(); as resumo) {
+          <section class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <h2 class="text-xl font-semibold text-slate-900">
+              {{ resumo.renovacao ? 'Renovação do acesso' : 'Pedido de acesso' }}
+            </h2>
+            <dl class="mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+              <div>
+                <dt class="text-sm text-slate-600">Sistema</dt>
+                <dd class="font-semibold text-slate-900">{{ resumo.sistema }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm text-slate-600">Organização</dt>
+                <dd class="text-slate-900">{{ resumo.organizacao }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm text-slate-600">Responsável</dt>
+                <dd class="text-slate-900">{{ resumo.responsavel_nome }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm text-slate-600">Link vale até</dt>
+                <dd class="text-slate-900">{{ linkValeAte() }}</dd>
+              </div>
+              <div class="sm:col-span-2">
+                <dt class="text-sm text-slate-600">Finalidade</dt>
+                <dd class="text-slate-900">{{ resumo.finalidade }}</dd>
+              </div>
+              <div class="sm:col-span-2">
+                <dt class="text-sm text-slate-600">Permissões</dt>
+                <dd>
+                  <ul class="list-inside list-disc text-slate-900">
+                    @for (permissao of resumo.permissoes; track permissao.valor) {
+                      <li>{{ permissao.nome }}</li>
+                    }
+                  </ul>
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <h2 class="text-xl font-semibold text-slate-900">
+              Termos de uso da API (versão {{ resumo.termos.versao }})
+            </h2>
+            @if (resumo.termos.rascunho) {
+              <p class="mt-2 rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                Rascunho: o texto final ainda será revisado pela instituição.
+              </p>
+            }
+            <app-secoes-termos [secoes]="resumo.termos.secoes" />
+          </section>
+
+          <form class="mt-6" (ngSubmit)="aceitar()" novalidate>
+            <app-aviso-erro [mensagem]="erroDoEnvio()?.mensagem ?? null" />
+            <label class="mt-2 flex items-start gap-2 text-slate-800">
+              <input
+                type="checkbox"
+                name="aceite"
+                class="mt-1"
+                [ngModel]="aceito()"
+                (ngModelChange)="aceito.set($event)"
+              />
+              Li e aceito os termos de uso da API em nome do sistema {{ resumo.sistema }}.
+            </label>
+            <button
+              type="submit"
+              class="mt-4 rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio disabled:opacity-50"
+              [disabled]="!aceito() || enviando()"
+            >
+              {{ enviando() ? 'Gerando o token…' : 'Aceitar e gerar o token' }}
+            </button>
+          </form>
+        }
+      }
+    }
+  }
+</div>

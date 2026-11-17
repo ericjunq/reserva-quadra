@@ -24,7 +24,7 @@ test('o admin vê o histórico de uma reserva e filtra o histórico geral', asyn
   await expect(linha).toContainText('Reservada');
   await expect(linha).toContainText('Revogada');
 
-  await page.getByLabel('Quem fez').selectOption({ label: 'Sistema ou aluno' });
+  await page.getByLabel('Quem fez').selectOption({ label: 'Sistema, aluno ou parceiro' });
   await expect(page).toHaveURL(/quem=sistema/);
   await expect(page.getByText('1 mudança', { exact: true })).toBeVisible();
   await expect(page.getByText('Sistema ou aluno', { exact: false }).last()).toBeVisible();

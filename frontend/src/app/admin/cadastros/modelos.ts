@@ -113,3 +113,39 @@ export interface DadosDaMovimentacao {
   reserva_id?: number;
   da_manutencao?: boolean;
 }
+
+export type PermissaoApi = 'espacos:ler' | 'reservas:criar' | 'reservas:ler' | 'reservas:cancelar';
+
+export type SituacaoClienteApi = 'AGUARDANDO_ACEITE' | 'ATIVO' | 'VENCIDO' | 'DESATIVADO';
+
+export interface OpcaoDePermissao {
+  valor: PermissaoApi;
+  nome: string;
+}
+
+export interface ClienteApiCadastro {
+  id: number;
+  nome: string;
+  organizacao: string;
+  responsavel: { nome: string; email: string };
+  finalidade: string;
+  permissoes: PermissaoApi[];
+  limite_por_minuto: number;
+  ativo: boolean;
+  situacao: SituacaoClienteApi;
+  termos_versao: string | null;
+  termos_aceitos_em: string | null;
+  acesso_expira_em: string | null;
+  link_aceite: { expira_em: string } | null;
+}
+
+export interface DadosDoClienteApi {
+  nome?: string;
+  organizacao?: string;
+  responsavel_nome?: string;
+  responsavel_email?: string;
+  finalidade?: string;
+  permissoes?: PermissaoApi[];
+  limite_por_minuto?: number;
+  ativo?: boolean;
+}

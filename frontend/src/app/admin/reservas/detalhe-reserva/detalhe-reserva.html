@@ -59,6 +59,16 @@
                 </dd>
               </div>
             }
+            @if (reserva.origem === 'API') {
+              <div>
+                <dt class="text-sm text-slate-600">Origem</dt>
+                <dd class="text-slate-900">
+                  Sistema parceiro{{
+                    reserva.sistema_parceiro ? ': ' + reserva.sistema_parceiro.nome : ''
+                  }}
+                </dd>
+              </div>
+            }
             @if (reserva.tipo === 'EVENTO') {
               <div>
                 <dt class="text-sm text-slate-600">

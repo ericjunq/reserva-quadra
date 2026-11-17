@@ -100,7 +100,7 @@
       >
         <option value="">Todos</option>
         <option [value]="semAdmin" [selected]="quemEscolhido() === semAdmin">
-          Sistema ou aluno
+          Sistema, aluno ou parceiro
         </option>
         @for (admin of admins(); track admin.id) {
           <option [value]="admin.id" [selected]="admin.id === filtros().admin_id">

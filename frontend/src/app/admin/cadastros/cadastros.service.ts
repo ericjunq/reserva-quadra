@@ -5,8 +5,10 @@ import { ambiente } from '../../../ambientes/ambiente';
 import {
   AdminCadastro,
   AlunoCadastro,
+  ClienteApiCadastro,
   CursoCadastro,
   DadosDoAluno,
+  DadosDoClienteApi,
   DadosDoBloqueio,
   DataBloqueadaCadastro,
   DadosDoEquipamento,
@@ -15,6 +17,7 @@ import {
   EspacoCadastro,
   DadosDaMovimentacao,
   MovimentacaoEstoque,
+  OpcaoDePermissao,
   Pagina,
 } from './modelos';
 
@@ -249,6 +252,58 @@ export class CadastrosService {
     return this.http
       .post<{ message: string }>(`${this.url}/admins/${id}/reenviar-convite`, {})
       .pipe(map((resposta) => resposta.message));
+  }
+
+  listarClientesApi(
+    filtros: { busca?: string; ativo?: boolean },
+    pagina: number,
+  ): Observable<Pagina<ClienteApiCadastro>> {
+    let params = new HttpParams().set('page', pagina);
+    if (filtros.busca) {
+      params = params.set('busca', filtros.busca);
+    }
+    if (filtros.ativo !== undefined) {
+      params = params.set('ativo', filtros.ativo ? 1 : 0);
+    }
+    return this.http.get<Pagina<ClienteApiCadastro>>(`${this.url}/clientes-api`, { params });
+  }
+
+  listarPermissoesApi(): Observable<OpcaoDePermissao[]> {
+    return this.dados(
+      this.http.get<Resposta<OpcaoDePermissao[]>>(`${this.url}/clientes-api/permissoes`),
+    );
+  }
+
+  detalharClienteApi(id: number): Observable<ClienteApiCadastro> {
+    return this.dados(
+      this.http.get<Resposta<ClienteApiCadastro>>(`${this.url}/clientes-api/${id}`),
+    );
+  }
+
+  criarClienteApi(cliente: DadosDoClienteApi): Observable<ClienteApiCadastro> {
+    return this.dados(
+      this.http.post<Resposta<ClienteApiCadastro>>(`${this.url}/clientes-api`, cliente),
+    );
+  }
+
+  atualizarClienteApi(id: number, cliente: DadosDoClienteApi): Observable<ClienteApiCadastro> {
+    return this.dados(
+      this.http.patch<Resposta<ClienteApiCadastro>>(`${this.url}/clientes-api/${id}`, cliente),
+    );
+  }
+
+  desativarClienteApi(id: number): Observable<ClienteApiCadastro> {
+    return this.dados(
+      this.http.delete<Resposta<ClienteApiCadastro>>(`${this.url}/clientes-api/${id}`),
+    );
+  }
+
+  enviarAceiteClienteApi(id: number, revogarAtual: boolean): Observable<ClienteApiCadastro> {
+    return this.dados(
+      this.http.post<Resposta<ClienteApiCadastro>>(`${this.url}/clientes-api/${id}/enviar-aceite`, {
+        revogar_atual: revogarAtual,
+      }),
+    );
   }
 
   private dados<T>(pedido: Observable<Resposta<T>>): Observable<T> {

@@ -45,6 +45,12 @@ export const rotasPublicas: Routes = [
         title: 'Manter reserva · Sistema de Reservas',
         loadComponent: () => import('./manter-reserva/manter-reserva').then((m) => m.ManterReserva),
       })),
+      ...['parceiros/aceite/:token', 'parceiros/aceite'].map((path) => ({
+        path,
+        title: 'Acesso à API · Sistema de Reservas',
+        loadComponent: () =>
+          import('./aceite-parceiro/aceite-parceiro').then((m) => m.AceiteParceiro),
+      })),
       {
         path: 'privacidade',
         title: 'Termos e privacidade · Sistema de Reservas',

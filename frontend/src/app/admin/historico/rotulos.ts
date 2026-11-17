@@ -9,6 +9,7 @@ export const NOMES_DOS_TIPOS: Record<TipoAuditavel, string> = {
   DATA_BLOQUEADA: 'Data bloqueada',
   ITEM_RESERVA: 'Equipamento de reserva',
   ADMIN: 'Admin',
+  CLIENTE_API: 'Sistema parceiro',
 };
 
 export const NOMES_DAS_ACOES: Record<AcaoAuditoria, string> = {
@@ -80,6 +81,18 @@ const ROTULOS_DOS_CAMPOS: Record<string, string> = {
   respondida_em: 'Respondido em',
   respondida_por: 'Respondido por',
   justificativa_recusa: 'Motivo da recusa',
+  organizacao: 'Organização',
+  responsavel_nome: 'Responsável',
+  responsavel_contato: 'Contato do responsável',
+  responsavel_email: 'Email do responsável',
+  finalidade: 'Finalidade',
+  permissoes: 'Permissões',
+  limite_por_minuto: 'Limite por minuto',
+  aceite_token_hash: 'Link de aceite',
+  aceite_expira_em: 'Link de aceite vale até',
+  acesso_expira_em: 'Acesso vence em',
+  aviso_vencimento_enviado_em: 'Aviso de vencimento enviado em',
+  cliente_api_id: 'Sistema parceiro',
 };
 
 const NOMES_DOS_VALORES: Record<string, string> = {
@@ -91,6 +104,7 @@ const NOMES_DOS_VALORES: Record<string, string> = {
   SITE: 'Pelo site',
   ADMIN: 'Pelo admin',
   REGISTRO_POSTERIOR: 'Registro posterior',
+  API: 'Por sistema parceiro',
   AGUARDANDO: 'Aguardando resposta',
   APROVADA: 'Aprovado',
   RECUSADA: 'Recusado',
@@ -186,11 +200,18 @@ export function linkDoRegistro(tipo: TipoAuditavel, id: number): string | null {
       return `/admin/cadastros/equipamentos/${id}`;
     case 'ADMIN':
       return `/admin/cadastros/admins/${id}`;
+    case 'CLIENTE_API':
+      return `/admin/cadastros/sistemas-parceiros/${id}`;
     default:
       return null;
   }
 }
 
 export function quemFez(auditoria: Auditoria): string {
-  return auditoria.feito_por?.nome ?? 'Sistema ou aluno';
+  if (auditoria.feito_por) {
+    return auditoria.feito_por.nome;
+  }
+  return auditoria.sistema_parceiro
+    ? `Sistema parceiro: ${auditoria.sistema_parceiro.nome}`
+    : 'Sistema ou aluno';
 }

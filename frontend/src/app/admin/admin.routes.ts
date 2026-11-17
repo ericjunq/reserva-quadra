@@ -136,6 +136,22 @@ export const rotasAdmin: Routes = [
         loadComponent: () => import('./cadastros/admins/form-admin').then((m) => m.FormAdmin),
       })),
       {
+        path: 'cadastros/sistemas-parceiros',
+        title: 'Sistemas parceiros · Administração',
+        loadComponent: () =>
+          import('./cadastros/sistemas-parceiros/lista-sistemas-parceiros').then(
+            (m) => m.ListaSistemasParceiros,
+          ),
+      },
+      ...['cadastros/sistemas-parceiros/novo', 'cadastros/sistemas-parceiros/:id'].map((path) => ({
+        path,
+        title: 'Sistema parceiro · Administração',
+        loadComponent: () =>
+          import('./cadastros/sistemas-parceiros/form-sistema-parceiro').then(
+            (m) => m.FormSistemaParceiro,
+          ),
+      })),
+      {
         path: 'historico',
         title: 'Histórico · Administração',
         loadComponent: () => import('./historico/historico').then((m) => m.Historico),

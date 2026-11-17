@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map, shareReplay, tap } from 'rxjs';
 import { ambiente } from '../../ambientes/ambiente';
 import {
+  AcessoDoParceiro,
   Calendario,
   Curso,
   EquipamentoDisponivel,
@@ -15,6 +16,7 @@ import {
   ReservaCriada,
   ReservaDoAluno,
   ResumoDaConfirmacao,
+  ResumoDoAceiteApi,
   ResumoDoCancelamento,
   ResumoParaManter,
   Solicitaveis,
@@ -188,6 +190,20 @@ export class ApiPublicaService {
         reserva_id: reservaId,
       })
       .pipe(map((resposta) => resposta.message));
+  }
+
+  resumoDoAceiteApi(token: string): Observable<ResumoDoAceiteApi> {
+    return this.http
+      .get<Resposta<ResumoDoAceiteApi>>(`${this.url}/parceiros/aceite/${token}`)
+      .pipe(map((resposta) => resposta.data));
+  }
+
+  aceitarTermosApi(token: string): Observable<AcessoDoParceiro> {
+    return this.http
+      .post<Resposta<AcessoDoParceiro>>(`${this.url}/parceiros/aceite/${token}`, {
+        aceite_termos: true,
+      })
+      .pipe(map((resposta) => resposta.data));
   }
 
   resumoParaManter(token: string): Observable<ResumoParaManter> {

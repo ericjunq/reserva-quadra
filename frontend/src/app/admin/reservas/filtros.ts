@@ -49,7 +49,7 @@ export const DEVOLUCOES: SituacaoDevolucao[] = [
 
 const TIPOS: TipoReserva[] = ['ALUNO', 'EVENTO'];
 
-export const ORIGENS: OrigemReserva[] = ['SITE', 'ADMIN', 'REGISTRO_POSTERIOR'];
+export const ORIGENS: OrigemReserva[] = ['SITE', 'ADMIN', 'REGISTRO_POSTERIOR', 'API'];
 
 export const SOLICITACOES: SituacaoSolicitacao[] = [
   'AGUARDANDO',

@@ -1,0 +1,253 @@
+<a
+  routerLink="/admin/cadastros/sistemas-parceiros"
+  class="text-sm font-semibold text-azul underline"
+  >Sistemas parceiros</a
+>
+<h1 class="mt-2 flex flex-wrap items-center gap-2 text-2xl font-semibold text-slate-900">
+  {{ sistema() ? sistema()!.nome : 'Cadastrar sistema parceiro' }}
+  @if (sistema(); as atual) {
+    <span class="rounded-full px-2 py-0.5 text-xs font-semibold" [class]="cores[atual.situacao]">{{
+      situacoes[atual.situacao]
+    }}</span>
+  }
+</h1>
+@if (!sistema()) {
+  <p class="mt-1 max-w-2xl text-slate-600">
+    O responsável recebe um email com o link para ler e aceitar os termos de uso da API (vale 7
+    dias). Só depois do aceite o token é gerado, e ele aparece uma única vez, para o responsável.
+  </p>
+}
+
+@switch (estado().tipo) {
+  @case ('carregando') {
+    <p class="mt-4 text-slate-600">Carregando…</p>
+  }
+  @case ('erro') {
+    <div class="mt-4"><app-aviso-erro [mensagem]="$any(estado()).erro.mensagem" /></div>
+  }
+  @case ('pronto') {
+    @if (sistema(); as atual) {
+      <dl
+        class="mt-6 grid max-w-2xl gap-x-6 gap-y-2 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:grid-cols-2"
+      >
+        <div>
+          <dt class="text-sm font-semibold text-slate-600">Termos aceitos</dt>
+          <dd class="text-slate-900">
+            @if (atual.termos_aceitos_em) {
+              {{ formatarQuando(atual.termos_aceitos_em) }} (versão {{ atual.termos_versao }})
+            } @else {
+              Ainda não
+            }
+          </dd>
+        </div>
+        <div>
+          <dt class="text-sm font-semibold text-slate-600">Acesso vence em</dt>
+          <dd class="text-slate-900">
+            {{ atual.acesso_expira_em ? formatarQuando(atual.acesso_expira_em) : '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-sm font-semibold text-slate-600">Link de aceite</dt>
+          <dd class="text-slate-900">
+            {{
+              atual.link_aceite
+                ? 'Enviado, vale até ' + formatarQuando(atual.link_aceite.expira_em)
+                : 'Nenhum pendente'
+            }}
+          </dd>
+        </div>
+      </dl>
+    }
+
+    <form
+      class="mt-6 max-w-2xl space-y-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+      (ngSubmit)="salvar()"
+      novalidate
+    >
+      <app-aviso-erro [mensagem]="erro()?.mensagem ?? null" />
+      @if (mensagem(); as mensagem) {
+        <p class="rounded-lg bg-emerald-50 px-4 py-3 text-emerald-900" role="status">
+          {{ mensagem }}
+        </p>
+      }
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="sistema-nome" class="block font-semibold text-slate-900"
+            >Nome do sistema</label
+          >
+          <input
+            id="sistema-nome"
+            name="nome"
+            maxlength="100"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            [ngModel]="nome()"
+            (ngModelChange)="nome.set($event)"
+          />
+          @if (erroDoCampo('nome'); as texto) {
+            <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+          }
+        </div>
+        <div>
+          <label for="sistema-organizacao" class="block font-semibold text-slate-900"
+            >Organização</label
+          >
+          <input
+            id="sistema-organizacao"
+            name="organizacao"
+            maxlength="150"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            [ngModel]="organizacao()"
+            (ngModelChange)="organizacao.set($event)"
+          />
+          @if (erroDoCampo('organizacao'); as texto) {
+            <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+          }
+        </div>
+        <div>
+          <label for="responsavel-nome" class="block font-semibold text-slate-900"
+            >Nome do responsável</label
+          >
+          <input
+            id="responsavel-nome"
+            name="responsavel_nome"
+            maxlength="100"
+            autocomplete="off"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            [ngModel]="responsavelNome()"
+            (ngModelChange)="responsavelNome.set($event)"
+          />
+          @if (erroDoCampo('responsavel_nome'); as texto) {
+            <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+          }
+        </div>
+        <div>
+          <label for="responsavel-email" class="block font-semibold text-slate-900"
+            >Email do responsável</label
+          >
+          <input
+            id="responsavel-email"
+            name="responsavel_email"
+            type="email"
+            maxlength="150"
+            autocomplete="off"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            [ngModel]="responsavelEmail()"
+            (ngModelChange)="responsavelEmail.set($event)"
+          />
+          @if (erroDoCampo('responsavel_email'); as texto) {
+            <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+          }
+        </div>
+      </div>
+      <div>
+        <label for="sistema-finalidade" class="block font-semibold text-slate-900"
+          >Finalidade</label
+        >
+        <p id="ajuda-finalidade" class="text-sm text-slate-600">
+          Para que o sistema vai usar a API. Aparece para o responsável na hora do aceite.
+        </p>
+        <textarea
+          id="sistema-finalidade"
+          name="finalidade"
+          rows="3"
+          maxlength="1000"
+          aria-describedby="ajuda-finalidade"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          [ngModel]="finalidade()"
+          (ngModelChange)="finalidade.set($event)"
+        ></textarea>
+        @if (erroDoCampo('finalidade'); as texto) {
+          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+        }
+      </div>
+      <fieldset>
+        <legend class="font-semibold text-slate-900">Permissões</legend>
+        <div class="mt-1 space-y-1">
+          @for (opcao of opcoes(); track opcao.valor) {
+            <label class="flex items-center gap-2 text-slate-800">
+              <input
+                type="checkbox"
+                [checked]="permissoes().includes(opcao.valor)"
+                (change)="marcar(opcao.valor, $any($event.target).checked)"
+              />
+              {{ opcao.nome }}
+            </label>
+          }
+        </div>
+        @if (erroDoCampo('permissoes', 'permissoes.0'); as texto) {
+          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+        }
+      </fieldset>
+      <div>
+        <label for="sistema-limite" class="block font-semibold text-slate-900"
+          >Limite de requisições por minuto</label
+        >
+        <input
+          id="sistema-limite"
+          name="limite_por_minuto"
+          type="number"
+          min="1"
+          max="600"
+          class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2"
+          [ngModel]="limite()"
+          (ngModelChange)="limite.set($event)"
+        />
+        @if (erroDoCampo('limite_por_minuto'); as texto) {
+          <p class="mt-1 text-sm text-red-700">{{ texto }}</p>
+        }
+      </div>
+      <button
+        type="submit"
+        class="rounded-full bg-azul px-6 py-2 font-semibold text-white hover:bg-azul-medio disabled:opacity-50"
+        [disabled]="enviando()"
+      >
+        {{ enviando() ? 'Salvando…' : sistema() ? 'Salvar' : 'Cadastrar e enviar o link' }}
+      </button>
+    </form>
+
+    @if (sistema(); as atual) {
+      <section class="mt-6 flex max-w-2xl flex-wrap gap-3" aria-label="Ações">
+        @if (atual.ativo) {
+          <app-confirmar-acao
+            [rotulo]="
+              atual.situacao === 'ATIVO' ? 'Enviar link de renovação' : 'Enviar link de aceite'
+            "
+            [aviso]="
+              atual.situacao === 'ATIVO'
+                ? 'O responsável recebe um link para aceitar os termos e gerar um token novo. O token atual continua valendo até vencer.'
+                : 'O responsável recebe um link novo para aceitar os termos e gerar o token. O link anterior deixa de valer.'
+            "
+            [ocupado]="enviando()"
+            (confirmado)="enviarLink(false)"
+          />
+          @if (atual.situacao === 'ATIVO') {
+            <app-confirmar-acao
+              rotulo="Revogar o token"
+              aviso="Use se o token vazou. O sistema perde o acesso na hora, e o responsável recebe um link para gerar outro."
+              [perigo]="true"
+              [ocupado]="enviando()"
+              (confirmado)="enviarLink(true)"
+            />
+          }
+          <app-confirmar-acao
+            rotulo="Desativar"
+            aviso="O sistema perde o acesso na hora e o token é apagado. Para voltar, reative e o responsável aceita os termos de novo."
+            [perigo]="true"
+            [ocupado]="enviando()"
+            (confirmado)="mudarSituacao(false)"
+          />
+        } @else {
+          <app-confirmar-acao
+            rotulo="Reativar"
+            aviso="O responsável recebe um link para aceitar os termos e gerar um token novo."
+            [ocupado]="enviando()"
+            (confirmado)="mudarSituacao(true)"
+          />
+        }
+      </section>
+      <div class="mt-6 max-w-2xl">
+        <app-historico-do-registro tipo="CLIENTE_API" [registroId]="atual.id" />
+      </div>
+    }
+  }
+}

@@ -8,7 +8,8 @@ export type TipoAuditavel =
   | 'CURSO'
   | 'DATA_BLOQUEADA'
   | 'ITEM_RESERVA'
-  | 'ADMIN';
+  | 'ADMIN'
+  | 'CLIENTE_API';
 
 export type AcaoAuditoria = 'CRIACAO' | 'ATUALIZACAO' | 'EXCLUSAO';
 
@@ -21,6 +22,7 @@ export interface Auditoria {
   antes: Record<string, unknown> | null;
   depois: Record<string, unknown> | null;
   feito_por: { id: number; nome: string } | null;
+  sistema_parceiro?: { id: number; nome: string } | null;
   em: string;
 }
 

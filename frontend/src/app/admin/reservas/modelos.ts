@@ -14,7 +14,7 @@ export type PeriodoAdmin =
 
 export type TipoReserva = 'ALUNO' | 'EVENTO';
 
-export type OrigemReserva = 'SITE' | 'ADMIN' | 'REGISTRO_POSTERIOR';
+export type OrigemReserva = 'SITE' | 'ADMIN' | 'REGISTRO_POSTERIOR' | 'API';
 
 export interface Pessoa {
   id: number;
@@ -51,6 +51,7 @@ export interface ReservaAdmin {
     curso: { id: number; nome: string } | null;
   } | null;
   descricao: string | null;
+  sistema_parceiro?: { id: number; nome: string } | null;
   responsavel?: { nome: string | null; contato: string | null };
   equipamentos?: EquipamentoDaReserva[];
   justificativa_revogacao?: string | null;

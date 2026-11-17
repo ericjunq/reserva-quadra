@@ -47,6 +47,11 @@ export const SELO_PELO_ADMIN: Selo = {
   classes: 'bg-indigo-100 text-indigo-900 ring-1 ring-indigo-300',
 };
 
+export const SELO_DE_PARCEIRO: Selo = {
+  texto: 'Por sistema parceiro',
+  classes: 'bg-teal-100 text-teal-900 ring-1 ring-teal-300',
+};
+
 export const SELO_AGUARDANDO_MANTER: Selo = {
   texto: 'Aguardando o aluno manter',
   classes: 'bg-amber-100 text-amber-900 ring-1 ring-amber-300',
@@ -63,6 +68,7 @@ export const NOMES_DAS_ORIGENS: Record<OrigemReserva, string> = {
   SITE: 'Pelo site',
   ADMIN: 'Pelo admin',
   REGISTRO_POSTERIOR: 'Registro posterior',
+  API: 'Por sistema parceiro',
 };
 
 export const NOMES_DAS_DEVOLUCOES: Record<SituacaoDevolucao, string> = {
@@ -84,6 +90,11 @@ export const NOMES_DAS_DEVOLUCOES: Record<SituacaoDevolucao, string> = {
       @if (origem() === 'ADMIN' && tipo() === 'ALUNO') {
         <span class="rounded-full px-2 py-0.5 text-xs font-semibold" [class]="peloAdmin.classes">{{
           peloAdmin.texto
+        }}</span>
+      }
+      @if (origem() === 'API') {
+        <span class="rounded-full px-2 py-0.5 text-xs font-semibold" [class]="parceiro.classes">{{
+          parceiro.texto
         }}</span>
       }
       @if (origem() === 'REGISTRO_POSTERIOR') {
@@ -119,6 +130,7 @@ export class SelosReserva {
   readonly tipo = input<TipoReserva | null>(null);
 
   protected readonly peloAdmin = SELO_PELO_ADMIN;
+  protected readonly parceiro = SELO_DE_PARCEIRO;
   readonly aguardandoManter = input(false);
 
   protected readonly manter = SELO_AGUARDANDO_MANTER;

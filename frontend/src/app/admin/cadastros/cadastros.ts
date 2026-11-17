@@ -28,6 +28,11 @@ const CADASTROS = [
     nome: 'Admins',
     texto: 'Convidar, reenviar convite, editar e desativar quem administra o sistema.',
   },
+  {
+    caminho: 'sistemas-parceiros',
+    nome: 'Sistemas parceiros',
+    texto: 'Sistemas de fora que usam a API: responsável, permissões, aceite e token.',
+  },
 ];
 
 @Component({

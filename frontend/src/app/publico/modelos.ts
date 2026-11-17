@@ -202,3 +202,20 @@ export interface Termos {
   termos_de_uso: SecaoDosTermos[];
   privacidade: SecaoDosTermos[];
 }
+
+export interface ResumoDoAceiteApi {
+  sistema: string;
+  organizacao: string;
+  responsavel_nome: string;
+  finalidade: string;
+  permissoes: { valor: string; nome: string }[];
+  renovacao: boolean;
+  link_expira_em: string;
+  termos: { versao: string; rascunho: boolean; secoes: SecaoDosTermos[] };
+}
+
+export interface AcessoDoParceiro {
+  token: string;
+  expira_em: string;
+  permissoes: string[];
+}
