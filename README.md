@@ -1014,6 +1014,8 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 
 - ~~**Reserva condicionada ao equipamento pedido (ideia de 16/11/2026, para depois):**~~ (absorvida em 16/11/2026: com a lógica invertida, a reserva já é cancelada se o aluno não a mantiver) uma caixa opcional no pedido de equipamento, "só quero o espaço se o equipamento for aprovado", que cancela a reserva sozinha se o pedido for recusado ou vencer. Por ora vale a opção A (a reserva continua e o email traz o botão de cancelar). Avaliação: resolve o mesmo que perguntar ao aluno depois (opção B, descartada por exigir um estado novo com prazo), mas libera o horário mais tarde.
 
+- **Reenviar o email de confirmação por "Minhas reservas" (ideia do usuário, 17/11/2026; recomendação enviada):** botão na reserva que aguarda confirmação ou reconfirmação, com RA + email; o email novo invalida os links do anterior; o prazo não muda; até 3 reenvios por etapa, 5 min entre eles.
+
 - **Monitor externo da API:** um serviço gratuito (UptimeRobot ou Healthchecks.io) consulta `GET /up` a cada poucos minutos e avisa por outro canal (app, SMS, Telegram) quando a API não responde. Cobre o caso em que o próprio serviço de email cai e os alertas por email não saem. É configurado fora do código, na hora do deploy.
 - **Backup do banco:** definido na hora do deploy, conforme a plataforma. Regra 3-2-1; banco gerenciado com backup automático **ou** `spatie/laravel-backup` com armazenamento externo (Backblaze B2, Cloudflare R2, S3); retenção de 7 diários, 4 semanais e 6 mensais; teste mensal de restauração; `.env` guardado à parte num gerenciador de senhas. LGPD: backup criptografado, acesso restrito, e refazer as anonimizações depois de uma restauração.
 
