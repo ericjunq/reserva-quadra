@@ -96,7 +96,7 @@ npx prettier --write src        # formata no padrão do projeto (.prettierrc)
 - O `FRONTEND_URL` do `.env` da API já é `http://localhost:4200`, então o CORS libera o front local.
 - **Rede que bloqueia o `registry.npmjs.org`** (aconteceu no PC Ubuntu): `npm config set registry https://registry.yarnpkg.com/` (espelho com os mesmos pacotes). Fica no `~/.npmrc` do PC, fora do repositório; o `package-lock.json` continua apontando para o registro padrão.
 - A coleta de dados de uso do Angular CLI fica **desligada** no projeto (`"analytics": false` no `angular.json`), em linha com a decisão de não usar rastreamento.
-- **Para ver o front:** um terminal com `php artisan serve` (raiz) e outro com `cd frontend && npm start`; abrir http://localhost:4200. Para os emails saírem, um terceiro terminal com `php artisan queue:work` (ver "Enviar emails de verdade (teste local)").
+- **Para ver o front:** um terminal com `php artisan serve` (raiz) e outro com `cd frontend && npm start`; abrir http://localhost:4200. Para os emails saírem, um terceiro terminal com `php artisan queue:work` (sem ele, só o código de login chega) e, para as tarefas automáticas (reconfirmação, revogações, pedidos vencidos), um quarto com `php artisan schedule:work` (ver "Enviar emails de verdade (teste local)").
 
 ### Preparar um PC novo
 
@@ -832,7 +832,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 344 testes da API, 166 testes de unidade do front (Vitest) e 54 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 345 testes da API, 166 testes de unidade do front (Vitest) e 54 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -863,6 +863,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
 | `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, **arredondamento para 15 min** (inclusive em conflitos e na duração máxima), espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela e arredondado, equipamentos pelo pico, redução de estoque pelo pico, **calendário com janela e ocupados** (reservas e bloqueios, sem RA), **`fim_minimo` de hoje e dia encerrado**, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
 | `VersaoDisponibilidadeTest` | Versão igual sem mudanças; muda depois de uma reserva e de um bloqueio; muda a cada faixa de 5 minutos; resposta só com a versão |
+| `EmailsTest` | Os 11 emails montam com o assunto e o conteúdo esperados, sem link para a API ou `localhost`, e só o alerta e o código de login saem sem fila |
 | `ConsultasDasListagensTest` | Histórico, espaços, equipamentos, cursos, datas bloqueadas, alunos e admins fazem o mesmo número de consultas com 2 e com 12 itens (sem N+1) |
 | `LimitesPublicosTest` | Mesmo RA limitado sem afetar outro aluno do mesmo IP, limite por IP valendo para todos os RAs do IP, links do email limitados por token, consultas do calendário com o limite das consultas, RA fora da chave do limite |
 | `RotasProtegidasTest` | Toda rota do admin (e `/me`, `/logout`) responde 401 sem token; todas têm `auth:sanctum` e `admin.ativo`; admin desativado com token ainda válido é recusado e perde os tokens; admin ativo continua entrando |
@@ -1081,7 +1082,7 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 | Sua senha foi alterada | Admin | Depois de redefinir, aceitar convite ou trocar a senha | ✅ Pronto |
 | Alerta do sistema | Admins ativos e `ALERTAS_EMAIL` | Tarefa agendada ou job que falhou (máx. 1 por hora por problema) | ✅ Pronto (enviado na hora, sem fila) |
 
-Todos, menos o alerta e o código de acesso, vão pela fila (`php artisan queue:work`). Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
+Todos, menos o alerta e o código de acesso, vão pela fila (`php artisan queue:work`). **Se o código de login chega e o email da reserva não**, é o worker que não está rodando: o código sai na hora e os outros ficam esperando na tabela `jobs` (diagnóstico de 17/11/2026). Os emails automáticos (reconfirmação, revogação por falta de confirmação, pedido de equipamento vencido) também dependem do agendador: em desenvolvimento, `php artisan schedule:work` num terminal à parte. O cabeçalho de todos os emails (nome do sistema) leva ao **site** (`FRONTEND_URL`), pelo layout em `resources/views/vendor/mail/{html,text}/message.blade.php` (o padrão do Laravel levava ao `APP_URL`, a API). O `EmailsTest` monta os 11 emails e confere assunto, conteúdo, que nenhum link aponta para a API ou para `localhost` e quais vão pela fila. Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
 
 #### Enviar emails de verdade (teste local)
 

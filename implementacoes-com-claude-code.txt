@@ -3103,3 +3103,31 @@ Achado pelo axe: label-content-name-mismatch (WCAG 2.5.3, "o nome inclui o texto
     visível) e e2e/reserva-no-laboratorio.spec.ts ajustados aos nomes novos.
 Admin: nenhum problema encontrado.
 Totais: 344 da API, 166 do front, 54 no navegador. Pacote inicial igual (315,1 kB).
+
+========================================================================
+78. EMAIL DA RESERVA PARADO E REVISÃO DOS EMAILS (17/11/2026)
+========================================================================
+Relato do usuário: o código de login chegou ao Mailtrap, o email da reserva não. Pediu também para
+conferir todos os serviços de email.
+Diagnóstico: só o "php artisan serve" estava rodando, sem "queue:work". Na tabela jobs havia um
+  App\Mail\PedidoConfirmacaoMail (criado 11:10, 0 tentativas) e failed_jobs vazia. O código de
+  login usa Mail::send (na hora, decisão do 11.4b); os outros usam ->queue. Confirmação: um
+  "queue:work --stop-when-empty --tries=1" (processa e encerra, não fica rodando) enviou o email
+  ao Mailtrap em 3 s.
+Revisão: 11 mailables; 9 pela fila (afterCommit onde o email depende de dados gravados) e 2 na
+  hora (CodigoLoginMail e AlertaSistemaMail, que não podem depender da fila). Seis nunca eram
+  renderizados nos testes.
+resources/views/vendor/mail/html/message.blade.php e text/message.blade.php: cópia do layout do
+  Laravel sem os comentários, com o cabeçalho em config('app.frontend_url'). Antes, o nome do
+  sistema no topo de todo email levava ao APP_URL (a API, que não tem página para pessoas).
+  Os outros componentes (botão, tabela, rodapé) continuam vindo do framework.
+tests/Feature/EmailsTest.php: monta os 11 emails (com as variações de confirmação, reconfirmação,
+  pedido aprovado e pedido não liberado), confere assunto, um trecho do conteúdo, que nada aponta
+  para o APP_URL ou para localhost e quais implementam ShouldQueue.
+tests/TestCase.php: comoAdmin() cria o admin com nome fixo ("Admin dos Testes") e email único.
+tests/Feature/ExportacaoReservasTest.php e ListagemReservasTest.php: a reserva "de outro aluno"
+  usava um aluno de nome aleatório, que às vezes era Souza e aparecia na busca por "souza"
+  (achado quando a suíte falhou numa rodada); agora é "João Lima". Suíte verde 3 vezes seguidas.
+Lembrete: em desenvolvimento, as tarefas agendadas (reconfirmação, revogação por falta de
+  confirmação, pedidos vencidos) só rodam com "php artisan schedule:work".
+Totais: 345 da API, 166 do front, 54 no navegador.
