@@ -149,6 +149,7 @@ O usuário costuma aprovar com ajustes pontuais e às vezes pede para explicar m
   - parceiros: `/api/v1` em `auth:sanctum` + `parceiro` + `throttle:parceiros` + `permissao:<x>`;
   - o `RotasProtegidasTest` varre as duas;
   - middleware que precisa responder antes da busca do registro vai na prioridade antes do `SubstituteBindings`.
+- **Rotas fixas dentro de um recurso** (`/admin/equipamentos/fora-agora`) vão antes do `apiResource`, senão o `/{equipamento}` as captura.
 - **Mais de um tipo de usuário autenticável** (`User` e `ClienteApi`): nunca gravar `Auth::id()` cru em FK de `users`.
 - **v1 dos parceiros:** controllers, requests e resources próprios em `V1/`, com tipos explícitos. A v1 é um contrato e não muda quando o front muda; mudança que quebra vira `/api/v2`.
 - O campo de data da reserva é `data_reserva`, nunca `data` (senão o resource perde o `data`).
