@@ -275,7 +275,8 @@ Quando uma **tarefa agendada** termina com erro ou um **job** falha depois de to
 | `app/admin/reservas/detalhe-reserva/responder-solicitacao.ts` | Aprovar ou recusar (com motivo) um pedido de equipamento no detalhe da reserva |
 | `app/admin/compartilhado/campos-do-uso.ts` | Campos de espaço, data, horário (fixo ou início/fim) e equipamentos com o disponível no intervalo, usados pelo novo evento e pelo registro de uso; funções `horarioDoUso`, `horarioDaUrl` e `equipamentosEscolhidos` |
 | `app/admin/reservas/registrar-uso/` | `/admin/reservas/registrar?espaco=&data=&horario=` ou `&inicio=&fim=` (11.5c): registro de uso posterior (aluno pelo RA, só no corpo, ou grupo), conflito com link, aviso do limite levado ao detalhe |
-| `app/admin/eventos/` | `/admin/eventos/novo?espaco=&data=&horario=` ou `&inicio=&fim=`: criar evento já preenchido pelo calendário, com equipamentos opcionais e, se houver reserva no horário, a justificativa para revogá-la |
+| `app/admin/reservas/nova-reserva/` | `/admin/reservas/nova?espaco=&data=&horario=` ou `&inicio=&fim=` e `&tipo=evento` (11.5e): "Para um aluno (RA)" ou "Evento da faculdade"; para aluno, RA só no corpo e equipamento de outro espaço já aprovado; para evento, descrição e conflito com justificativa. Antiga página de novo evento (`/admin/eventos/novo` redireciona) |
+| `app/admin/compartilhado/equipamentos-de-outros-espacos.ts` | Seção "Equipamento de outro espaço" da Nova reserva: busca na rota do admin só ao abrir, itens entram aprovados |
 | `app/compartilhado/caminho-interno.ts` | Aceita só caminhos do próprio site no `?voltar=` (cadastro e login) |
 | `app/compartilhado/` | Componentes usados nas duas áreas (ex.: página 404) |
 | `styles.css` | Tailwind com a paleta da identidade visual (`azul`, `azul-escuro`, `azul-medio`, `amarelo`) e a Montserrat |
@@ -434,6 +435,8 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 | GET/POST | `/api/reservas/manter/{token}` | Pública: resumo (`pode_manter`) e manter a reserva sem o equipamento pedido (link do email) |
 | POST | `/api/admin/reservas/{id}/solicitacoes/{equipamento}/aprovar` | Aprova o pedido de equipamento (11.5d) |
 | POST | `/api/admin/reservas/{id}/solicitacoes/{equipamento}/recusar` | Recusa o pedido, com `justificativa` (11.5d) |
+| POST | `/api/admin/reservas/aluno` | Reserva feita pelo admin para um aluno (11.5e): mesmas regras do site, confirmação pelo email, origem `ADMIN`; `solicitacoes` entram já aprovadas |
+| GET | `/api/admin/espacos/{id}/equipamentos/solicitaveis` | Itens de outros espaços que aceitam pedido, sem o limite de prazo (para o pedido presencial) |
 | POST | `/api/admin/reservas/registro-posterior` | Registra um uso que já aconteceu ou está acontecendo (aluno pelo RA ou grupo); responde a reserva e `aviso` (limite semanal) |
 | GET/POST | `/api/admin/reservas/exportar` | Exporta as reservas filtradas em CSV (o front usa POST, pelo mesmo motivo) |
 | GET | `/api/admin/reservas/exportar/colunas` | Colunas obrigatórias e opcionais da exportação |
@@ -504,6 +507,13 @@ Num espaço **LIVRE**, no lugar de `horario`: `"hora_inicio": "14:00", "hora_fim
 **Disponível** = `quantidade_total` − **pico de uso** no intervalo: o maior total reservado (status `RESERVADO`, **em qualquer espaço**) em um mesmo momento. Ex.: 2 projetores das 14:00 às 15:00 e outros 2 das 15:00 às 16:00 dão pico 2 no intervalo 14:00–16:00 (e não 4). Nos horários fixos o resultado é o mesmo da soma.
 O cálculo fica todo em `DisponibilidadeEquipamentoRepository`: uma única consulta agrupada por equipamento, independente de quantos itens forem pedidos.
 Exemplo: 2 microscópios compartilhados com 3 labs e os 3 labs no mesmo horário → o terceiro recebe 409.
+
+### Reserva feita pelo admin para um aluno (11.5e)
+
+- Na página **Nova reserva** (`/admin/reservas/nova`, aberta por "Reservar aqui" nos horários livres futuros do calendário ou pelo botão "Nova reserva"), o admin escolhe **"Para um aluno (RA)"** ou **"Evento da faculdade"**.
+- Para aluno: `POST /api/admin/reservas/aluno`, com as **mesmas regras do site** (dia útil, antecedência, horário ainda reservável, conflito, limite semanal do curso) e o mesmo **pedido de confirmação por email**; fica com `origem = ADMIN` e `criado_por` = o admin, e aparece com o selo **"Pelo admin"** na lista e no detalhe.
+- **Equipamento de outro espaço** (o "pedido presencial"): o admin escolhe na seção "Equipamento de outro espaço", que usa `GET /api/admin/espacos/{id}/equipamentos/solicitaveis` (sem o limite de prazo do site); o item entra **já aprovado**, com o estoque conferido.
+- `/admin/eventos/novo` redireciona para a página nova.
 
 ### Registro de uso posterior (admin, 11.5c)
 
@@ -705,6 +715,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 | Disponibilidade como **calendário** (até 31 dias) | O front navega por semanas/meses; reservas continuam limitadas a 10 dias úteis, e os dias fora da janela vêm com o motivo |
 | ~~Consulta mostra **quem reservou** (nome e curso)~~ (substituída em 13/11/2026) | Facilitava o mapeamento do uso |
 | Calendário público **não identifica quem reservou**; só os admins veem nome e curso | Pedido do usuário (13/11): mínima exposição (LGPD); para o aluno basta saber que o horário está ocupado |
+| Admin reserva para um aluno com as mesmas regras do site e com confirmação por email (11.5e) | Protege contra RA digitado errado e mantém um fluxo só; o pedido de equipamento feito na coordenação entra já aprovado (17/11/2026) |
 | Prazo de resposta do pedido gravado no item: 24 h antes, prazo curto 3 h antes, mínimo de 2 h ao admin, senão presencial | Pedido do usuário (16/11/2026): 2 h era em cima da hora para quem vem de outra cidade; reservas próximas ainda podem pedir com prazo curto |
 | Pedido recusado ou sem resposta: a reserva é cancelada se o aluno não clicar em "Manter" em até 12 h (nunca depois de 1 h antes do início) | Pedido do usuário (16/11/2026, "lógica invertida"): libera o espaço de quem só queria com o equipamento; segue o padrão da confirmação por email |
 | Pedido de equipamento no próprio item da reserva, segurando a quantidade | Sem tabela nova; a aprovação vale só para aquela reserva (decisão do usuário: outra reserva pede de novo) (16/11/2026) |
@@ -796,7 +807,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (16/11/2026):** 313 testes da API, 144 testes de unidade do front (Vitest) e 36 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 318 testes da API, 145 testes de unidade do front (Vitest) e 38 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -819,6 +830,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Arquivo | O que cobre |
 |---|---|
 | `AlunoTest` | Cadastro, RA duplicado, curso inativo, listagem só para admin |
+| `ReservaPeloAdminTest` | Login, reserva para o aluno com origem ADMIN e email de confirmação, mesmas regras do site (fim de semana, RA, conflito, limite do curso), equipamento de outro espaço aprovado na hora mesmo perto do início (rota do admin sem prazo), reserva pelo site continua com origem SITE |
 | `SolicitacaoTest` | Lista de itens que podem ser pedidos, pedido aguardando segura a quantidade para todos, aprovação não vira compartilhamento, item que não aceita ou do próprio espaço, prazo normal, curto e presencial, aprovar (email sem link), recusar (libera e pede para manter em 12 h, com os links), manter pelo link e revogação de quem não manteve, prazo para manter limitado a 1 h antes, vencer no prazo gravado, filtro e devolução só dos que valem, exportação, marcar `aceita_solicitacao` |
 | `RegistroPosteriorTest` | Login, uso passado do aluno sem confirmação e com email, grupo sem RA e sem email, RA ou descrição, 30 dias e hoje só o que começou, fim de semana e fora da janela aceitos, bloqueio recusado, conflito 409 sem revogar, limite semanal só avisa, estoque, fora da revogação automática e do filtro de confirmação, filtro e exportação por origem, calendário público só "Reservado" |
 | `LoginCodigoTest` | Senha certa manda o código na hora (sem fila) e não entrega token; senha errada não manda; código certo entra uma vez só; vencido; 5 tentativas; login novo invalida o anterior; admin desativado no meio; reenvio com espera de 60 s e limite de 3; desafio inválido genérico; falha no envio (503, nada guardado); formato do código; nada no log; configuração desligada; limpeza diária |
@@ -884,7 +896,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `admin/calendario/calendario.spec.ts` | Itens do dia (fixo: livre para evento no fim de semana, não no passado; livre: ocupados e intervalos em ordem), link do evento, calendário pela rota do admin de segunda a domingo com quem reservou e espaço desativado, novo evento preenchido, conflito com justificativa e reenvio |
 | `e2e/pedido-equipamento.spec.ts` | No navegador: aluno abre "Pedir equipamento de outro espaço", vê o prazo da resposta, pede, vê no resumo e na tela de sucesso (o corpo leva `solicitacoes`); e mantém a reserva pelo link do email |
 | `e2e/registro-posterior.spec.ts` | No navegador: "Registrar uso" pela lista, formulário, detalhe com o selo e "Registrado depois do uso por", RA só no corpo |
-| `e2e/calendario-admin.spec.ts` | No navegador: calendário com quem reservou e o selo, "Criar evento aqui", formulário preenchido, evento criado e detalhe |
+| `e2e/calendario-admin.spec.ts` | No navegador: calendário com quem reservou e o selo, "Reservar aqui", evento criado pela Nova reserva, e reserva para um aluno com equipamento de outro espaço (selo "Pelo admin", RA fora da URL) |
 | `e2e/reservas-admin.spec.ts` | No navegador: login, lista sem RA, filtro de confirmação na URL, busca fora da URL, detalhe com RA e email, revogação e volta à lista com os filtros |
 | `e2e/acesso-admin.spec.ts` | No navegador: login com erro e certo voltando à página pedida, painel, sair e rota protegida; senha nova pelo link do email (token fora da URL, corpo enviado) |
 | `publico/minhas-reservas/minhas-reservas.spec.ts` | POST com RA e email no corpo, situação de cada reserva (confirmação, revogação, devolução, aviso de cancelar pelo email), mensagem genérica, formato sem chamar a API, paginação repetindo o POST, limpar |
@@ -917,6 +929,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | Front-end: base (passo 11.1) | Projeto Angular 22 em `frontend/` (sem zone.js, Tailwind v4, Vitest), paleta e Montserrat no próprio site, cliente da API com sessão no `sessionStorage` e erros padronizados, pt-BR, layouts público e admin, 404, rotas sob demanda, orçamento de tamanho, job do front no CI |
 | Produção (passo 10) | Mensagens em pt_BR, CORS restrito, cabeçalhos de segurança, HTTPS, proxies, alertas por email, logs diários (14 dias), admin inicial pelo `.env`, `sistema:verificar-producao`, `DEPLOY.md`, `.env.production.example` e `HOSPEDAGEM.md` |
 | CI (passo 9) | GitHub Actions: testes em SQLite, MySQL 8.0 e Postgres 16, Pint e `composer audit` |
+| Reserva pelo admin para um aluno (passo 11.5e, 17/11/2026) | API: `POST /admin/reservas/aluno` (regras do site, confirmação, origem ADMIN, pedidos aprovados) e itens de outros espaços sem prazo. Front: página Nova reserva (aluno ou evento), "Reservar aqui" no calendário, selo "Pelo admin" |
 | Ajuste do pedido de equipamento (16/11/2026) | Prazo de resposta gravado (24 h / curto 3 h / mínimo 2 h / presencial) e lógica invertida (reserva cancelada se o aluno não mantiver em 12 h); página "Manter a reserva" |
 | Pedido de equipamento (passo 11.5d, 16/11/2026) | API: `aceita_solicitacao`, pedido no item da reserva, rota de itens solicitáveis, aprovar/recusar, vencimento 2 h antes, emails com o link de cancelar, filtro e exportação. Front: seção de pedido na reserva, situação em minhas reservas, resposta no detalhe do admin, selo, filtro e contador no painel |
 | Registro de uso posterior (passo 11.5c, 16/11/2026) | API: `reservas.origem`, `POST /admin/reservas/registro-posterior`, email ao aluno, filtro e coluna de origem, origem no calendário do admin. Front: tela Registrar uso, selo e filtro, "Registrar uso aqui" no calendário e campos de uso compartilhados com o novo evento. Achado: email de revogação quebrava nas reservas de horário livre (corrigido) |
@@ -953,9 +966,9 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 
 Na ordem combinada (revisado em 16/11/2026). O detalhe de cada passo (o que fará, decisões tomadas e recomendações em aberto) está no [`CHECKLIST.md`](CHECKLIST.md#️-plano-até-a-finalização-na-ordem), e a lista consolidada em "🗂️ Tudo o que falta fazer", no "Onde paramos".
 
-**Pronto:** API (passos 1 a 10), área pública (11.1 a 11.3), acesso do admin (11.4) com senha + código por email (11.4b), reservas do admin (11.5a), calendário do admin e eventos (11.5b), registro de uso posterior (11.5c) e pedido de equipamento de outro espaço com prazos e reserva mantida (11.5d e ajuste).
+**Pronto:** API (passos 1 a 10), área pública (11.1 a 11.3), acesso do admin (11.4) com senha + código por email (11.4b), reservas do admin (11.5a), calendário do admin e eventos (11.5b), registro de uso posterior (11.5c), pedido de equipamento de outro espaço com prazos e reserva mantida (11.5d e ajuste) e reserva pelo admin para um aluno (11.5e).
 
-1. **11.5e — reservar pelo admin para um aluno** ("Reservar aqui" no calendário; "Para um aluno" ou "Evento"; equipamento de outro espaço já aprovado). Proposta enviada em 16/11/2026, aguardando aprovação.
+1. ✅ **11.5e — reservar pelo admin para um aluno** (feito em 17/11/2026).
 2. **11.6 — cadastros do admin:** espaços, equipamentos (compartilhamento e "aceita solicitação"), cursos, alunos (com anonimização), datas bloqueadas e feriados, admins.
 3. **11.7 — histórico de auditoria** no admin.
 4. **11.8 — acabamento:** acessibilidade, desempenho, guia de deploy do front, limites por IP das rotas públicas.

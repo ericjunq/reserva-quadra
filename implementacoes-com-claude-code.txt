@@ -2775,3 +2775,38 @@ CLAUDE.md: número da última seção do txt (65) e linha de contexto com o 11.5
 
 Situação ao fim de 16/11/2026: 313 testes da API, 144 do front e 36 no navegador passando;
 nada implementando; aguardando a aprovação do 11.5e.
+
+========================================================================
+66. PASSO 11.5e: RESERVA FEITA PELO ADMIN PARA UM ALUNO (17/11/2026)
+========================================================================
+Pedido do usuário em 16/11 ao ver "Criar evento aqui" no calendário ("o ideal seria reserva ou
+evento, ou reservar um horário aqui"); proposta de 5 pontos aprovada em 17/11 ("aprovo").
+
+API
+app/Services/ReservaService.php: create(data, ?admin). Com admin: origem ADMIN, criado_por e os
+  pedidos de equipamento anexados como APROVADA (respondida_em/por), sem responder_ate; devolve as
+  relações do admin. Sem admin, nada muda (origem SITE).
+app/Http/Requests/StoreReservaAdminRequest.php (novo): herda StoreReservaRequest (mesmas regras do
+  site) e tira só a exigência de prazo dos pedidos (o pedido é presencial).
+app/Http/Controllers/ReservaController.php (storeParaAluno) e POST /api/admin/reservas/aluno.
+app/Services/EquipamentoService.php: solicitaveisNoIntervalo(..., semPrazo) e
+  EquipamentoController@solicitaveisAdmin com GET /api/admin/espacos/{id}/equipamentos/solicitaveis.
+tests/Feature/ReservaPeloAdminTest.php (5 testes).
+
+FRONT
+admin/reservas/nova-reserva/ (antes admin/eventos/novo-evento): "Para quem" (aluno ou evento; padrão
+  aluno, ?tipo=evento escolhe evento); para aluno, RA (só no corpo) e a seção de equipamento de
+  outro espaço; para evento, descrição e conflito com justificativa; salvar() decide a rota; envio
+  único (enviar) para os dois casos.
+admin/compartilhado/equipamentos-de-outros-espacos.ts (novo): lista da rota do admin, buscada só
+  ao abrir, zera quando o horário muda.
+admin/calendario: "Reservar aqui" e "Nova reserva" apontam para /admin/reservas/nova; serviço com
+  solicitaveis e reservarParaAluno; modelos com NovaReservaDeAluno.
+admin.routes.ts: reservas/nova; eventos/novo redireciona.
+reservas/selos.ts: selo "Pelo admin" (origem ADMIN e tipo ALUNO), passado na lista e no detalhe.
+Testes: calendario.spec (+1, reserva para aluno; o de evento usa tipo=evento), e2e
+  calendario-admin (Reservar aqui; + reserva para aluno com equipamento de outro espaço); api-falsa
+  com as rotas novas. Os commits do front e do navegador foram juntados num só para cada commit
+  passar nos testes sozinho.
+
+Totais: 318 da API, 145 do front, 38 no navegador. Build: inicial 314,2 kB (82,7 kB transferidos).
