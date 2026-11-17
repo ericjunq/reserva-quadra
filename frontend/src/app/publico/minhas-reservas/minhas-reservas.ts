@@ -10,7 +10,12 @@ import { ApiPublicaService } from '../api-publica.service';
 import { CartaoReserva } from '../cartao-reserva/cartao-reserva';
 import { paraIso } from '../datas';
 import { PaginaDeReservas, PeriodoMinhasReservas, ReservaDoAluno } from '../modelos';
-import { avisoParaManter, descreverConfirmacao, nomeDoStatus } from '../situacao-reserva';
+import {
+  aguardaConfirmacao,
+  avisoParaManter,
+  descreverConfirmacao,
+  nomeDoStatus,
+} from '../situacao-reserva';
 
 interface Consulta {
   ra: string;
@@ -43,6 +48,28 @@ export class MinhasReservas {
   protected readonly nomeDoStatus = nomeDoStatus;
   protected readonly descreverConfirmacao = descreverConfirmacao;
   protected readonly avisoParaManter = avisoParaManter;
+  protected readonly aguardaConfirmacao = aguardaConfirmacao;
+  protected readonly reenviando = signal<number | null>(null);
+  protected readonly respostasDoReenvio = signal<Record<number, { ok: boolean; texto: string }>>(
+    {},
+  );
+
+  protected reenviarConfirmacao(reservaId: number): void {
+    const consulta = this.consulta();
+    if (!consulta || this.reenviando() !== null) {
+      return;
+    }
+    this.reenviando.set(reservaId);
+    this.api.reenviarConfirmacao(consulta.ra, consulta.email, reservaId).subscribe({
+      next: (texto) => this.responderReenvio(reservaId, true, texto),
+      error: (erro: ErroApi) => this.responderReenvio(reservaId, false, erro.mensagem),
+    });
+  }
+
+  private responderReenvio(reservaId: number, ok: boolean, texto: string): void {
+    this.reenviando.set(null);
+    this.respostasDoReenvio.update((atuais) => ({ ...atuais, [reservaId]: { ok, texto } }));
+  }
 
   protected readonly numeroDaPagina = computed(() => {
     const numero = Number(this.pagina());

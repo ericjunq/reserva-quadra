@@ -225,6 +225,9 @@ describe('Reservar', () => {
     await estabilizar();
     expect(pagina.querySelector('aside')?.textContent).toContain('Pedidos (dependem de aprovação)');
     expect(pagina.querySelector('aside')?.textContent).toContain('1× Projetor');
+    (pedidos.querySelector('input[type=checkbox]') as HTMLInputElement).click();
+    await estabilizar();
+    expect(pagina.querySelector('aside')?.textContent).toContain('1× Projetor (obrigatório)');
 
     digitarRa('2024000001');
     enviar();
@@ -247,7 +250,7 @@ describe('Reservar', () => {
       espaco_id: 1,
       data_reserva: '2026-11-12',
       horario: 'PRIMEIRO_HORARIO',
-      solicitacoes: [{ id: 7, quantidade: 1 }],
+      solicitacoes: [{ id: 7, quantidade: 1, obrigatorio: true }],
     });
     expect(pagina.textContent).toContain(
       'O pedido de equipamento de outro espaço depende da aprovação',

@@ -56,6 +56,22 @@ export function itemValeNaReserva(solicitacao: Solicitacao | null | undefined): 
   return !solicitacao || solicitacao.situacao === 'APROVADA';
 }
 
+export function aguardaConfirmacao(reserva: ReservaDoAluno): boolean {
+  if (reserva.status !== 'RESERVADO' || reserva.tipo !== 'ALUNO') {
+    return false;
+  }
+  const agora = Date.now();
+  if (!reserva.confirmada_em) {
+    return !!reserva.confirmar_ate && new Date(reserva.confirmar_ate).getTime() > agora;
+  }
+  return (
+    !!reserva.reconfirmacao_pedida_em &&
+    !reserva.reconfirmada_em &&
+    !!reserva.reconfirmar_ate &&
+    new Date(reserva.reconfirmar_ate).getTime() > agora
+  );
+}
+
 export function avisoParaManter(reserva: ReservaDoAluno): string | null {
   if (reserva.status !== 'RESERVADO' || !reserva.manter_ate || reserva.mantida_em) {
     return null;

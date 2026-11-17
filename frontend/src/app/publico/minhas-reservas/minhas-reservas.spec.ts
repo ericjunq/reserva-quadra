@@ -142,6 +142,38 @@ describe('MinhasReservas', () => {
     expect(itens[2].textContent).toContain('não devolvido');
   });
 
+  it('reenvia o email de confirmação com RA e email no corpo e mostra a resposta', async () => {
+    preencher('ra', '2024000001');
+    preencher('email', 'maria@email.com');
+    await consultar();
+    const futura = new Date(Date.now() + 3_600_000).toISOString();
+    await responder({
+      data: [
+        reserva({ id: 7, confirmar_ate: futura }),
+        reserva({ id: 8, confirmada_em: '2026-11-10T12:00:00Z' }),
+      ],
+      meta: { current_page: 1, last_page: 1, total: 2 },
+    });
+
+    const botoes = [...pagina.querySelectorAll('button')].filter((b) =>
+      b.textContent?.includes('Reenviar o email de confirmação'),
+    );
+    expect(botoes.length).toBe(1);
+    botoes[0].click();
+    const pedido = controle.expectOne(`${url}/minhas-reservas/reenviar-confirmacao`);
+    expect(pedido.request.body).toEqual({
+      registro_academico: '2024000001',
+      email: 'maria@email.com',
+      reserva_id: 7,
+    });
+    pedido.flush({
+      message:
+        'Enviamos o email de confirmação de novo. Os links do email anterior não valem mais.',
+    });
+    fixture.detectChanges();
+    expect(pagina.textContent).toContain('Os links do email anterior não valem mais.');
+  });
+
   it('mostra a mensagem genérica da API quando os dados não batem', async () => {
     preencher('ra', '2024000001');
     preencher('email', 'outra@email.com');

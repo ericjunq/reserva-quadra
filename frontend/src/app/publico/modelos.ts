@@ -28,6 +28,7 @@ export interface Solicitacao {
   justificativa: string | null;
   respondida_em: string | null;
   responder_ate?: string | null;
+  obrigatorio?: boolean;
 }
 
 export interface Curso {
@@ -112,7 +113,7 @@ export interface NovaReserva {
   hora_inicio?: string;
   hora_fim?: string;
   equipamentos?: { id: number; quantidade: number }[];
-  solicitacoes?: { id: number; quantidade: number }[];
+  solicitacoes?: { id: number; quantidade: number; obrigatorio?: boolean }[];
 }
 
 export interface ReservaCriada {

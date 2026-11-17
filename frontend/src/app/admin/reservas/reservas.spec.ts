@@ -599,6 +599,45 @@ describe('reservas do admin', () => {
       expect(elemento.textContent).not.toContain('Aprovar pedido');
     });
 
+    it('com vários pedidos aguardando, aprova todos de uma vez e mostra o obrigatório', async () => {
+      const pedido = (id: number, nome: string, obrigatorio: boolean) => ({
+        id,
+        nome,
+        quantidade: 1,
+        devolucao: {
+          situacao: 'PENDENTE' as const,
+          quantidade_devolvida: null,
+          observacao: null,
+          devolvido_em: null,
+        },
+        solicitacao: {
+          situacao: 'AGUARDANDO' as const,
+          justificativa: null,
+          respondida_em: null,
+          obrigatorio,
+        },
+      });
+      const fixture = TestBed.createComponent(DetalheReserva);
+      fixture.componentRef.setInput('id', '7');
+      await estabilizar(fixture);
+      controle.expectOne(`${url}/admin/reservas/7`).flush({
+        data: reserva({
+          equipamentos: [pedido(7, 'Projetor', true), pedido(9, 'Microscópio', false)],
+        }),
+      });
+      await estabilizar(fixture);
+
+      const elemento = fixture.nativeElement as HTMLElement;
+      expect(elemento.textContent).toContain('O aluno marcou como obrigatório para a reserva');
+      expect(elemento.textContent).toContain('2 pedidos aguardando: responda todos de uma vez');
+      [...elemento.querySelectorAll('button')]
+        .find((b) => b.textContent?.includes('Aprovar todos os pedidos'))!
+        .click();
+      controle.expectOne(`${url}/admin/reservas/7/solicitacoes/aprovar`).flush({ data: reserva() });
+      await estabilizar(fixture);
+      expect(elemento.textContent).not.toContain('pedidos aguardando');
+    });
+
     it('admin aprova um pedido e o item passa a valer na devolução', async () => {
       const comPedido = reserva({
         data_reserva: ontem,

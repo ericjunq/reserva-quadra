@@ -34,21 +34,27 @@ export class ReservasAdminService {
     });
   }
 
-  aprovarSolicitacao(id: number, equipamentoId: number): Observable<ReservaAdmin> {
+  aprovarSolicitacao(id: number, equipamentoId: number | null): Observable<ReservaAdmin> {
     return this.http
-      .post<Resposta<ReservaAdmin>>(`${this.url}/${id}/solicitacoes/${equipamentoId}/aprovar`, {})
+      .post<Resposta<ReservaAdmin>>(
+        `${this.url}/${id}/solicitacoes/${equipamentoId ? `${equipamentoId}/` : ''}aprovar`,
+        {},
+      )
       .pipe(map((resposta) => resposta.data));
   }
 
   recusarSolicitacao(
     id: number,
-    equipamentoId: number,
+    equipamentoId: number | null,
     justificativa: string,
   ): Observable<ReservaAdmin> {
     return this.http
-      .post<Resposta<ReservaAdmin>>(`${this.url}/${id}/solicitacoes/${equipamentoId}/recusar`, {
-        justificativa,
-      })
+      .post<Resposta<ReservaAdmin>>(
+        `${this.url}/${id}/solicitacoes/${equipamentoId ? `${equipamentoId}/` : ''}recusar`,
+        {
+          justificativa,
+        },
+      )
       .pipe(map((resposta) => resposta.data));
   }
 

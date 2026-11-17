@@ -57,6 +57,12 @@ export class DetalheReserva {
     return reserva ? linhaDoTempo(reserva) : [];
   });
 
+  protected readonly pedidosAguardando = computed(
+    () =>
+      this.reserva()?.equipamentos?.filter((e) => e.solicitacao?.situacao === 'AGUARDANDO')
+        .length ?? 0,
+  );
+
   protected readonly podeRevogar = computed(() => this.reserva()?.status === 'RESERVADO');
 
   protected readonly podeRegistrarDevolucao = computed(() => {

@@ -19,23 +19,26 @@ import { ReservasAdminService } from '../reservas-admin.service';
             [disabled]="enviando()"
             (click)="aprovar()"
           >
-            Aprovar pedido
+            {{ equipamentoId() ? 'Aprovar pedido' : 'Aprovar todos os pedidos' }}
           </button>
           <button
             type="button"
             class="rounded-full px-4 py-1.5 text-sm font-semibold text-red-700 ring-1 ring-red-300 hover:bg-red-50"
             (click)="recusando.set(true)"
           >
-            Recusar pedido
+            {{ equipamentoId() ? 'Recusar pedido' : 'Recusar todos os pedidos' }}
           </button>
         </div>
       } @else {
         <form class="space-y-2" (ngSubmit)="recusar()" novalidate>
-          <label [for]="'motivo-' + equipamentoId()" class="block text-sm font-semibold">
+          <label
+            [for]="'motivo-' + (equipamentoId() ?? 'todos')"
+            class="block text-sm font-semibold"
+          >
             Motivo da recusa (o aluno recebe por email)
           </label>
           <textarea
-            [id]="'motivo-' + equipamentoId()"
+            [id]="'motivo-' + (equipamentoId() ?? 'todos')"
             name="motivo"
             rows="2"
             maxlength="500"
@@ -68,7 +71,7 @@ export class ResponderSolicitacao {
   private readonly api = inject(ReservasAdminService);
 
   readonly reservaId = input.required<number>();
-  readonly equipamentoId = input.required<number>();
+  readonly equipamentoId = input<number | null>(null);
   readonly respondida = output<ReservaAdmin>();
 
   protected readonly recusando = signal(false);

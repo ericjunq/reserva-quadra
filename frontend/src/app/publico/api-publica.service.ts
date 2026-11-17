@@ -168,6 +168,20 @@ export class ApiPublicaService {
       .pipe(map((resposta) => resposta.data));
   }
 
+  reenviarConfirmacao(
+    registroAcademico: string,
+    email: string,
+    reservaId: number,
+  ): Observable<string> {
+    return this.http
+      .post<{ message: string }>(`${this.url}/minhas-reservas/reenviar-confirmacao`, {
+        registro_academico: registroAcademico,
+        email,
+        reserva_id: reservaId,
+      })
+      .pipe(map((resposta) => resposta.message));
+  }
+
   resumoParaManter(token: string): Observable<ResumoParaManter> {
     return this.http.get<ResumoParaManter>(`${this.url}/reservas/manter/${token}`);
   }

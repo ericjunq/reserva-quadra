@@ -274,8 +274,12 @@ export class Reservar {
     return {};
   });
   protected readonly nomesDosPedidos = signal<Record<number, string>>({});
+  protected readonly pedidosObrigatorios = linkedSignal<Record<number, boolean>>(() => {
+    this.intervaloDosPedidos();
+    return {};
+  });
   protected readonly pedidosEscolhidos = computed(() =>
-    pedidosEscolhidos(this.pedidos(), this.nomesDosPedidos()),
+    pedidosEscolhidos(this.pedidos(), this.nomesDosPedidos(), this.pedidosObrigatorios()),
   );
 
   protected readonly itensEscolhidos = computed(() =>
@@ -352,7 +356,9 @@ export class Reservar {
     if (itens.length) {
       reserva.equipamentos = itens;
     }
-    const pedidos = this.pedidosEscolhidos().map(({ id, quantidade }) => ({ id, quantidade }));
+    const pedidos = this.pedidosEscolhidos().map(({ id, quantidade, obrigatorio }) =>
+      obrigatorio ? { id, quantidade, obrigatorio } : { id, quantidade },
+    );
     if (pedidos.length) {
       reserva.solicitacoes = pedidos;
     }
@@ -367,6 +373,7 @@ export class Reservar {
         this.ra.set('');
         this.quantidades.set({});
         this.pedidos.set({});
+        this.pedidosObrigatorios.set({});
         this.raEmMemoria.esquecer();
       },
       error: (erro: ErroApi) => {

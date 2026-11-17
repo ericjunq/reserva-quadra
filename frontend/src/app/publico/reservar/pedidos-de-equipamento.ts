@@ -55,6 +55,16 @@ export interface Intervalo {
                     indisponível neste horário
                   }
                 </p>
+                @if (pedidos()[opcao.id] > 0) {
+                  <label class="mt-1 flex items-center gap-2 text-sm text-slate-800">
+                    <input
+                      type="checkbox"
+                      [checked]="!!obrigatorios()[opcao.id]"
+                      (change)="marcarObrigatorio(opcao.id, $any($event.target).checked)"
+                    />
+                    A reserva só serve com este item
+                  </label>
+                }
               </div>
               <div class="flex items-center gap-2">
                 <button
@@ -95,6 +105,7 @@ export class PedidosDeEquipamento {
   readonly intervalo = input<Intervalo | null>(null);
   readonly pedidos = model<Record<number, number>>({});
   readonly nomes = model<Record<number, string>>({});
+  readonly obrigatorios = model<Record<number, boolean>>({});
 
   protected readonly aberto = linkedSignal<boolean>(() => {
     this.intervalo();
@@ -128,6 +139,10 @@ export class PedidosDeEquipamento {
     return responderAte ? formatarDataHora(responderAte) : '';
   });
 
+  protected marcarObrigatorio(id: number, marcado: boolean): void {
+    this.obrigatorios.update((atuais) => ({ ...atuais, [id]: marcado }));
+  }
+
   protected alterar(opcao: EquipamentoSolicitavel, variacao: number): void {
     this.nomes.update((atuais) => ({ ...atuais, [opcao.id]: opcao.nome }));
     this.pedidos.update((atuais) => ({
@@ -140,8 +155,14 @@ export class PedidosDeEquipamento {
 export function pedidosEscolhidos(
   pedidos: Record<number, number>,
   nomes: Record<number, string>,
-): { id: number; nome: string; quantidade: number }[] {
+  obrigatorios: Record<number, boolean> = {},
+): { id: number; nome: string; quantidade: number; obrigatorio: boolean }[] {
   return Object.entries(pedidos)
     .filter(([, quantidade]) => quantidade > 0)
-    .map(([id, quantidade]) => ({ id: Number(id), nome: nomes[Number(id)] ?? '', quantidade }));
+    .map(([id, quantidade]) => ({
+      id: Number(id),
+      nome: nomes[Number(id)] ?? '',
+      quantidade,
+      obrigatorio: !!obrigatorios[Number(id)],
+    }));
 }

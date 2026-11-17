@@ -145,6 +145,11 @@
                       De outro espaço: {{ pedido }}
                     </p>
                   }
+                  @if (equipamento.solicitacao?.obrigatorio) {
+                    <p class="text-xs font-semibold text-amber-800">
+                      O aluno marcou como obrigatório para a reserva
+                    </p>
+                  }
                   @if (
                     equipamento.solicitacao?.situacao === 'AGUARDANDO' &&
                     reserva.status === 'RESERVADO'
@@ -172,6 +177,17 @@
                 </li>
               }
             </ul>
+            @if (pedidosAguardando() > 1 && reserva.status === 'RESERVADO') {
+              <div class="mt-4 rounded-xl bg-violet-50 p-3">
+                <p class="text-sm font-semibold text-violet-900">
+                  {{ pedidosAguardando() }} pedidos aguardando: responda todos de uma vez
+                </p>
+                <app-responder-solicitacao
+                  [reservaId]="reserva.id"
+                  (respondida)="atualizar($event)"
+                />
+              </div>
+            }
             @if (podeRegistrarDevolucao()) {
               <h3 class="mt-6 font-semibold text-slate-900">Registrar a devolução</h3>
               <div class="mt-3">

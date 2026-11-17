@@ -26,6 +26,18 @@ test('o aluno consulta as próprias reservas com RA e email', async ({ page }) =
     email: 'carla@email.com',
     periodo: 'FUTURAS',
   });
+
+  await page.getByRole('button', { name: 'Reenviar o email de confirmação' }).click();
+  await expect(page.getByText('Os links do email anterior não valem mais.')).toBeVisible();
+  const reenvio = chamadas.find(
+    (chamada) => chamada.url === '/api/minhas-reservas/reenviar-confirmacao',
+  );
+  expect(reenvio?.corpo).toEqual({
+    registro_academico: '2024000003',
+    email: 'carla@email.com',
+    reserva_id: 77,
+  });
+  expect(page.url()).not.toContain('carla');
 });
 
 test('o aluno confirma pelo link do email aceitando os termos', async ({ page }) => {

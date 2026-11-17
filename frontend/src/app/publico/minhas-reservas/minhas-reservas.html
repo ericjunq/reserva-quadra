@@ -129,6 +129,29 @@
                         <span class="text-slate-700">{{ confirmacao }}</span>
                       }
                     </p>
+                    @if (aguardaConfirmacao(reserva)) {
+                      <button
+                        type="button"
+                        class="mt-2 rounded-full px-3 py-1 text-sm font-semibold text-azul ring-1 ring-azul/40 hover:bg-azul/5 disabled:opacity-50"
+                        [disabled]="reenviando() !== null"
+                        (click)="reenviarConfirmacao(reserva.id)"
+                      >
+                        {{
+                          reenviando() === reserva.id
+                            ? 'Reenviando…'
+                            : 'Reenviar o email de confirmação'
+                        }}
+                      </button>
+                    }
+                    @if (respostasDoReenvio()[reserva.id]; as resposta) {
+                      <p
+                        class="mt-1 text-sm"
+                        [class]="resposta.ok ? 'text-emerald-800' : 'text-red-700'"
+                        role="status"
+                      >
+                        {{ resposta.texto }}
+                      </p>
+                    }
                     @if (avisoParaManter(reserva); as aviso) {
                       <p class="mt-1 rounded-lg bg-amarelo/15 px-3 py-2 text-sm text-slate-800">
                         {{ aviso }}

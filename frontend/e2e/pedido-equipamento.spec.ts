@@ -14,6 +14,7 @@ test('o aluno pede um equipamento de outro espaço junto da reserva', async ({ p
   await expect(page.getByText('sem essa confirmação, a reserva é cancelada')).toBeVisible();
   await expect(page.getByText(/A resposta chega até/)).toBeVisible();
   await page.getByRole('button', { name: 'Pedir mais Microscópio' }).click();
+  await page.getByLabel('A reserva só serve com este item').check();
   await expect(page.locator('aside')).toContainText('Pedidos (dependem de aprovação)');
   await expect(page.locator('aside')).toContainText('1× Microscópio');
 
@@ -27,7 +28,9 @@ test('o aluno pede um equipamento de outro espaço junto da reserva', async ({ p
   const envio = chamadas.find(
     (chamada) => chamada.url === '/api/reservas' && chamada.metodo === 'POST',
   );
-  expect(envio?.corpo).toMatchObject({ solicitacoes: [{ id: 5, quantidade: 1 }] });
+  expect(envio?.corpo).toMatchObject({
+    solicitacoes: [{ id: 5, quantidade: 1, obrigatorio: true }],
+  });
 });
 
 test('o aluno mantém a reserva pelo link do email depois de o equipamento não ser liberado', async ({

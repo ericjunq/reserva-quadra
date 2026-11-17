@@ -363,6 +363,12 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
     if (caminho === '/termos') {
       return json({ data: termos });
     }
+    if (caminho === '/minhas-reservas/reenviar-confirmacao') {
+      return json({
+        message:
+          'Enviamos o email de confirmação de novo. Os links do email anterior não valem mais.',
+      });
+    }
     if (caminho === '/minhas-reservas') {
       const corpo = requisicao.postDataJSON();
       if (corpo.email !== 'carla@email.com') {
