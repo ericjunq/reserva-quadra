@@ -137,7 +137,11 @@ jobs:
       - name: Build de produção (com orçamento de tamanho)
         run: npx ng build
 
-      - name: Vulnerabilidades (npm audit)
+      - name: Vulnerabilidades do que vai para o site (npm audit, bloqueia)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Vulnerabilidades das ferramentas de desenvolvimento (npm audit, só aviso)
+        continue-on-error: true
         run: npm audit --audit-level=high
 
       - name: Testes no navegador (Playwright com o Chrome do runner)
