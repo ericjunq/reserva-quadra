@@ -3003,3 +3003,27 @@ Testes: admin/historico/historico.spec.ts (8: rótulos, filtros da URL, página,
   registro, erro) e e2e/historico-admin.spec.ts (computador e celular); api-falsa com
   /admin/auditorias.
 Totais: 328 da API, 166 do front, 48 no navegador.
+
+========================================================================
+74. REFORÇOS NA PROTEÇÃO DAS ROTAS DO ADMIN (17/11/2026)
+========================================================================
+Pergunta do usuário: as rotas de admin estão protegidas por middlewares? Conferido que sim
+(auth:sanctum; token só depois da senha e do código; 8 h; apagado ao desativar). Sugeridos 3
+reforços: 1 aprovado, 3 (Policies) descartado por não haver papéis, 2 aprovado depois da explicação.
+app/Http/Middleware/AdminAtivo.php: se o usuário autenticado está com ativo = false, apaga os
+  tokens dele e lança AuthenticationException (401, a mesma resposta de token inválido; o front já
+  trata como sessão encerrada). Não faz consulta: o Sanctum já carregou o usuário. Cobre o caso de
+  um admin desativado por fora do AdminService (direto no banco, por exemplo), em que os tokens não
+  teriam sido apagados.
+bootstrap/app.php: alias admin.ativo.
+routes/api.php: o grupo passou a ser middleware(['auth:sanctum', 'admin.ativo']).
+tests/Feature/RotasProtegidasTest.php: lê Route::getRoutes(), pega as rotas api/admin/* e as do
+  admin fora do prefixo (me, me/senha, logout, logout-geral), troca {parametro} por 1 e chama cada
+  uma com o método dela, sem token, esperando 401 (o Authenticate roda antes da busca do registro,
+  então não dá 404); confere que há mais de 50 (a lista não veio vazia por engano); confere que
+  toda rota dessas tem auth:sanctum e admin.ativo; admin desativado direto no banco com token
+  válido recebe 401 e fica sem tokens; admin ativo continua passando.
+  Verificação: uma rota pública /api/admin/teste-esquecido criada de propósito fez 2 testes
+  falharem; removida, tudo passou.
+CLAUDE.md: regra de manter as rotas do admin no grupo.
+Totais: 332 da API, 166 do front, 48 no navegador.

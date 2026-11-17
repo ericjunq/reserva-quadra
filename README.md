@@ -636,6 +636,7 @@ POST /api/admin/reservas/15/devolucao
 - Os links levam **só o token** (sem email na URL). Os tokens ficam com hash, um por email, em tabelas **separadas** para convite (`convites_admin_tokens`) e redefinição (`password_reset_tokens`), para um link de 60 minutos não valer 2 dias na rota do convite.
 - **Senha nova:** no mínimo 8 caracteres, com letras e números, e confirmação.
 - Ao **redefinir** ou **aceitar convite**: todas as sessões do admin caem e os links pendentes dele são invalidados. Ao **trocar logado** (`PATCH /api/me/senha`, exige a senha atual): caem as outras sessões, a atual continua. Nos três casos, o admin recebe **"Sua senha foi alterada"**.
+- **Proteção das rotas do admin (17/11/2026):** todas as rotas `api/admin/*`, `/me`, `/me/senha`, `/logout` e `/logout-geral` ficam no grupo `auth:sanctum` + `admin.ativo`. O `admin.ativo` (`app/Http/Middleware/AdminAtivo.php`) recusa com 401 um admin desativado mesmo que ainda tenha token, e apaga os tokens dele. O `RotasProtegidasTest` percorre a lista de rotas e exige 401 sem token em todas elas, para que uma rota nova criada fora do grupo seja pega pelo teste. Não há papéis: toda conta em `users` é admin, então autenticado = autorizado (Policies só se surgirem papéis).
 - **Desativar admin:** ele não faz mais login e perde todas as sessões na hora. Ninguém desativa a si mesmo, e sempre sobra pelo menos um admin ativo (verificado com trava). Reativar é `PATCH` com `ativo: true`.
 - **Login** de admin inativo ou com senha errada: a mesma resposta, "Credenciais inválidas".
 - **Código de acesso (11.4b, 16/11/2026):** depois da senha certa, um código de 6 dígitos vai por email **na hora** (sem fila, para o login não depender do `queue:work`); vale 10 minutos, uma vez só, com até 5 tentativas (na 5ª errada é preciso digitar a senha de novo) e até 3 reenvios com 60 s entre eles; um login novo invalida o código anterior. Erros com a mesma mensagem genérica ("Código inválido ou vencido. Entre de novo se precisar."). Se o envio falhar, 503 e nada fica guardado. O código nunca vai para os logs do sistema e não aparece no assunto do email ("Seu código de acesso").
@@ -821,7 +822,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 328 testes da API, 166 testes de unidade do front (Vitest) e 48 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 332 testes da API, 166 testes de unidade do front (Vitest) e 48 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -852,6 +853,7 @@ Os testes ficam em `tests/Feature`, um arquivo por assunto, e usam as factories 
 | `AdminTest` | Login e /me com resource, email sem maiúsculas, inativo sem login, convite (email, 2 dias, link só com token), email único, filtros, edição, desativação derrubando sessões e reativação, não desativar a si mesmo, sempre um ativo, reenvio de convite, senha nunca no histórico |
 | `HorarioLivreTest` | Configuração do espaço LIVRE e validações, troca de modo com reservas, reserva com início/fim e validações do intervalo, **arredondamento para 15 min** (inclusive em conflitos e na duração máxima), espaço fixo recusa início/fim, conflito por sobreposição, hoje até 20 min antes do fim, bloqueio parcial, evento fora da janela e arredondado, equipamentos pelo pico, redução de estoque pelo pico, **calendário com janela e ocupados** (reservas e bloqueios, sem RA), **`fim_minimo` de hoje e dia encerrado**, consulta de equipamentos por intervalo, link de cancelamento no início escolhido |
 | `VersaoDisponibilidadeTest` | Versão igual sem mudanças; muda depois de uma reserva e de um bloqueio; muda a cada faixa de 5 minutos; resposta só com a versão |
+| `RotasProtegidasTest` | Toda rota do admin (e `/me`, `/logout`) responde 401 sem token; todas têm `auth:sanctum` e `admin.ativo`; admin desativado com token ainda válido é recusado e perde os tokens; admin ativo continua entrando |
 | `AuditoriaConsultaTest` | Histórico de um registro em ordem, nome curto no banco, filtros por admin e sem admin, por ação e período, senha oculta e aluno anonimizado, validações, paginação |
 | `AdminPrincipalTest` | Principal não desativado nem editado por outros, edita a si mesmo, desativa os outros, flag não muda pela API, seeder, comandos de criação (senha fraca, duplicado) e de transferência |
 | `SenhaTest` | Esqueci a senha (link só com token, 60 min), resposta igual para inexistente/inativo, redefinição derrubando sessões com email de aviso, uso único e vencimento, token/email errados, regras da senha, aceite de convite em até 2 dias, link de redefinição não serve no convite, troca logado mantendo a sessão atual |

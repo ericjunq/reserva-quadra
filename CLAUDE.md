@@ -61,6 +61,7 @@ Antes de qualquer tarefa, leia este tópico inteiro e o [`CHECKLIST.md`](CHECKLI
 ### Código
 - **Nenhum comentário no código**, nem os padrões do Laravel (removidos em 09/11/2026 a pedido do usuário). Isso vale para PHP, Blade, JS e CSS. Explicações e comentários vão para `implementacoes-com-claude-code.txt`, indicando o arquivo. Arquivos gerados pelo artisan ou por pacotes (configs publicadas, stubs) devem ter os comentários removidos ao entrar no projeto.
 - **Arquitetura:** o request (FormRequest) valida, o controller é fino, o service guarda a regra de negócio e o resource formata a saída.
+- **Rotas do admin** ficam sempre dentro do grupo `auth:sanctum` + `admin.ativo` em `routes/api.php`; o `RotasProtegidasTest` falha se uma rota `api/admin/*` ficar fora dele (17/11/2026).
 - **Repositórios** (`app/Repositories`) **só** para consultas complexas ou reaproveitadas em mais de um lugar. CRUD simples usa Eloquent direto no service.
 - **Nomes** de métodos e variáveis em português, no padrão do projeto: `criar`, `listarPaginado`, `detalhar`, `atualizar`, `desativar`.
 - **Regras de negócio violadas** lançam `RegraNegocioException`: 409 para conflito, 422 para regra, com `dados` quando ajudar o front.
@@ -191,7 +192,7 @@ Antes de cada commit de código, nesta ordem, sem pular etapas:
 - `CHECKLIST.md`: "📍 Onde paramos" (estado, último subpasso, em andamento, próximo passo, o que o usuário precisa fazer, pendências, conceitos explicados, lições para o Claude) reescrito sem linhas velhas; "🧵 Trilha de ideias" com uma linha por ideia/decisão/defeito/mudança, citando o usuário, e a linha "Agora:" sempre no fim; o passo do plano com a proposta, a aprovação, as decisões de implementação e a data de conclusão com o número de testes.
 - `README.md`: estrutura do código (pastas do front), endpoints, regras, "Decisões tomadas" (antigas riscadas como substituídas), testes (o que cada arquivo cobre e a contagem atual), histórico, próximos passos, "Ideias registradas para depois", conceitos úteis (ex.: "Enviar emails de verdade").
 - `DATABASE.md`: diagrama e decisões sempre que o banco mudar; "Mudanças planejadas" para o que foi aprovado e ainda não existe.
-- `implementacoes-com-claude-code.txt`: uma seção numerada por implementação (a última é a 73, de 17/11/2026; conferir o fim do arquivo antes de numerar), arquivo por arquivo, com o porquê de cada escolha (é lá que ficam as explicações que não podem ir como comentário).
+- `implementacoes-com-claude-code.txt`: uma seção numerada por implementação (a última é a 74, de 17/11/2026; conferir o fim do arquivo antes de numerar), arquivo por arquivo, com o porquê de cada escolha (é lá que ficam as explicações que não podem ir como comentário).
 - Este `CLAUDE.md`: toda instrução nova de comportamento do usuário entra aqui na hora.
 - Credenciais, senhas e tokens **nunca** entram nos guias (só o lugar onde configurar).
 - Contagens de testes conferidas rodando os testes, nunca copiadas de memória (em 13/11 o "124" do front estava errado; o real era 115).
