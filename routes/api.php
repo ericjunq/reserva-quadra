@@ -39,6 +39,7 @@ Route::get('/termos', [TermosController::class, 'show']);
 Route::get('/reservas/confirmacao/{token}', [ConfirmacaoController::class, 'show'])->middleware('throttle:10,1');
 Route::post('/reservas/confirmacao/{token}', [ConfirmacaoController::class, 'confirmar'])->middleware('throttle:10,1');
 Route::post('/minhas-reservas', [MinhasReservasController::class, 'index'])->middleware('throttle:10,1');
+Route::post('/minhas-reservas/reenviar-confirmacao', [MinhasReservasController::class, 'reenviarConfirmacao'])->middleware('throttle:10,1');
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/login/codigo', [AuthController::class, 'confirmarCodigo'])->middleware('throttle:10,1');

@@ -17,6 +17,10 @@ use Illuminate\Validation\ValidationException;
 
 class ConfirmacaoService
 {
+    public const MAXIMO_REENVIOS = 3;
+
+    public const MINUTOS_ENTRE_REENVIOS = 5;
+
     public function __construct(private TokenReservaService $tokens) {}
 
     public function prazoDaConfirmacao(Reserva $reserva): Carbon
@@ -113,6 +117,52 @@ class ConfirmacaoService
             : $reserva->reconfirmacao_pedida_em !== null
                 && $reserva->reconfirmada_em === null
                 && (bool) $reserva->reconfirmar_ate?->isFuture();
+    }
+
+    public function reenviar(string $registroAcademico, string $email, int $reservaId): void
+    {
+        DB::transaction(function () use ($registroAcademico, $email, $reservaId) {
+            $aluno = Aluno::query()
+                ->where('registro_academico', $registroAcademico)
+                ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($email))])
+                ->whereNull('anonimizado_em')
+                ->first();
+
+            $reserva = $aluno
+                ? Reserva::whereKey($reservaId)->where('aluno_id', $aluno->id)->lockForUpdate()->first()
+                : null;
+
+            if (! $reserva) {
+                throw new RegraNegocioException(MinhasReservasService::DADOS_NAO_ENCONTRADOS, 404);
+            }
+
+            if (! $this->podeConfirmar($reserva)) {
+                throw new RegraNegocioException('Esta reserva não está aguardando confirmação.', 409);
+            }
+
+            $etapa = $this->etapa($reserva);
+            $enviados = $reserva->tokens()
+                ->where('finalidade', FinalidadeTokenConstant::CONFIRMAR)
+                ->where('created_at', '>=', $etapa === EtapaConfirmacaoConstant::CONFIRMACAO ? $reserva->created_at : $reserva->reconfirmacao_pedida_em)
+                ->pluck('created_at');
+
+            if ($enviados->count() > self::MAXIMO_REENVIOS) {
+                throw new RegraNegocioException('Você já pediu o email de novo '.self::MAXIMO_REENVIOS.' vezes. Se ele não chegar, procure a coordenação.', 429);
+            }
+
+            $espera = self::MINUTOS_ENTRE_REENVIOS * 60 - (int) $enviados->max()?->diffInSeconds(now());
+
+            if ($enviados->isNotEmpty() && $espera > 0) {
+                throw new RegraNegocioException('Aguarde '.(int) ceil($espera / 60).' minuto(s) para pedir o email de novo.', 429, ['segundos' => $espera]);
+            }
+
+            $reserva->tokens()
+                ->whereIn('finalidade', [FinalidadeTokenConstant::CONFIRMAR, FinalidadeTokenConstant::CANCELAR])
+                ->whereNull('usado_em')
+                ->update(['usado_em' => now()]);
+
+            $this->enviar($reserva, $aluno, $etapa, $this->prazo($reserva));
+        });
     }
 
     public function confirmar(string $token, bool $aceiteTermos): Reserva
