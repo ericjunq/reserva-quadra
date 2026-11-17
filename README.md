@@ -194,6 +194,34 @@ Definidas em `routes/console.php`, no fuso `APP_TIMEZONE` (America/Sao_Paulo). N
 
 Em desenvolvimento: `php artisan schedule:work` (roda o agendador) e `php artisan schedule:list` (mostra as tarefas e a próxima execução).
 
+### Quem envia os emails da fila: supervisor ou agendador (`FILA_PELO_AGENDADOR`)
+
+Os emails da fila precisam de alguém rodando o `queue:work`. Há **dois jeitos**, e **só um deve estar em uso** em cada ambiente. A variável `FILA_PELO_AGENDADOR` diz qual (decisão do usuário em 17/11/2026, depois de um email de reserva ficar parado por falta do worker).
+
+**Jeito 1 — supervisor (worker sempre ligado). `FILA_PELO_AGENDADOR=false`.**
+- O **supervisor** é um programa do servidor Linux que mantém outro programa rodando o tempo todo e o liga de novo se ele cair ou se o servidor reiniciar. Aqui ele mantém o `php artisan queue:work` sempre ligado (configuração logo abaixo, em "Em produção").
+- O worker fica olhando a fila sem parar: o email sai **em segundos** depois da reserva.
+- **Por que desligar a fila pelo agendador quando há supervisor:** o worker do supervisor já envia tudo; ligar os dois não quebra nada (cada email é pego por um só, com trava), mas sobe um segundo processo a cada minuto sem necessidade e confunde quem for investigar um problema ("quem enviou este email?"). Por isso, **com supervisor, `false`**.
+- **Quando usar:** em produção, sempre que a hospedagem permitir (VPS, servidor da faculdade, Laravel Forge e Laravel Cloud têm supervisor ou equivalente). É o **padrão do `.env.production.example`**.
+
+**Jeito 2 — agendador (a cada minuto). `FILA_PELO_AGENDADOR=true`.**
+- O agendador (o mesmo que roda as revogações e a reconfirmação) chama, **uma vez por minuto**, `queue:work --stop-when-empty --max-time=55 --tries=3`: envia o que estiver na fila e **encerra sozinho**. Nunca roda dois ao mesmo tempo (`withoutOverlapping`), roda em segundo plano (não atrasa as outras tarefas do minuto) e avisa por alerta se falhar.
+- O email sai em **até ~1 minuto**. O código de login não muda: continua saindo na hora, sem fila.
+- **Por que ligar:** não depende de um processo sempre rodando; basta o agendador, que o sistema já precisa de qualquer jeito.
+- **Quando usar:**
+  - **em desenvolvimento** (vem ligado sozinho com `APP_ENV=local`, mesmo sem a variável no `.env`): basta um terminal com `php artisan schedule:work` para emails e tarefas automáticas, e não acontece mais de o email ficar parado porque o `queue:work` não foi aberto;
+  - **em produção só se a hospedagem não tiver supervisor** (ex.: hospedagem compartilhada, que só oferece cron). Aí o cron do agendador passa a cuidar também dos emails.
+
+**Resumo:**
+
+| Ambiente | Tem supervisor? | `FILA_PELO_AGENDADOR` | Quem envia | Atraso do email |
+|---|---|---|---|---|
+| Desenvolvimento | não precisa | `true` (automático com `APP_ENV=local`) | `schedule:work` a cada minuto (e o `queue:work`, se você abrir) | até ~1 min (segundos com `queue:work` aberto) |
+| Produção | sim | `false` | worker do supervisor | segundos |
+| Produção | não | `true` | cron do agendador a cada minuto | até ~1 min |
+
+**Se os emails não saírem:** com `false`, confira se o worker do supervisor está rodando (`supervisorctl status`); com `true`, confira se o cron do agendador está rodando (`php artisan schedule:list` mostra a próxima execução). Nos dois casos, `php artisan queue:failed` lista o que falhou, e a tabela `jobs` mostra o que está esperando.
+
 ### Em produção (agendador e fila)
 
 O agendador precisa de **um** cron chamando o Laravel a cada minuto:
@@ -202,7 +230,7 @@ O agendador precisa de **um** cron chamando o Laravel a cada minuto:
 * * * * * cd /caminho/do/projeto && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-O worker da fila precisa ficar sempre rodando e voltar sozinho se cair. Exemplo com **supervisor** (`/etc/supervisor/conf.d/reservas-worker.conf`):
+Com supervisor (`FILA_PELO_AGENDADOR=false`, ver a seção acima), o worker da fila precisa ficar sempre rodando e voltar sozinho se cair. Exemplo com **supervisor** (`/etc/supervisor/conf.d/reservas-worker.conf`):
 
 ```ini
 [program:reservas-worker]

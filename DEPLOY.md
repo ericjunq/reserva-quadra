@@ -112,7 +112,11 @@ server {
 
 ## 6. Agendador e fila
 
-O cron e o supervisor estão em [`README.md`](README.md#em-produção-agendador-e-fila). **Com supervisor**, deixe `FILA_PELO_AGENDADOR=false` (o worker sempre ligado envia em segundos). **Sem supervisor** (ex.: hospedagem compartilhada), use só o cron e `FILA_PELO_AGENDADOR=true`: o agendador roda `queue:work --stop-when-empty` a cada minuto (emails com até ~1 min de atraso). Resumo:
+O cron e o supervisor estão em [`README.md`](README.md#em-produção-agendador-e-fila). **Escolha quem envia os emails da fila** (explicação completa no README, "Quem envia os emails da fila: supervisor ou agendador"):
+
+- **A hospedagem tem supervisor** (VPS, servidor da faculdade, Forge, Laravel Cloud): configure o supervisor abaixo e deixe **`FILA_PELO_AGENDADOR=false`** (já é o valor do `.env.production.example`). Motivo: o worker sempre ligado envia em segundos; ligar também a fila pelo agendador só criaria um segundo processo a cada minuto sem necessidade.
+- **A hospedagem não tem supervisor** (só cron, ex.: hospedagem compartilhada): pule o bloco do supervisor e ponha **`FILA_PELO_AGENDADOR=true`**. Motivo: sem worker sempre ligado, os emails ficariam parados; com a variável ligada, o cron do agendador envia a fila a cada minuto (até ~1 min de atraso).
+- Nunca deixe os dois desligados: com `false` e sem supervisor, nenhum email da fila sai (só o código de login, que não usa fila). Resumo:
 
 ```cron
 * * * * * cd /var/www/reservas && php artisan schedule:run >> /dev/null 2>&1
