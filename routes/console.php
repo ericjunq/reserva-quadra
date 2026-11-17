@@ -6,6 +6,13 @@ use Illuminate\Support\Facades\Schedule;
 
 $alertarSeFalhar = fn (string $tarefa) => fn (AlertaService $alertas) => $alertas->tarefaFalhou($tarefa);
 
+Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->when(fn () => config('reservas.fila_pelo_agendador'))
+    ->onFailure($alertarSeFalhar('Envio dos emails da fila pelo agendador'));
+
 Schedule::command('reservas:pedir-reconfirmacao')
     ->dailyAt(config('reservas.horario_pedido_reconfirmacao'))
     ->withoutOverlapping()

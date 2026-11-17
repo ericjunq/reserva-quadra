@@ -47,6 +47,8 @@ return [
         'consulta_ra'  => (int) env('LIMITE_CONSULTA_POR_RA_POR_MINUTO', 20),
     ],
 
+    'fila_pelo_agendador' => (bool) env('FILA_PELO_AGENDADOR', env('APP_ENV', 'production') === 'local'),
+
     'login_com_codigo' => (bool) env('LOGIN_COM_CODIGO', true),
 
     'alertas_email' => env('ALERTAS_EMAIL'),

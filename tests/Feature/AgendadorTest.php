@@ -36,6 +36,7 @@ class AgendadorTest extends TestCase
             'model:prune'                      => '15 3 * * *',
             'sanctum:prune-expired'            => '20 3 * * *',
             'queue:prune-failed'               => '30 3 * * *',
+            'queue:work'                       => '* * * * *',
         ];
 
         foreach ($esperado as $comando => $expressao) {
@@ -82,5 +83,20 @@ class AgendadorTest extends TestCase
         );
         $this->assertNull(TokenReserva::find($usadoHaMuito->id));
         $this->assertNull(TokenReserva::find($vencidoHaMuito->id));
+    }
+
+    public function test_a_fila_pelo_agendador_roda_a_cada_minuto_so_quando_ligada(): void
+    {
+        $fila = $this->tarefa('queue:work');
+
+        $this->assertStringEndsWith("'artisan' queue:work --stop-when-empty --max-time=55 --tries=3", $fila->command);
+        $this->assertTrue($fila->withoutOverlapping);
+        $this->assertTrue($fila->runInBackground);
+
+        config(['reservas.fila_pelo_agendador' => false]);
+        $this->assertFalse($fila->filtersPass(app()));
+
+        config(['reservas.fila_pelo_agendador' => true]);
+        $this->assertTrue($fila->filtersPass(app()));
     }
 }
