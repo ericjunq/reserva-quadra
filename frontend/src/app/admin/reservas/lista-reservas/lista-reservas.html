@@ -7,9 +7,9 @@
       >Registrar uso</a
     >
     <a
-      routerLink="/admin/eventos/novo"
+      routerLink="/admin/reservas/nova"
       class="rounded-full bg-azul px-4 py-2 font-semibold text-white hover:bg-azul-medio"
-      >Novo evento</a
+      >Nova reserva</a
     >
     <button
       type="button"
@@ -279,6 +279,7 @@
                       [status]="reserva.status"
                       [confirmacao]="reserva.situacao_confirmacao"
                       [origem]="reserva.origem"
+                      [tipo]="reserva.tipo"
                       [pedidoAguardando]="temPedidoAguardando(reserva)"
                       [aguardandoManter]="
                         !!reserva.manter_ate &&
@@ -326,6 +327,7 @@
                     [status]="reserva.status"
                     [confirmacao]="reserva.situacao_confirmacao"
                     [origem]="reserva.origem"
+                    [tipo]="reserva.tipo"
                   />
                 </div>
               </li>

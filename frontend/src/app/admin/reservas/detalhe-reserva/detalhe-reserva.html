@@ -19,6 +19,7 @@
           [status]="reserva.status"
           [confirmacao]="reserva.situacao_confirmacao"
           [origem]="reserva.origem"
+          [tipo]="reserva.tipo"
           [aguardandoManter]="
             !!reserva.manter_ate && !reserva.mantida_em && reserva.status === 'RESERVADO'
           "

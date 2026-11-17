@@ -254,6 +254,7 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
   const chamadas: Chamada[] = [];
   let eventoCriado: Record<string, unknown> | null = null;
   let usoRegistrado: Record<string, unknown> | null = null;
+  let reservaPeloAdmin: Record<string, unknown> | null = null;
 
   await page.route('**/api/**', async (route: Route) => {
     const requisicao = route.request();
@@ -415,6 +416,29 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         criado_por: { id: 1, nome: 'Eric' },
       };
       return json({ data: eventoCriado }, 201);
+    }
+    if (caminho === '/admin/espacos/4/equipamentos/solicitaveis') {
+      return json({
+        data: [
+          { id: 5, nome: 'Microscópio', espaco: 'Laboratório de Química', total: 2, disponivel: 2 },
+        ],
+      });
+    }
+    if (caminho === '/admin/reservas/aluno') {
+      const corpo = requisicao.postDataJSON();
+      reservaPeloAdmin = {
+        ...reservaDoAdmin,
+        id: 42,
+        origem: 'ADMIN',
+        data_reserva: corpo.data_reserva,
+        hora_inicio: corpo.hora_inicio,
+        hora_fim: corpo.hora_fim,
+        criado_por: { id: 1, nome: 'Eric' },
+      };
+      return json({ data: reservaPeloAdmin }, 201);
+    }
+    if (caminho === '/admin/reservas/42' && reservaPeloAdmin) {
+      return json({ data: reservaPeloAdmin });
     }
     if (caminho === '/admin/reservas/registro-posterior') {
       const corpo = requisicao.postDataJSON();

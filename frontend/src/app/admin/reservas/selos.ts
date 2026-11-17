@@ -1,6 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { SituacaoDevolucao, SituacaoSolicitacao, StatusReserva } from '../../publico/modelos';
-import { OrigemReserva, SituacaoConfirmacao } from './modelos';
+import { OrigemReserva, SituacaoConfirmacao, TipoReserva } from './modelos';
 
 interface Selo {
   texto: string;
@@ -42,6 +42,11 @@ export const SELO_DE_PEDIDO: Selo = {
   classes: 'bg-violet-100 text-violet-900 ring-1 ring-violet-300',
 };
 
+export const SELO_PELO_ADMIN: Selo = {
+  texto: 'Pelo admin',
+  classes: 'bg-indigo-100 text-indigo-900 ring-1 ring-indigo-300',
+};
+
 export const SELO_AGUARDANDO_MANTER: Selo = {
   texto: 'Aguardando o aluno manter',
   classes: 'bg-amber-100 text-amber-900 ring-1 ring-amber-300',
@@ -76,6 +81,11 @@ export const NOMES_DAS_DEVOLUCOES: Record<SituacaoDevolucao, string> = {
         [class]="seloDoStatus().classes"
         >{{ seloDoStatus().texto }}</span
       >
+      @if (origem() === 'ADMIN' && tipo() === 'ALUNO') {
+        <span class="rounded-full px-2 py-0.5 text-xs font-semibold" [class]="peloAdmin.classes">{{
+          peloAdmin.texto
+        }}</span>
+      }
       @if (origem() === 'REGISTRO_POSTERIOR') {
         <span
           class="rounded-full px-2 py-0.5 text-xs font-semibold"
@@ -106,6 +116,9 @@ export class SelosReserva {
   readonly confirmacao = input<SituacaoConfirmacao | null>(null);
   readonly origem = input<OrigemReserva | null>(null);
   readonly pedidoAguardando = input(false);
+  readonly tipo = input<TipoReserva | null>(null);
+
+  protected readonly peloAdmin = SELO_PELO_ADMIN;
   readonly aguardandoManter = input(false);
 
   protected readonly manter = SELO_AGUARDANDO_MANTER;

@@ -57,6 +57,17 @@ export interface ItemDoDia {
   podeRegistrarUso: boolean;
 }
 
+export interface NovaReservaDeAluno {
+  espaco_id: number;
+  data_reserva: string;
+  horario?: Horario;
+  hora_inicio?: string;
+  hora_fim?: string;
+  registro_academico: string;
+  equipamentos?: { id: number; quantidade: number }[];
+  solicitacoes?: { id: number; quantidade: number }[];
+}
+
 export interface NovoEvento {
   espaco_id: number;
   data_reserva: string;

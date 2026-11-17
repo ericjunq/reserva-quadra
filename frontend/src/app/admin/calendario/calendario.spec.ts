@@ -5,7 +5,7 @@ import { Router, provideRouter } from '@angular/router';
 import { ambiente } from '../../../ambientes/ambiente';
 import { interceptorApi } from '../../nucleo/api.interceptor';
 import { SessaoService } from '../../nucleo/sessao.service';
-import { NovoEvento } from '../eventos/novo-evento';
+import { NovaReserva } from '../reservas/nova-reserva/nova-reserva';
 import { CalendarioAdmin } from './calendario-admin';
 import { itensDoDia, linkDoHorario } from './itens-do-dia';
 
@@ -203,10 +203,10 @@ describe('calendário do admin', () => {
       expect(texto).toContain('Confirmada');
       expect(texto).toContain('Fim de semana.');
       const criar = [...fixture.nativeElement.querySelectorAll('a')].find((a: HTMLAnchorElement) =>
-        a.textContent?.includes('Criar evento aqui'),
+        a.textContent?.includes('Reservar aqui'),
       ) as HTMLAnchorElement;
       expect(criar.getAttribute('href')).toBe(
-        '/admin/eventos/novo?espaco=1&data=2099-11-21&horario=SEGUNDO_HORARIO',
+        '/admin/reservas/nova?espaco=1&data=2099-11-21&horario=SEGUNDO_HORARIO',
       );
 
       const navegar = vi.spyOn(router, 'navigate').mockResolvedValue(true);
@@ -219,9 +219,62 @@ describe('calendário do admin', () => {
       });
     });
 
+    it('nova reserva para aluno manda o RA no corpo e equipamento de outro espaço aprovado', async () => {
+      const navegar = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      const fixture = TestBed.createComponent(NovaReserva);
+      fixture.componentRef.setInput('espaco', '1');
+      fixture.componentRef.setInput('data', '2099-11-18');
+      fixture.componentRef.setInput('horario', 'PRIMEIRO_HORARIO');
+      await estabilizar(fixture);
+      controle.expectOne(`${url}/espacos`).flush({
+        data: [{ ...quadra, limite_semanal_por_curso: 3 }],
+      });
+      await estabilizar(fixture);
+      controle
+        .expectOne((r) => r.url === `${url}/espacos/1/equipamentos/disponibilidade`)
+        .flush({ data: [] });
+      await estabilizar(fixture);
+
+      const elemento = fixture.nativeElement as HTMLElement;
+      expect(elemento.textContent).toContain('Para um aluno (RA)');
+      const detalhes = elemento.querySelector('details') as HTMLDetailsElement;
+      detalhes.open = true;
+      detalhes.dispatchEvent(new Event('toggle'));
+      await estabilizar(fixture);
+      controle
+        .expectOne(
+          `${url}/admin/espacos/1/equipamentos/solicitaveis?data=2099-11-18&hora_inicio=19:00&hora_fim=20:30`,
+        )
+        .flush({
+          data: [{ id: 7, nome: 'Projetor', espaco: 'Laboratório', total: 2, disponivel: 2 }],
+        });
+      await estabilizar(fixture);
+      (
+        elemento.querySelector('[aria-label="Mais Projetor de outro espaço"]') as HTMLButtonElement
+      ).click();
+      const ra = elemento.querySelector('#reserva-ra') as HTMLInputElement;
+      ra.value = '2024000001';
+      ra.dispatchEvent(new Event('input'));
+      await estabilizar(fixture);
+      elemento.querySelector('form')!.dispatchEvent(new Event('submit'));
+      await estabilizar(fixture);
+
+      const envio = controle.expectOne(`${url}/admin/reservas/aluno`);
+      expect(envio.request.body).toEqual({
+        espaco_id: 1,
+        data_reserva: '2099-11-18',
+        registro_academico: '2024000001',
+        horario: 'PRIMEIRO_HORARIO',
+        solicitacoes: [{ id: 7, quantidade: 1 }],
+      });
+      envio.flush({ data: { id: 50 } }, { status: 201, statusText: 'criado' });
+      expect(navegar).toHaveBeenCalledWith(['/admin/reservas', 50]);
+    });
+
     it('novo evento vem preenchido, pede justificativa no conflito e reenvia com ela', async () => {
       const navegar = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-      const fixture = TestBed.createComponent(NovoEvento);
+      const fixture = TestBed.createComponent(NovaReserva);
+      fixture.componentRef.setInput('tipo', 'evento');
       fixture.componentRef.setInput('espaco', '4');
       fixture.componentRef.setInput('data', '2099-11-18');
       fixture.componentRef.setInput('inicio', '10:00');

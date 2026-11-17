@@ -44,6 +44,12 @@ export const rotasAdmin: Routes = [
           import('./reservas/lista-reservas/lista-reservas').then((m) => m.ListaReservas),
       },
       {
+        path: 'reservas/nova',
+        title: 'Nova reserva · Administração',
+        loadComponent: () =>
+          import('./reservas/nova-reserva/nova-reserva').then((m) => m.NovaReserva),
+      },
+      {
         path: 'reservas/registrar',
         title: 'Registrar uso · Administração',
         loadComponent: () =>
@@ -62,8 +68,7 @@ export const rotasAdmin: Routes = [
       },
       {
         path: 'eventos/novo',
-        title: 'Novo evento · Administração',
-        loadComponent: () => import('./eventos/novo-evento').then((m) => m.NovoEvento),
+        redirectTo: 'reservas/nova',
       },
       {
         path: 'minha-conta',
