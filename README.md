@@ -1220,7 +1220,15 @@ Para testar a confirmação recebendo o email numa caixa real (explicado ao usu�
      MAIL_PASSWORD="chave da API, começa com re_"
      MAIL_FROM_ADDRESS=onboarding@resend.dev
      ```
-     Sem domínio próprio, o Resend **só entrega para o email da própria conta**: cadastre o aluno de teste (e o admin, para o código de login) com esse email. A conta de teste do projeto usa **`testando.reservas.api@gmail.com`** (a chave fica só no `.env` de cada PC; no outro PC, gerar uma chave nova no painel do Resend com essa conta). Vários alunos de teste podem usar o mesmo email, com RAs diferentes. Grátis até 100 por dia. Os emails enviados aparecem no painel (*Emails*). Para entregar a qualquer pessoa, é preciso verificar um domínio (DNS), o que fica para a produção com a faculdade.
+     Sem domínio próprio, o Resend **só entrega para o email da própria conta**: cadastre o aluno de teste (e o admin, para o código de login) com esse email. A conta de teste do projeto usa **`testando.reservas.api@gmail.com`** (a chave fica só no `.env` de cada PC; no outro PC, gerar uma chave nova no painel do Resend com essa conta).
+
+     **Por que todo teste usa esse mesmo email:** sem um domínio verificado, o remetente é o `onboarding@resend.dev`, que é um domínio do próprio Resend. Para esse remetente não virar uma porta de spam, o Resend só aceita mandar email **para o dono da conta**. Qualquer outro destinatário é recusado (o painel mostra o erro e o job falha). Por isso, nos testes:
+     - **aluno:** cadastrar com `testando.reservas.api@gmail.com`. O sistema não exige email único entre alunos, então vários alunos de teste podem usar o mesmo email, cada um com um RA diferente;
+     - **admin:** usar esse email no admin que vai testar (Minha conta ou Cadastros → Admins), senão o código de login não chega. Entre os admins o email é único, então só um admin pode tê-lo;
+     - **sistema parceiro:** pôr esse email como responsável, para receber o link de aceite;
+     - **outros emails** (de colegas, por exemplo) não recebem nada. Para eles, usar o Mailtrap (tudo aparece no painel, sem entregar) ou esperar a produção.
+     
+     Essa limitação acaba quando um domínio for verificado (registros DNS de SPF e DKIM), o que depende da faculdade e fica para a produção. Grátis até 100 por dia. Os emails enviados aparecem no painel (*Emails*). Para entregar a qualquer pessoa, é preciso verificar um domínio (DNS), o que fica para a produção com a faculdade.
    - **Mailtrap Sandbox** (recomendado para testar; nada chega a ninguém, os emails aparecem no painel e os links podem ser clicados de lá): `MAIL_HOST=sandbox.smtp.mailtrap.io`, `MAIL_PORT=2525`, `MAIL_USERNAME` e `MAIL_PASSWORD` copiados de *Sandboxes → (caixa) → Integration → SMTP*; `MAIL_FROM_ADDRESS` pode ser qualquer endereço.
    - **Brevo** (entrega de verdade, grátis até 300 por dia): `MAIL_HOST=smtp-relay.brevo.com`, `MAIL_PORT=587`, `MAIL_USERNAME` = o login SMTP do painel (*SMTP & API*, algo como `xxxx@smtp-brevo.com`), `MAIL_PASSWORD` = uma chave SMTP gerada lá; o `MAIL_FROM_ADDRESS` precisa ser um remetente confirmado em *Senders*.
 2. `php artisan config:clear` e **reiniciar** o `php artisan queue:work` (o worker guarda a configuração antiga enquanto roda). Sem o worker rodando, os emails ficam parados na fila.
