@@ -3131,3 +3131,26 @@ tests/Feature/ExportacaoReservasTest.php e ListagemReservasTest.php: a reserva "
 Lembrete: em desenvolvimento, as tarefas agendadas (reconfirmação, revogação por falta de
   confirmação, pedidos vencidos) só rodam com "php artisan schedule:work".
 Totais: 345 da API, 166 do front, 54 no navegador.
+
+========================================================================
+79. FILA PROCESSADA PELO AGENDADOR (17/11/2026)
+========================================================================
+Ideia do usuário depois do email parado: "fazer um cron pra disparar a fila". Aprovada com
+"rodando 1 vez por minuto talvez".
+config/reservas.php: fila_pelo_agendador, lido de FILA_PELO_AGENDADOR; sem a variável, vale true
+  só quando APP_ENV=local (assim o .env de desenvolvimento não precisa mudar). .env.example: true;
+  .env.production.example: false (produção com supervisor).
+routes/console.php: Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3')
+  ->everyMinute()->withoutOverlapping()->runInBackground()->when(config) ->onFailure(alerta).
+  stop-when-empty: envia o que houver e encerra; max-time 55: nunca passa para o minuto seguinte;
+  withoutOverlapping: nunca dois juntos (trava no cache); runInBackground: o schedule:run não
+  espera a fila terminar para rodar as outras tarefas do mesmo minuto (revogações etc.).
+  O comando vai por extenso: com ['--stop-when-empty' => true] o Laravel montava
+  --stop-when-empty='1', que o queue:work recusa (opção sem valor). Visto no schedule:list
+  antes do commit; o comando final foi rodado de verdade.
+tests/Feature/AgendadorTest.php: queue:work no mapa de horários ("* * * * *", sem sobreposição) e
+  teste do comando exato, de runInBackground e do filtro ligado/desligado pela configuração.
+tests/Feature/AlertaTest.php: 9 tarefas agendadas.
+DEPLOY.md e README: com supervisor, false; sem supervisor, true (até ~1 min de atraso).
+Desenvolvimento: basta "php artisan schedule:work" para emails e tarefas automáticas.
+Totais: 346 da API, 166 do front, 54 no navegador.

@@ -112,7 +112,7 @@ server {
 
 ## 6. Agendador e fila
 
-O cron e o supervisor estão em [`README.md`](README.md#em-produção-agendador-e-fila). Resumo:
+O cron e o supervisor estão em [`README.md`](README.md#em-produção-agendador-e-fila). **Com supervisor**, deixe `FILA_PELO_AGENDADOR=false` (o worker sempre ligado envia em segundos). **Sem supervisor** (ex.: hospedagem compartilhada), use só o cron e `FILA_PELO_AGENDADOR=true`: o agendador roda `queue:work --stop-when-empty` a cada minuto (emails com até ~1 min de atraso). Resumo:
 
 ```cron
 * * * * * cd /var/www/reservas && php artisan schedule:run >> /dev/null 2>&1

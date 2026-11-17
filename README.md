@@ -96,7 +96,7 @@ npx prettier --write src        # formata no padrão do projeto (.prettierrc)
 - O `FRONTEND_URL` do `.env` da API já é `http://localhost:4200`, então o CORS libera o front local.
 - **Rede que bloqueia o `registry.npmjs.org`** (aconteceu no PC Ubuntu): `npm config set registry https://registry.yarnpkg.com/` (espelho com os mesmos pacotes). Fica no `~/.npmrc` do PC, fora do repositório; o `package-lock.json` continua apontando para o registro padrão.
 - A coleta de dados de uso do Angular CLI fica **desligada** no projeto (`"analytics": false` no `angular.json`), em linha com a decisão de não usar rastreamento.
-- **Para ver o front:** um terminal com `php artisan serve` (raiz) e outro com `cd frontend && npm start`; abrir http://localhost:4200. Para os emails saírem, um terceiro terminal com `php artisan queue:work` (sem ele, só o código de login chega) e, para as tarefas automáticas (reconfirmação, revogações, pedidos vencidos), um quarto com `php artisan schedule:work` (ver "Enviar emails de verdade (teste local)").
+- **Para ver o front:** um terminal com `php artisan serve` (raiz) e outro com `cd frontend && npm start`; abrir http://localhost:4200. Para os emails e as tarefas automáticas, um terceiro terminal com **`php artisan schedule:work`**: desde 17/11/2026 ele também processa a fila a cada minuto (`FILA_PELO_AGENDADOR`, ligado por padrão em `APP_ENV=local`), então não precisa mais do `queue:work` (se quiser os emails em segundos, o `queue:work` continua funcionando junto) (ver "Enviar emails de verdade (teste local)").
 
 ### Preparar um PC novo
 
@@ -157,6 +157,7 @@ Ficam em [`config/reservas.php`](config/reservas.php) e podem ser alteradas pelo
 | `CORS_MAX_AGE` | 86400 | Por quantos segundos o navegador guarda a liberação do CORS (menos requisições `OPTIONS`) |
 | `TRUSTED_PROXIES` | vazio | IPs do proxy/balanceador na frente do servidor (ou `*`), para o Laravel enxergar o HTTPS e o IP real |
 | `LOGIN_COM_CODIGO` | `true` | Login do admin com senha + código de 6 dígitos por email. `false` só em desenvolvimento (o `sistema:verificar-producao` acusa em produção) |
+| `FILA_PELO_AGENDADOR` | `true` em `APP_ENV=local`, `false` nos outros | O agendador roda `queue:work --stop-when-empty --max-time=55 --tries=3` a cada minuto, em segundo plano e sem sobreposição. Em desenvolvimento, basta o `schedule:work` para os emails saírem. Em produção, `false` com supervisor; `true` só se a hospedagem não tiver supervisor |
 | `LIMITE_IP_ACOES_POR_MINUTO` | 60 | Pedidos por minuto de um mesmo IP nas ações públicas (reservar, cadastro, minhas reservas, reenviar, links do email), somando todas. Alto porque o Wi-Fi da faculdade junta muitos alunos num IP |
 | `LIMITE_IP_CONSULTAS_POR_MINUTO` | 120 | Pedidos por minuto de um mesmo IP nas consultas do calendário e dos equipamentos |
 | `LIMITE_POR_PESSOA_POR_MINUTO` | 5 | Pedidos por minuto do mesmo RA (ou do mesmo link do email) em cada ação pública. A chave guarda só um HMAC do RA |
@@ -832,7 +833,7 @@ Os testes rodam localmente em SQLite em memória e, no **CI**, também em **MySQ
 php artisan test
 ```
 
-**Hoje (17/11/2026):** 345 testes da API, 166 testes de unidade do front (Vitest) e 54 testes no navegador (Playwright, computador e celular).
+**Hoje (17/11/2026):** 346 testes da API, 166 testes de unidade do front (Vitest) e 54 testes no navegador (Playwright, computador e celular).
 
 ### CI (GitHub Actions)
 
@@ -1082,7 +1083,7 @@ O plano do front (passo 11) está no [`CHECKLIST.md`](CHECKLIST.md).
 | Sua senha foi alterada | Admin | Depois de redefinir, aceitar convite ou trocar a senha | ✅ Pronto |
 | Alerta do sistema | Admins ativos e `ALERTAS_EMAIL` | Tarefa agendada ou job que falhou (máx. 1 por hora por problema) | ✅ Pronto (enviado na hora, sem fila) |
 
-Todos, menos o alerta e o código de acesso, vão pela fila (`php artisan queue:work`). **Se o código de login chega e o email da reserva não**, é o worker que não está rodando: o código sai na hora e os outros ficam esperando na tabela `jobs` (diagnóstico de 17/11/2026). Os emails automáticos (reconfirmação, revogação por falta de confirmação, pedido de equipamento vencido) também dependem do agendador: em desenvolvimento, `php artisan schedule:work` num terminal à parte. O cabeçalho de todos os emails (nome do sistema) leva ao **site** (`FRONTEND_URL`), pelo layout em `resources/views/vendor/mail/{html,text}/message.blade.php` (o padrão do Laravel levava ao `APP_URL`, a API). O `EmailsTest` monta os 11 emails e confere assunto, conteúdo, que nenhum link aponta para a API ou para `localhost` e quais vão pela fila. Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
+Todos, menos o alerta e o código de acesso, vão pela fila (`php artisan queue:work`). **Se o código de login chega e o email da reserva não**, é o worker que não está rodando: o código sai na hora e os outros ficam esperando na tabela `jobs` (diagnóstico de 17/11/2026). Os emails automáticos (reconfirmação, revogação por falta de confirmação, pedido de equipamento vencido) também dependem do agendador: em desenvolvimento, `php artisan schedule:work` num terminal à parte, que desde 17/11/2026 também envia a fila a cada minuto (`FILA_PELO_AGENDADOR`). O cabeçalho de todos os emails (nome do sistema) leva ao **site** (`FRONTEND_URL`), pelo layout em `resources/views/vendor/mail/{html,text}/message.blade.php` (o padrão do Laravel levava ao `APP_URL`, a API). O `EmailsTest` monta os 11 emails e confere assunto, conteúdo, que nenhum link aponta para a API ou para `localhost` e quais vão pela fila. Em desenvolvimento ficam no log (`MAIL_MAILER=log`); em produção é preciso configurar um servidor SMTP ou um serviço de envio (ex.: Amazon SES, Mailgun, Resend).
 
 #### Enviar emails de verdade (teste local)
 
