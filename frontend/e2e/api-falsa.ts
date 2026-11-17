@@ -334,6 +334,7 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
       link_aceite: null,
     },
   ];
+  let sugestaoPendente = true;
   let reservaComBola: Record<string, unknown> = {
     ...reservaDoAdmin,
     id: 78,
@@ -815,6 +816,33 @@ export async function prepararApi(page: Page): Promise<Chamada[]> {
         meta: { current_page: 1, last_page: 1, total: lista.length, per_page: 15 },
         totais_por_status: { RESERVADO: lista.length, CANCELADO: 0, REVOGADO: 0 },
       });
+    }
+    if (caminho === '/admin/equipamentos/sugestoes-compartilhamento') {
+      return json({
+        data: sugestaoPendente
+          ? [
+              {
+                equipamento: { id: 5, nome: 'Microscópio' },
+                espaco_de_origem: { id: 4, nome: 'Laboratório de Informática' },
+                espaco_que_pede: { id: 1, nome: 'Quadra Poliesportiva' },
+                pedidos: 3,
+                ultimo_pedido_em: new Date().toISOString(),
+              },
+            ]
+          : [],
+      });
+    }
+    if (caminho === '/admin/equipamentos/5/sugestoes-compartilhamento/1/aceitar') {
+      sugestaoPendente = false;
+      equipamentoDoAdmin = {
+        ...equipamentoDoAdmin,
+        espacos_compartilhados: [{ id: 1, nome: 'Quadra Poliesportiva' }],
+      };
+      return json({ data: equipamentoDoAdmin });
+    }
+    if (caminho === '/admin/equipamentos/5/sugestoes-compartilhamento/1/dispensar') {
+      sugestaoPendente = false;
+      return json({ message: 'Sugestão dispensada.' });
     }
     if (caminho === '/admin/equipamentos/fora-agora') {
       const equipamentos = reservaComBola['equipamentos'] as {
