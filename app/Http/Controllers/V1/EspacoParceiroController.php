@@ -6,8 +6,8 @@ use App\Constants\TipoEspacoConstant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ConsultarDisponibilidadeRequest;
 use App\Http\Requests\ConsultarEquipamentosNoIntervaloRequest;
-use App\Http\Resources\V1\EquipamentoParceiroResource;
-use App\Http\Resources\V1\EspacoParceiroResource;
+use App\Http\Resources\V1\EquipamentoResource;
+use App\Http\Resources\V1\EspacoResource;
 use App\Models\Espaco;
 use App\Services\DisponibilidadeService;
 use App\Services\EquipamentoService;
@@ -25,7 +25,7 @@ class EspacoParceiroController extends Controller
     {
         $tipo = TipoEspacoConstant::tryFrom((string) $request->query('tipo'));
 
-        return EspacoParceiroResource::collection($this->espacoService->listarAtivos($tipo));
+        return EspacoResource::collection($this->espacoService->listarAtivos($tipo));
     }
 
     public function disponibilidade(ConsultarDisponibilidadeRequest $request, Espaco $espaco, DisponibilidadeService $disponibilidadeService)
@@ -41,7 +41,7 @@ class EspacoParceiroController extends Controller
     {
         abort_unless($espaco->ativo, 404);
 
-        return EquipamentoParceiroResource::collection($this->equipamentoService->listarAtivos($espaco));
+        return EquipamentoResource::collection($this->equipamentoService->listarAtivos($espaco));
     }
 
     public function equipamentosDisponiveis(ConsultarEquipamentosNoIntervaloRequest $request, Espaco $espaco)
