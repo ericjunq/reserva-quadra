@@ -7,6 +7,7 @@ use App\Http\Requests\RegistrarDevolucaoRequest;
 use App\Http\Requests\RegistrarUsoPosteriorRequest;
 use App\Http\Requests\RevogarReservaRequest;
 use App\Http\Requests\StoreEventoRequest;
+use App\Http\Requests\StoreReservaAdminRequest;
 use App\Http\Requests\StoreReservaRequest;
 use App\Http\Resources\ReservaResource;
 use App\Models\Reserva;
@@ -34,6 +35,13 @@ class ReservaController extends Controller
     public function store(StoreReservaRequest $request)
     {
         $reserva = $this->reservaService->create($request->validated());
+
+        return (new ReservaResource($reserva))->response()->setStatusCode(201);
+    }
+
+    public function storeParaAluno(StoreReservaAdminRequest $request)
+    {
+        $reserva = $this->reservaService->create($request->validated(), $request->user());
 
         return (new ReservaResource($reserva))->response()->setStatusCode(201);
     }

@@ -85,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/datas-bloqueadas/{dataBloqueada}', [DataBloqueadaController::class, 'destroy']);
 
         Route::get('/espacos/{espaco}/disponibilidade', [EspacoController::class, 'disponibilidadeAdmin']);
+        Route::get('/espacos/{espaco}/equipamentos/solicitaveis', [EquipamentoController::class, 'solicitaveisAdmin']);
 
         Route::get('/reservas', [ReservaController::class, 'index']);
         Route::post('/reservas/consulta', [ReservaController::class, 'index']);
@@ -92,6 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reservas/exportar/colunas', [ExportacaoReservasController::class, 'colunas']);
         Route::get('/reservas/{reserva}', [ReservaController::class, 'show']);
         Route::post('/reservas/eventos', [ReservaController::class, 'storeEvento']);
+        Route::post('/reservas/aluno', [ReservaController::class, 'storeParaAluno']);
         Route::post('/reservas/registro-posterior', [ReservaController::class, 'registrarUsoPosterior']);
         Route::post('/reservas/{reserva}/revogar', [ReservaController::class, 'revogar']);
         Route::post('/reservas/{reserva}/devolucao', [ReservaController::class, 'registrarDevolucao']);

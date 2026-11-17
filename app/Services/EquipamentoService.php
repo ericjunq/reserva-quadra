@@ -39,7 +39,7 @@ class EquipamentoService
         ])->values()->all();
     }
 
-    public function solicitaveisNoIntervalo(Espaco $espaco, string $data, string $inicio, string $fim): array
+    public function solicitaveisNoIntervalo(Espaco $espaco, string $data, string $inicio, string $fim, bool $semPrazo = false): array
     {
         $equipamentos = Equipamento::query()
             ->with('espaco:id,nome')
@@ -51,11 +51,11 @@ class EquipamentoService
             ->get();
 
         $disponiveis = $this->disponibilidade->disponiveis($equipamentos, $data, $inicio, $fim);
-        $prazo = app(SolicitacaoService::class)->prazoDeResposta(Carbon::parse("{$data} {$inicio}"));
+        $prazo = $semPrazo ? null : app(SolicitacaoService::class)->prazoDeResposta(Carbon::parse("{$data} {$inicio}"));
 
         return [
             'responder_ate' => $prazo?->toIso8601String(),
-            'itens'         => $prazo ? $equipamentos->map(fn (Equipamento $equipamento) => [
+            'itens'         => $prazo || $semPrazo ? $equipamentos->map(fn (Equipamento $equipamento) => [
                 'id'         => $equipamento->id,
                 'nome'       => $equipamento->nome,
                 'espaco'     => $equipamento->espaco->nome,

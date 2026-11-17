@@ -46,12 +46,12 @@ class ReservaService
         return $this->reservas->totaisPorStatus($filtros);
     }
 
-    public function create(array $data): Reserva
+    public function create(array $data, ?User $admin = null): Reserva
     {
         $aluno = Aluno::where('registro_academico', $data['registro_academico'])->firstOrFail();
         $data = $this->resolverIntervalo($data);
 
-        return DB::transaction(function () use ($aluno, $data) {
+        return DB::transaction(function () use ($aluno, $data, $admin) {
             $espaco = $this->travarEspaco($data['espaco_id']);
             $this->verificarConflitoDeEspaco($data);
             $this->verificarLimiteSemanalDoCurso($aluno, $espaco, $data);
@@ -67,13 +67,15 @@ class ReservaService
                 'hora_fim'     => $data['hora_fim'],
                 'espaco_id'    => $data['espaco_id'],
                 'tipo'         => TipoReservaConstant::ALUNO,
+                'origem'       => $admin ? OrigemReservaConstant::ADMIN : OrigemReservaConstant::SITE,
+                'criado_por'   => $admin?->id,
             ]);
 
             $this->anexarEquipamentos($reserva, $data);
-            $this->anexarSolicitacoes($reserva, $data['solicitacoes'] ?? []);
+            $this->anexarSolicitacoes($reserva, $data['solicitacoes'] ?? [], $admin);
             $this->confirmacao->pedirNaCriacao($reserva, $aluno);
 
-            return $reserva->load('equipamentos');
+            return $admin ? $reserva->load(self::RELACOES_ADMIN) : $reserva->load('equipamentos');
         });
     }
 
@@ -351,14 +353,15 @@ class ReservaService
         }
     }
 
-    private function anexarSolicitacoes(Reserva $reserva, array $solicitacoes): void
+    private function anexarSolicitacoes(Reserva $reserva, array $solicitacoes, ?User $admin = null): void
     {
-        $prazo = app(SolicitacaoService::class)->prazoDeResposta($reserva->inicio());
+        $situacao = $admin
+            ? ['situacao_solicitacao' => SituacaoSolicitacaoConstant::APROVADA, 'respondida_em' => now(), 'respondida_por' => $admin->id]
+            : ['situacao_solicitacao' => SituacaoSolicitacaoConstant::AGUARDANDO, 'responder_ate' => app(SolicitacaoService::class)->prazoDeResposta($reserva->inicio())];
 
         $itens = collect($solicitacoes)->mapWithKeys(fn ($item) => [$item['id'] => [
-            'quantidade'           => $item['quantidade'],
-            'situacao_solicitacao' => SituacaoSolicitacaoConstant::AGUARDANDO,
-            'responder_ate'        => $prazo,
+            'quantidade' => $item['quantidade'],
+            ...$situacao,
         ]]);
 
         if ($itens->isNotEmpty()) {
