@@ -3205,3 +3205,64 @@ frontend: admin/reservas/selos.ts (NOMES_DAS_ORIGENS.ADMIN "Evento do admin" →
 Em aberto (pergunta ao usuário): o aluno é mandado procurar a "coordenação" em 5 textos e a
   "administração" em 4. Falta escolher um nome.
 Totais: 346 da API, 166 do front, 56 no navegador.
+
+========================================================================
+82. PASSO 11.9: ESTOQUE DE EQUIPAMENTOS E RESPONSÁVEL DO EVENTO (17/11/2026)
+========================================================================
+Aprovado em 17/11 ("perfeito, pode ser dessa forma, incluindo também motivos como -> Não teve
+devolução de reserva ou evento e o responsável pelo evento também, além da descrição sobre o que
+aconteceu com o equipamento"), com os ajustes: campo "Estado do equipamento" e nome do
+responsável obrigatório em todo evento. Antes, o usuário decidiu deixar "coordenação" e
+"administração" como estão até a faculdade dizer o nome do setor.
+
+API (11.9a, estoque)
+migrations: equipamentos.quantidade_em_manutencao (padrão 0); nova movimentacoes_estoque
+  (equipamento, tipo, quantidade, estado até 500, reserva opcional, user, total e manutenção
+  depois, created_at; índices (equipamento_id, created_at), reserva_id, user_id).
+TipoMovimentacaoConstant: ENTRADA, BAIXA, NAO_DEVOLVIDO, MANUTENCAO, RETORNO, AJUSTE; label();
+  exigeReserva() só no NAO_DEVOLVIDO.
+Models: MovimentacaoEstoque (sem updated_at); Equipamento->utilizavel() (total − manutenção, nunca
+  negativo), movimentacoes(), $attributes com manutenção 0 (o create não relê o padrão do banco).
+EstoqueService: movimentar() trava o equipamento (lockForUpdate), confere a reserva no
+  NAO_DEVOLVIDO (item da reserva), calcula total e manutenção pelo tipo (BAIXA/NAO_DEVOLVIDO com
+  da_manutencao tiram também da manutenção), recusa manutenção negativa ou maior que o total (422)
+  e, quando o utilizável diminui, confere o maior uso futuro (409 com dados.maior_uso_futuro);
+  atualiza o equipamento (fica no histórico de auditoria) e grava a movimentação com o estoque
+  depois. registrarCadastro() grava a entrada inicial. listarPaginado() com eager loading.
+DisponibilidadeEquipamentoRepository: disponiveis() usa o utilizável; maiorUsoFuturo() ignora as
+  reservas de hoje que já terminaram (sem isso, a baixa de um item não devolvido numa reserva das
+  19h seria barrada pela própria reserva).
+DisponibilidadeService, EquipamentoService (total = utilizável para o aluno) e
+  ValidaEquipamentosDaReserva (limite = utilizável; mensagem "estoque disponível").
+EquipamentoService: criar() registra a entrada; atualizar() não mexe mais na quantidade;
+  verificarNovaQuantidade() saiu (a regra está no EstoqueService). UpdateEquipamentoRequest sem
+  quantidade_total. EquipamentoResource: quantidade_em_manutencao só nas rotas do admin.
+MovimentarEstoqueRequest (quantidade com sinal só no AJUSTE, nunca 0; estado obrigatório 3–500;
+  reserva_id obrigatória no NAO_DEVOLVIDO), MovimentacaoEstoqueResource, rotas GET/POST
+  /admin/equipamentos/{id}/movimentacoes.
+
+API (11.9b, responsável)
+reservas.responsavel_nome (100) e responsavel_contato (120). StoreEventoRequest: nome
+  obrigatório; RegistrarUsoPosteriorRequest: nome obrigatório com descrição de grupo e proibido
+  com RA. ReservaService grava nos dois; atualizarResponsavel() (só EVENTO, 422 nos outros) corrige
+  ou remove; a remoção troca nome e contato por [removido] em todas as auditorias da reserva
+  (inclusive a da própria remoção). ReservaResource: responsavel só em api/admin/* e só em evento.
+  DevolucaoService: destino do aviso de pendência = aluno, ou o contato do responsável se for um
+  email válido; DevolucaoComPendenciaMail recebe o nome (o texto não depende mais do aluno).
+  Factory evento() com responsável; testes de evento existentes passaram a mandar o nome.
+
+FRONT (11.9c)
+cadastros/estoque/: tipos.ts, ajustar-estoque.ts (ids com prefixo do equipamento e da reserva,
+  para dois formulários na mesma página), estoque-equipamento.ts (consulta pelo id num computed
+  próprio, para salvar o equipamento não refazer a busca das movimentações).
+form-equipamento: quantidade só na criação, seção de estoque no detalhe; lista de equipamentos com
+  "N em manutenção". Modelos e CadastrosService (listarMovimentacoes, movimentarEstoque).
+compartilhado/campos-do-responsavel.ts (model() para nome e contato) na Nova reserva (evento) e
+  no Registrar uso (grupo). reservas/detalhe-reserva: responsavel-do-evento.ts (corrigir; remover
+  com ConfirmarAcao explicando que some também do histórico) e "Ajustar o estoque" nos itens com
+  avaria (Foi para manutenção, 1) ou não devolvidos (Não houve devolução, reservado − devolvido),
+  com a observação como estado e a reserva já ligada.
+Testes: estoque.spec.ts (4), ajustes em cadastros/calendario/reservas.spec; e2e/estoque.spec.ts,
+  calendario-admin.spec.ts com o responsável (fora da URL); api-falsa com movimentações.
+Pacote inicial 315,2 kB.
+Totais: 358 da API, 170 do front, 58 no navegador. O usuário precisa de migrate:fresh --seed.

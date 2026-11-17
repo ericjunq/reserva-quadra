@@ -28,6 +28,9 @@ erDiagram
     reservas ||--o{ item_reservas : "pede"
     reservas ||--o{ tokens_reserva : "tem links"
     equipamentos ||--o{ item_reservas : "é pedido em"
+    equipamentos ||--o{ movimentacoes_estoque : "tem movimentações"
+    reservas ||--o{ movimentacoes_estoque : "não devolvido em"
+    users ||--o{ movimentacoes_estoque : "registra"
 
     cursos {
         bigint id PK
@@ -91,6 +94,7 @@ erDiagram
         bigint espaco_id FK
         string nome "único por espaço"
         int quantidade_total
+        int quantidade_em_manutencao "fora do disponível até voltar"
         boolean ativo
         boolean aceita_solicitacao "pode ser pedido por reservas de outros espaços"
     }
@@ -116,6 +120,8 @@ erDiagram
         timestamp manter_ate "pedido não liberado: prazo para o aluno manter"
         timestamp mantida_em
         string descricao "eventos"
+        string responsavel_nome "eventos; só admins veem"
+        string responsavel_contato "eventos; opcional"
         text justificativa_revogacao
         timestamp revogada_em
         bigint revogada_por FK
@@ -127,6 +133,19 @@ erDiagram
         timestamp reconfirmacao_pedida_em
         timestamp reconfirmar_ate "00:00 da véspera"
         timestamp reconfirmada_em
+    }
+
+    movimentacoes_estoque {
+        bigint id PK
+        bigint equipamento_id FK
+        string tipo "ENTRADA, BAIXA, NAO_DEVOLVIDO, MANUTENCAO, RETORNO, AJUSTE"
+        int quantidade "com sinal no AJUSTE"
+        string estado "estado do equipamento, obrigatório"
+        bigint reserva_id FK "obrigatório em NAO_DEVOLVIDO"
+        bigint user_id FK
+        int quantidade_total_depois
+        int em_manutencao_depois
+        timestamp created_at
     }
 
     item_reservas {
@@ -206,8 +225,14 @@ Por padrão, um item só aparece e só pode ser pedido no próprio espaço (a bo
 **5. `limite_semanal_por_curso` fica no espaço.**
 Cada espaço tem sua regra: a quadra limita a 3 reservas por curso por semana, e as salas não têm limite (`null`). A regra muda pelo cadastro, sem mexer no código.
 
+**40. Estoque por movimentações, com a quantidade guardada no equipamento (11.9, 17/11/2026).**
+Toda mudança de quantidade vira uma linha em `movimentacoes_estoque` (tipo, quantidade, **estado do equipamento**, quem, quando, reserva quando houver e o estoque depois). `quantidade_total` e `quantidade_em_manutencao` continuam em `equipamentos` e são atualizadas na mesma transação, com trava de linha: a disponibilidade lê duas colunas e nunca soma movimentações (desempenho). O **utilizável** é `quantidade_total − quantidade_em_manutencao`; é ele que entra no cálculo do disponível, na validação da reserva e no que o aluno vê. Nenhuma movimentação deixa o utilizável abaixo do maior uso reservado **a partir de agora** (as reservas de hoje que já terminaram não contam). A quantidade não muda mais pelo `PATCH` do equipamento; o cadastro registra a entrada inicial ("Cadastro do equipamento."). As movimentações não entram no histórico de auditoria (elas já são o histórico), mas a mudança de quantidade no equipamento entra.
+
+**41. Responsável do evento em colunas da reserva (11.9, 17/11/2026).**
+`responsavel_nome` (obrigatório em todo evento, decisão do usuário) e `responsavel_contato` (opcional) ficam na própria reserva: um evento tem um responsável, e uma tabela de pessoas não teria uso. Dado pessoal de terceiro: só aparece nas rotas do admin; pode ser corrigido e **removido a pedido** (`PATCH /admin/reservas/{id}/responsavel` com `remover`), o que também troca os valores por `[removido]` no histórico de auditoria. A movimentação "não houve devolução" aponta para a reserva, sem copiar o nome.
+
 **6. Não existe coluna de "quantidade disponível" no equipamento.**
-A disponibilidade muda a cada data e horário. Um número fixo não representa isso e ficaria errado a cada reserva, cancelamento ou revogação. Ela é **calculada**: `quantidade_total` menos a soma do que está em `item_reservas` nas reservas ativas que se sobrepõem ao horário. A consulta fica centralizada em `DisponibilidadeEquipamentoRepository` e usa índices.
+A disponibilidade muda a cada data e horário. Um número fixo não representa isso e ficaria errado a cada reserva, cancelamento ou revogação. Ela é **calculada**: o utilizável (`quantidade_total − quantidade_em_manutencao`, desde o 11.9) menos a soma do que está em `item_reservas` nas reservas ativas que se sobrepõem ao horário. A consulta fica centralizada em `DisponibilidadeEquipamentoRepository` e usa índices.
 
 ### Reservas
 
@@ -332,12 +357,6 @@ O token puro (64 caracteres aleatórios) só existe no email. O banco guarda o S
 ---
 
 ## Mudanças planejadas
-
-### Estoque de equipamentos (11.9, aprovado em 17/11/2026)
-
-- Tabela `movimentacoes_estoque`: `equipamento_id`, `tipo` (ENTRADA, BAIXA, NAO_DEVOLVIDO, MANUTENCAO, RETORNO, AJUSTE), `quantidade`, `estado` (estado do equipamento, texto até 500), `reserva_id` (opcional; obrigatório em NAO_DEVOLVIDO), `user_id`, `created_at`; índices `(equipamento_id, created_at)` e `reserva_id`.
-- `equipamentos.quantidade_em_manutencao` (inteiro, padrão 0); disponível = total − manutenção − reservado.
-- `reservas.responsavel_nome` e `reservas.responsavel_contato` (só eventos; nome obrigatório em todo evento, decisão do usuário em 17/11/2026; contato opcional).
 
 | Mudança | Para quê |
 |---|---|
