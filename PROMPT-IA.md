@@ -22,7 +22,7 @@ O usuário alterna entre PCs e conversas. **A memória da conversa não viaja; o
 
 1. Ler o `CLAUDE.md` inteiro (regras combinadas; ele prevalece se algo aqui divergir).
 2. Ler no `CHECKLIST.md`: "📍 Onde paramos" primeiro; depois a "🧵 Trilha de ideias" do fim para trás; depois o passo do plano em andamento.
-3. Ler as seções do `README.md` e do `DATABASE.md` ligadas ao assunto da tarefa.
+3. Ler as seções do `DOCUMENTACAO.md` e do `DATABASE.md` ligadas ao assunto da tarefa.
 4. Conferir o repositório: `git status`, `git log --oneline -10`, `git fetch` e comparar com `origin/main` (o push é do usuário, então commits locais à frente são normais).
 5. Conferir o **CI** pela API pública do GitHub, sem login:
    - `wget -qO- "https://api.github.com/repos/ericjunq/reserva-quadra/actions/runs?per_page=5"`;
@@ -30,7 +30,7 @@ O usuário alterna entre PCs e conversas. **A memória da conversa não viaja; o
 6. Conferir o ambiente antes de rodar comandos. No PC Ubuntu do usuário:
    - `export PATH="$HOME/.config/herd-lite/bin:$PATH"` (PHP e Composer);
    - `export PATH="$HOME/.local/node/bin:$PATH"` (Node e npm);
-   - em outro PC, seguir o README, "Preparar um PC novo".
+   - em outro PC, seguir o `DOCUMENTACAO.md`, "Preparar um PC novo".
 7. Não perguntar o que já está decidido nos guias. Se a resposta está registrada, use-a.
 
 ## 3. O projeto em uma página
@@ -44,7 +44,7 @@ O usuário alterna entre PCs e conversas. **A memória da conversa não viaja; o
   - **sistema parceiro:** token próprio, só na `/api/v1` (passo 13).
 - **Fluxo principal:** o aluno escolhe espaço e horário no calendário, reserva com o RA, recebe o email, confirma em 24 h (ou a reserva cai) e, perto da data, reconfirma. O admin vê tudo, cria eventos, revoga com justificativa, registra devoluções, cuida do estoque e dos cadastros.
 - **Ordem do trabalho até agora:** API completa (passos 1 a 10) → front (passo 11, com subpassos 11.1 a 11.9) → API para parceiros (13). O passo 12 (grade de aulas) espera respostas da faculdade. O "Onde paramos" diz o resto.
-- **Onde ficam as coisas:** README, seção 3 ("Estrutura do código"), para API e front; DATABASE.md para o banco e o porquê de cada escolha de modelagem.
+- **Onde ficam as coisas:** `DOCUMENTACAO.md`, seção 3 ("Estrutura do código"), para API e front; DATABASE.md para o banco e o porquê de cada escolha de modelagem.
 
 ## 4. Como pensar: a ordem de prioridade em toda decisão
 
@@ -79,7 +79,7 @@ Classifique antes de agir:
 | Mensagem | O que fazer |
 |---|---|
 | Pergunta ou dúvida | Responder direto e curto. Se for conceito, explicar de forma didática, com exemplo do próprio sistema, e registrar em "Conceitos já explicados" |
-| Ideia (dele ou sua) | Avaliar prós, contras, riscos, desempenho e LGPD; recomendar; registrar na Trilha (e em "Ideias registradas para depois" no README, se for para depois). **Não implementar** sem aprovação |
+| Ideia (dele ou sua) | Avaliar prós, contras, riscos, desempenho e LGPD; recomendar; registrar na Trilha (e em "Ideias registradas para depois" no `DOCUMENTACAO.md`, se for para depois). **Não implementar** sem aprovação |
 | Pedido de passo ou funcionalidade | Mandar **proposta** e esperar |
 | Aprovação ("aprovo", "pode seguir", "segue") | Implementar **só o que foi aprovado**, com os ajustes que ele pediu. Se ele aprovou um item e não falou do outro, o outro continua pendente |
 | Correção pequena pedida diretamente | Fazer sem proposta, testar, commitar, documentar |
@@ -199,7 +199,7 @@ O usuário costuma aprovar com ajustes pontuais e às vezes pede para explicar m
 
 **Regras:**
 - **Conferir o código de saída** de cada suíte. Nunca `php artisan test | tail ... && git commit`: o `tail` esconde a falha.
-- Contar os testes pelo resultado real, nunca de memória, e registrar os números no CHECKLIST, no README (seção 8, "Hoje") e no txt.
+- Contar os testes pelo resultado real, nunca de memória, e registrar os números no CHECKLIST, no `DOCUMENTACAO.md` (seção 8, "Hoje") e no txt.
 - Teste falhou: achar a causa; não afrouxar o teste. Defeito real é registrado como "achado pelo teste".
 - Nas proteções de segurança, fazer **teste de mutação**: desligar a proteção, ver o teste falhar, religar.
 - Em testes:
@@ -223,7 +223,7 @@ Regra principal: toda ideia, decisão, mudança de rumo, defeito, explicação d
 | Arquivo | O que vai nele |
 |---|---|
 | `CHECKLIST.md` | **"📍 Onde paramos"**: estado, último passo concluído, em andamento (proposta enviada? decisões pendentes?), próximo passo, o que o usuário precisa fazer, decisões em aberto, conceitos explicados, lições, instruções para retomar. **Reescrever as linhas velhas**, não só acrescentar, e reler a seção inteira antes de dizer que terminou. **"🧵 Trilha de ideias"**: uma linha por ideia, decisão, defeito ou mudança, citando o usuário, com o porquê e as alternativas; a última linha é sempre "Agora:". **Plano**: cada passo com a proposta, a aprovação, os detalhes e a data de conclusão com os números de testes |
-| `README.md` | Documentação completa: como rodar, variáveis de ambiente (tabela), agendador, estrutura do código (API e front), endpoints, regras de negócio, "Decisões tomadas" (antigas riscadas como substituídas), testes (o que cada arquivo cobre e a contagem atual), histórico, próximos passos, "Ideias registradas para depois", explicações úteis |
+| `DOCUMENTACAO.md` | Documentação completa: como rodar, variáveis de ambiente (tabela), agendador, estrutura do código (API e front), endpoints, regras de negócio, "Decisões tomadas" (antigas riscadas como substituídas), testes (o que cada arquivo cobre e a contagem atual), histórico, próximos passos, "Ideias registradas para depois", explicações úteis |
 | `DATABASE.md` | Diagrama Mermaid e decisões de modelagem numeradas, sempre que o banco mudar; "Mudanças planejadas" para o aprovado que ainda não existe |
 | `implementacoes-com-claude-code.txt` | Uma seção numerada por implementação, arquivo por arquivo, com o **porquê** de cada escolha (é aqui que ficam as explicações que não podem ser comentário). Confira o último número no fim do arquivo |
 | `CLAUDE.md` | Toda instrução nova de comportamento do usuário (como trabalhar, responder, commitar, documentar), na mesma hora |
@@ -257,6 +257,10 @@ Escreva os registros de forma **descritiva**: o texto do usuário (ou um resumo 
 - Mudar a política do CI ou de segurança sem explicar e perguntar.
 - Pôr comentários no código ou atribuição à IA nos commits.
 - Instalar o Laravel Boost, que o `CLAUDE.md` menciona: só com aprovação.
+
+**Autonomia com aprovação (18/11/2026):** o usuário pode liberar a execução dos comandos sem confirmar cada um, mas isso não dispensa a aprovação: antes de qualquer alteração, pergunte se ele aprova (proposta, ou pergunta curta para algo pequeno); depois de aprovado, execute sem pedir confirmação a cada passo e avise quando terminar.
+
+**Documentação × apresentação (18/11/2026):** o `README.md` é a apresentação do projeto; a documentação completa de desenvolvimento fica no `DOCUMENTACAO.md` (menções a "README" em registros anteriores a 18/11/2026 se referem a ele).
 
 ## 14. Exemplos do raciocínio esperado (casos reais deste projeto)
 

@@ -3499,3 +3499,24 @@ cadastros/equipamentos/sugestoes-compartilhamento.ts: lista vinda da API (todas 
   ajustes em cadastros.spec e reservas.spec (requisições novas), e2e/sugestao-compartilhamento
   (2), api-falsa com as rotas. Pacote inicial 313,6 kB.
 Totais: 414 da API, 183 de unidade, 70 no navegador. O usuário precisa de migrate:fresh --seed.
+
+========================================================================
+91. README DE APRESENTAÇÃO E DOCUMENTACAO.md (18/11/2026)
+========================================================================
+Pedido do usuário: renomear o README (que servia de documentação de contexto) para
+  DOCUMENTACAO.md, sem descartá-lo, e criar um README no formato de apresentação.
+DOCUMENTACAO.md: o antigo README.md, renomeado com git mv (o histórico do arquivo continua).
+  Ganhou só uma nota no topo apontando para o README novo.
+README.md (novo): problema e propósito, o que o sistema faz (aluno, admin, tarefas
+  automáticas), fluxo da reserva (Mermaid), tabela das regras principais, privacidade e LGPD,
+  segurança, arquitetura (Mermaid) e tecnologias, árvore do repositório, como rodar, testes e CI,
+  implantação, API para parceiros, situação do projeto, mapa da documentação e como contribuir.
+  Sem contagem de testes nem lista de endpoints, para não envelhecer a cada passo; os detalhes
+  ficam linkados na DOCUMENTACAO.md (âncoras das seções 3 e 6, variáveis e emails de teste).
+  Não declara licença porque o repositório não tem arquivo de licença.
+Referências trocadas para DOCUMENTACAO.md: CLAUDE.md (regras de documentação, com o histórico
+  do nome e a regra do README de apresentação), PROMPT-IA.md, CHECKLIST.md (cabeçalho e "Onde
+  paramos"), DATABASE.md, DEPLOY.md e frontend/README.md. A Trilha de ideias e este txt não
+  foram reescritos: "README" neles, antes de 18/11/2026, é a atual DOCUMENTACAO.md.
+Regra nova do usuário registrada no CLAUDE.md e no PROMPT-IA.md: autonomia para executar sem
+  confirmar cada comando, mas perguntando antes se ele aprova cada alteração.

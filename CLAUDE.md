@@ -2,7 +2,7 @@
 
 Antes de qualquer tarefa, leia este tópico inteiro, o [`PROMPT-IA.md`](PROMPT-IA.md) (o mesmo jeito de trabalhar escrito como instrução para qualquer IA, com exemplos do raciocínio; pedido do usuário em 17/11/2026) e o [`CHECKLIST.md`](CHECKLIST.md), que tem o estado do sistema, as decisões já tomadas e o plano até a finalização. As regras abaixo foram pedidas pelo usuário e valem para **todas** as conversas.
 
-> **Regra reforçada pelo usuário (16/11/2026): sempre ler os arquivos de documentação antes de começar a fazer qualquer coisa** — não só no início da conversa, mas antes de cada tarefa (proposta, implementação, correção, resposta sobre o sistema): este `CLAUDE.md`, o `CHECKLIST.md` ("Onde paramos", Trilha e o passo do plano), e as seções do `README.md` e do `DATABASE.md` ligadas ao assunto. E **sempre testar da mesma forma** (rotina em "Rotina de testes", na seção de comportamento).
+> **Regra reforçada pelo usuário (16/11/2026): sempre ler os arquivos de documentação antes de começar a fazer qualquer coisa** — não só no início da conversa, mas antes de cada tarefa (proposta, implementação, correção, resposta sobre o sistema): este `CLAUDE.md`, o `CHECKLIST.md` ("Onde paramos", Trilha e o passo do plano), e as seções do `DOCUMENTACAO.md` e do `DATABASE.md` ligadas ao assunto. E **sempre testar da mesma forma** (rotina em "Rotina de testes", na seção de comportamento).
 
 ## Prioridades permanentes (valem para toda decisão, em qualquer parte do sistema)
 
@@ -26,14 +26,16 @@ Antes de qualquer tarefa, leia este tópico inteiro, o [`PROMPT-IA.md`](PROMPT-I
 - Escrever em português.
 
 ### Processo
+- **Autonomia com aprovação (pedido do usuário em 18/11/2026: "vou te dar autonomia pra fazer alterações sem eu precisar confirmar, mas você tem que me perguntar antes se eu aprovo"):** o usuário libera a execução das ferramentas sem confirmar cada comando, mas **toda alteração continua precisando da aprovação dele antes**: proposta (ou pergunta curta, para mudanças pequenas) → aprovação → execução sem pedir confirmação a cada passo → aviso quando acabar. Na dúvida se algo foi aprovado, perguntar.
 - **Proposta antes de implementar:** para cada passo ou item do plano, enviar uma proposta com o que o passo faz, os arquivos afetados e as decisões em aberto, cada uma com uma recomendação. **Só implementar depois da aprovação.** Correções pequenas pedidas diretamente podem ser feitas sem proposta.
 - Aprovação vale só para o que foi aprovado. Se o usuário recusar uma recomendação, implementar sem ela e registrar a decisão.
 - Ao concluir cada etapa, **atualizar a documentação**:
   - `CHECKLIST.md`: marcar itens, data e número de testes, e **sempre** atualizar a seção "📍 Onde paramos" (último passo concluído, próximo passo, pendências do usuário). O usuário alterna entre PCs, e uma conversa nova precisa entender em segundos o que foi feito, o que está em andamento e o que vem depois;
-  - `README.md` (a documentação completa do projeto; até 09/11/2026 se chamava `DOCUMENTACAO.md`, nome que ainda aparece nas seções antigas do txt): endpoints, regras, decisões, testes, histórico e próximos passos;
+  - `DOCUMENTACAO.md` (a documentação completa de desenvolvimento): endpoints, regras, decisões, testes, histórico e próximos passos. **Histórico do nome:** até 09/11/2026 se chamava `DOCUMENTACAO.md`; de 09/11 a 18/11/2026 foi o `README.md`; em 18/11/2026, a pedido do usuário, voltou a ser `DOCUMENTACAO.md` e o `README.md` virou a apresentação do projeto. Menções a "README" na Trilha de ideias e no txt anteriores a 18/11/2026 se referem a este arquivo;
+  - `README.md` (apresentação do projeto, criado em 18/11/2026): problema e propósito, o que o sistema faz, regras principais, LGPD, segurança, arquitetura, estrutura, como rodar, testes, implantação e situação. Sem detalhes que mudam a cada passo (contagem de testes, endpoints): atualizar só quando mudar algo visível para quem chega ao projeto (funcionalidade nova, stack, como rodar, próximos passos);
   - `DATABASE.md`: diagrama Mermaid e decisões de modelagem, sempre que o banco mudar;
   - `implementacoes-com-claude-code.txt`: uma seção nova por implementação, arquivo por arquivo.
-- Decisões tomadas não são reabertas. Ficam registradas no `CHECKLIST.md` e no `README.md`.
+- Decisões tomadas não são reabertas. Ficam registradas no `CHECKLIST.md` e no `DOCUMENTACAO.md`.
 
 ### Continuidade entre conversas (o usuário alterna entre PCs e chats)
 - A memória da conversa **não** vai para outro PC. O que garante a continuidade são os arquivos do repositório: **este `CLAUDE.md`** (como trabalhar) e o **`CHECKLIST.md`** (onde estamos, o que foi decidido e o que vem). Escreva-os como instruções **para você mesmo** numa conversa nova, com contexto suficiente para seguir a mesma linha de ideias, sem precisar perguntar o que já foi combinado.
@@ -41,13 +43,13 @@ Antes de qualquer tarefa, leia este tópico inteiro, o [`PROMPT-IA.md`](PROMPT-I
 - **Mantenha tudo atualizado o tempo todo**, e não só ao concluir uma etapa. Atualize e commite os guias sempre que:
   - enviar uma **proposta**: resumo e decisões em aberto no passo do plano, e "Onde paramos" como "proposta enviada, aguardando aprovação";
   - o usuário **aprovar, recusar ou ajustar** algo: registrar a decisão e o motivo;
-  - **explicar um conceito** ao usuário: anotar em "Conceitos já explicados" e, se for útil, numa seção do README;
-  - surgir uma **ideia** (do usuário ou do Claude), mesmo sem decisão: na Trilha de ideias e, se for uma ideia para depois, em "Ideias registradas para depois" no README;
-  - aparecer um **defeito ou correção necessária**: o que aconteceu, a causa e a correção (Trilha, txt e, se mudar regra, README);
+  - **explicar um conceito** ao usuário: anotar em "Conceitos já explicados" e, se for útil, numa seção do `DOCUMENTACAO.md`;
+  - surgir uma **ideia** (do usuário ou do Claude), mesmo sem decisão: na Trilha de ideias e, se for uma ideia para depois, em "Ideias registradas para depois" no `DOCUMENTACAO.md`;
+  - aparecer um **defeito ou correção necessária**: o que aconteceu, a causa e a correção (Trilha, txt e, se mudar regra, `DOCUMENTACAO.md`);
   - **mudar algo já decidido**: o que muda, como, por quê e o que vale agora (riscar ou marcar a decisão antiga como substituída, sem apagar);
-  - concluir uma etapa: todos os guias (CHECKLIST, README, DATABASE se mexer no banco, txt).
+  - concluir uma etapa: todos os guias (CHECKLIST, `DOCUMENTACAO.md`, DATABASE se mexer no banco, txt).
 - A seção **"🧵 Trilha de ideias"** do CHECKLIST ganha uma linha a cada nova ideia, decisão ou mudança de rumo, com o porquê. A última linha ("Agora:") é sempre atualizada.
-- **Registros descritivos (pedido reforçado em 13/11/2026):** cada decisão vai para os guias com o texto do usuário (ou um resumo fiel), a leitura do Claude, o porquê, as alternativas descartadas e, quando já houver, "como implementar" (campos, rotas, telas). Ideias aprovadas que ainda não têm data entram também no README, em "Ideias registradas para depois". O objetivo é que outro chat entenda as regras, práticas, padrões, ideias e diretrizes sem perguntar de novo.
+- **Registros descritivos (pedido reforçado em 13/11/2026):** cada decisão vai para os guias com o texto do usuário (ou um resumo fiel), a leitura do Claude, o porquê, as alternativas descartadas e, quando já houver, "como implementar" (campos, rotas, telas). Ideias aprovadas que ainda não têm data entram também no `DOCUMENTACAO.md`, em "Ideias registradas para depois". O objetivo é que outro chat entenda as regras, práticas, padrões, ideias e diretrizes sem perguntar de novo.
 - Ao atualizar "📍 Onde paramos", **reescrever as linhas que ficaram velhas** (último passo, próximo passo, pendências, instruções para outro PC), em vez de só acrescentar; antes de dizer que a documentação está pronta, reler a seção inteira.
 - A seção **"📍 Onde paramos"** do CHECKLIST sempre traz: o último passo concluído, o que está em andamento (proposta enviada? decisões pendentes?), o próximo passo, o que o usuário precisa fazer (push, `migrate:fresh` etc.) e os conceitos já explicados.
 - **Novas instruções de comportamento** do usuário (como trabalhar, responder, commitar, documentar) entram **neste `CLAUDE.md` na mesma hora**, em vez de ficar só na conversa.
@@ -74,10 +76,10 @@ Antes de qualquer tarefa, leia este tópico inteiro, o [`PROMPT-IA.md`](PROMPT-I
 - **Formatação:** rodar `./vendor/bin/pint` antes de commitar (`pint.json` mantém o alinhamento de `=>`).
 - **Migrations** existentes são editadas no lugar, porque o banco de desenvolvimento é recriado com frequência. Quem roda `php artisan migrate:fresh --seed` é **o usuário**.
 - O `AdminSeeder` lê nome, email e senha do `.env` (`ADMIN_INICIAL_*`); a senha `Admin` do `.env.example` é **intencional**, para desenvolvimento (decisão do usuário: o admin de teste vira o admin dele). Não apontar como problema, a menos que o assunto seja produção (lá, `admin:criar-principal` e `ADMIN_INICIAL_SENHA` vazia).
-- Configuração nova que depende do ambiente vai para `config/*.php` lendo o `.env`, e entra no `.env.example`, no `.env.production.example` e na tabela de variáveis do README. Nunca usar `env()` fora de `config/`, porque o `config:cache` de produção o ignora.
+- Configuração nova que depende do ambiente vai para `config/*.php` lendo o `.env`, e entra no `.env.example`, no `.env.production.example` e na tabela de variáveis do `DOCUMENTACAO.md`. Nunca usar `env()` fora de `config/`, porque o `config:cache` de produção o ignora.
 - O campo de data da reserva se chama `data_reserva`, nunca `data`, porque um campo `data` faria o resource perder o wrapper `{"data": ...}`.
 - O **front-end é em Angular**, na pasta `frontend/` deste repositório (decisão de 09/11/2026), e só consome a API, com deploy próprio. **Não criar telas em Blade.** Links de email apontam para `FRONTEND_URL`.
-- **No front valem as mesmas regras:** nenhum comentário (TS, HTML, CSS), nomes em português, um commit por alteração, testes antes de cada commit, proposta antes de cada subpasso, desempenho e LGPD em toda decisão. A identidade visual aprovada está no README ("Front-end: identidade visual").
+- **No front valem as mesmas regras:** nenhum comentário (TS, HTML, CSS), nomes em português, um commit por alteração, testes antes de cada commit, proposta antes de cada subpasso, desempenho e LGPD em toda decisão. A identidade visual aprovada está no `DOCUMENTACAO.md` ("Front-end: identidade visual").
 - **Comandos do front** (dentro de `frontend/`): `npx prettier --write src e2e` antes de commitar (equivale ao Pint), `npx ng test --watch=false`, `npx ng build` (o build confere o orçamento de tamanho) e `npx playwright test` (testes no navegador). Arquivos gerados pelo Angular CLI também perdem os comentários.
 - **Testes no navegador (Playwright):** depois de clicar num link que troca de página, esperar o título da página nova antes de preencher campos, e usar `{ exact: true }` em rótulos curtos ("Nome", "Email", "RA"), senão o campo da página anterior pode ser preenchido (achado em 17/11/2026). Todo fluxo de tela novo ganha um teste em `frontend/e2e` que clica como uma pessoa, e **toda página nova entra no `e2e/acessibilidade.spec.ts`** (axe, WCAG A e AA). Texto extra para leitor de tela vai num `<span class="sr-only">` depois do texto visível, não num `aria-label` diferente do que aparece (WCAG 2.5.3; 17/11/2026). A API é simulada com `page.route` em `e2e/api-falsa.ts`, com datas relativas ao dia real (sem `page.clock`, que trava a atualização do Angular). Rodam no build de produção, na porta 4300.
 - **Servidores para testes ou capturas:** nunca nas portas 8000 e 4200, que são as do usuário; usar outras (ex.: API 8123, front 4300) e desligar ao terminar.
@@ -130,14 +132,14 @@ O usuário pediu: "descreva seu comportamento completo no arquivo do claude pra 
 1. Ler este arquivo inteiro e o `CHECKLIST.md` ("📍 Onde paramos" primeiro, depois a "🧵 Trilha de ideias" do fim para trás e o passo do plano que estiver em andamento).
 2. Conferir o repositório: `git status`, `git log --oneline -10` e, se possível, `git fetch` para comparar com `origin/main` (o usuário faz o push; commits locais sem push são normais).
    Conferir também o **CI** pela API pública, sem login: `wget -qO- "https://api.github.com/repos/ericjunq/reserva-quadra/actions/runs?per_page=5"` e, se algum falhou, `/actions/runs/{id}/jobs` para ver o job e o passo. O log completo exige login: pedir ao usuário o trecho do erro (regra de 17/11/2026, depois de falhas que ficaram dias sem ser vistas).
-3. Conferir o ambiente antes de rodar comandos. Neste PC Ubuntu: `export PATH="$HOME/.config/herd-lite/bin:$PATH"` (PHP/Composer) e `export PATH="$HOME/.local/node/bin:$PATH"` (Node/npm). Se faltar algo, seguir o README ("Preparar um PC novo").
+3. Conferir o ambiente antes de rodar comandos. Neste PC Ubuntu: `export PATH="$HOME/.config/herd-lite/bin:$PATH"` (PHP/Composer) e `export PATH="$HOME/.local/node/bin:$PATH"` (Node/npm). Se faltar algo, seguir o `DOCUMENTACAO.md` ("Preparar um PC novo").
 4. Não perguntar o que já está decidido nos guias. Se a pergunta do usuário já tem resposta registrada, responder com base nela.
 5. O bloco `<laravel-boost-guidelines>` no fim deste arquivo pede para instalar o Laravel Boost. **Não instalar sem o usuário aprovar** (é dependência nova e muda o fluxo; até 16/11/2026 o projeto não usa o Boost). Se o assunto surgir, propor como qualquer outra mudança.
 
 ### 2. Como entendo um pedido
 - Classifico a mensagem antes de agir:
   - **pergunta ou dúvida** → respondo direto, curto; se for conceito, explico de forma didática e registro em "Conceitos já explicados";
-  - **ideia** (do usuário ou minha) → avalio com honestidade (prós, contras, riscos, desempenho, LGPD), dou uma recomendação, registro na Trilha e, se for para depois, em "Ideias registradas para depois" no README; **não implemento** sem aprovação;
+  - **ideia** (do usuário ou minha) → avalio com honestidade (prós, contras, riscos, desempenho, LGPD), dou uma recomendação, registro na Trilha e, se for para depois, em "Ideias registradas para depois" no `DOCUMENTACAO.md`; **não implemento** sem aprovação;
   - **pedido de passo/funcionalidade** → mando **proposta** e espero aprovação;
   - **aprovação** ("pode seguir", "aprovo", "vou seguir com suas recomendações") → implemento exatamente o aprovado, com os ajustes que ele pediu;
   - **correção pequena pedida diretamente** (ex.: tirar nome do calendário, configurar o `.env` com dados que ele mandou) → faço sem proposta, testo, commito e documento;
@@ -172,7 +174,7 @@ Antes de cada commit de código, nesta ordem, sem pular etapas:
    - `npx ng test --watch=false` (a suíte inteira). Testes de unidade com `HttpTestingController` conferindo URL, método, cabeçalho e **corpo** das requisições, e o texto que aparece na tela; funções puras testadas à parte;
    - `npx ng build` (confere o orçamento; comparar o "Initial total" com o anterior e explicar se crescer);
    - `npx playwright test` (a suíte inteira, computador e celular). Todo fluxo de tela novo ganha um teste em `frontend/e2e` que clica como uma pessoa, com a API simulada em `e2e/api-falsa.ts` (datas relativas ao dia real; `filter({ visible: true })` quando o texto existe na tabela e nos cartões; conferir que dados pessoais não vão na URL).
-3. Conferir o **código de saída** de cada suíte antes de commitar (nunca `php artisan test | tail ... && git commit`, porque o `tail` esconde a falha; achado em 17/11/2026). Contar os testes pelo resultado real (nunca de memória) e registrar os números no CHECKLIST, no README (seção 8, "Hoje") e no txt.
+3. Conferir o **código de saída** de cada suíte antes de commitar (nunca `php artisan test | tail ... && git commit`, porque o `tail` esconde a falha; achado em 17/11/2026). Contar os testes pelo resultado real (nunca de memória) e registrar os números no CHECKLIST, no `DOCUMENTACAO.md` (seção 8, "Hoje") e no txt.
 4. Se um teste falhar, achar a causa (não afrouxar o teste para passar); se for defeito real, corrigir e registrar como "achado pelo teste".
 5. Servidores de teste só nas portas 8123 (API) e 4300 (front), desligados ao terminar.
 
@@ -194,9 +196,10 @@ Antes de cada commit de código, nesta ordem, sem pular etapas:
 
 ### 7. Como documento (regra principal: na hora)
 - `CHECKLIST.md`: "📍 Onde paramos" (estado, último subpasso, em andamento, próximo passo, o que o usuário precisa fazer, pendências, conceitos explicados, lições para o Claude) reescrito sem linhas velhas; "🧵 Trilha de ideias" com uma linha por ideia/decisão/defeito/mudança, citando o usuário, e a linha "Agora:" sempre no fim; o passo do plano com a proposta, a aprovação, as decisões de implementação e a data de conclusão com o número de testes.
-- `README.md`: estrutura do código (pastas do front), endpoints, regras, "Decisões tomadas" (antigas riscadas como substituídas), testes (o que cada arquivo cobre e a contagem atual), histórico, próximos passos, "Ideias registradas para depois", conceitos úteis (ex.: "Enviar emails de verdade").
+- `DOCUMENTACAO.md`: estrutura do código (pastas do front), endpoints, regras, "Decisões tomadas" (antigas riscadas como substituídas), testes (o que cada arquivo cobre e a contagem atual), histórico, próximos passos, "Ideias registradas para depois", conceitos úteis (ex.: "Enviar emails de verdade").
+- `README.md`: só a apresentação (o que é, para que serve, como rodar, situação); atualizar quando algo visível para quem chega mudar, sem copiar os detalhes da `DOCUMENTACAO.md`.
 - `DATABASE.md`: diagrama e decisões sempre que o banco mudar; "Mudanças planejadas" para o que foi aprovado e ainda não existe.
-- `implementacoes-com-claude-code.txt`: uma seção numerada por implementação (a última é a 90, de 17/11/2026; conferir o fim do arquivo antes de numerar), arquivo por arquivo, com o porquê de cada escolha (é lá que ficam as explicações que não podem ir como comentário).
+- `implementacoes-com-claude-code.txt`: uma seção numerada por implementação (a última é a 91, de 18/11/2026; conferir o fim do arquivo antes de numerar), arquivo por arquivo, com o porquê de cada escolha (é lá que ficam as explicações que não podem ir como comentário).
 - Este `CLAUDE.md`: toda instrução nova de comportamento do usuário entra aqui na hora.
 - `PROMPT-IA.md` (criado em 17/11/2026 a pedido do usuário: "gera um novo arquivo com um prompt instruindo uma IA (você ou outra) a seguir a mesma linha"): atualizar quando o **jeito** de trabalhar mudar (regra nova, lição importante, exemplo de raciocínio); o estado do projeto não vai nele, só no CHECKLIST.
 - Credenciais, senhas e tokens **nunca** entram nos guias (só o lugar onde configurar).
