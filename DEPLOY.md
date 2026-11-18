@@ -115,7 +115,7 @@ server {
 
 ## 6. Agendador e fila
 
-O cron e o supervisor estão em [`README.md`](README.md#em-produção-agendador-e-fila). **Escolha quem envia os emails da fila** (explicação completa no README, "Quem envia os emails da fila: supervisor ou agendador"):
+O cron e o supervisor estão em [`DOCUMENTACAO.md`](DOCUMENTACAO.md#em-produção-agendador-e-fila). **Escolha quem envia os emails da fila** (explicação completa no `DOCUMENTACAO.md`, "Quem envia os emails da fila: supervisor ou agendador"):
 
 - **A hospedagem tem supervisor** (VPS, servidor da faculdade, Forge, Laravel Cloud): configure o supervisor abaixo e deixe **`FILA_PELO_AGENDADOR=false`** (já é o valor do `.env.production.example`). Motivo: o worker sempre ligado envia em segundos; ligar também a fila pelo agendador só criaria um segundo processo a cada minuto sem necessidade.
 - **A hospedagem não tem supervisor** (só cron, ex.: hospedagem compartilhada): pule o bloco do supervisor e ponha **`FILA_PELO_AGENDADOR=true`**. Motivo: sem worker sempre ligado, os emails ficariam parados; com a variável ligada, o cron do agendador envia a fila a cada minuto (até ~1 min de atraso).
@@ -156,7 +156,7 @@ chmod 600 .env
 
 ## 9. Backup (pendente: decidir com a plataforma)
 
-Por decisão do usuário (09/11/2026), o backup é definido na hora do deploy. As opções estão em [`README.md`](README.md#ideias-registradas-para-depois):
+Por decisão do usuário (09/11/2026), o backup é definido na hora do deploy. As opções estão em [`DOCUMENTACAO.md`](DOCUMENTACAO.md#ideias-registradas-para-depois):
 - banco gerenciado com backup automático (mais simples);
 - ou `spatie/laravel-backup` com cópia num armazenamento externo;
 - regra 3-2-1, retenção de 7 diários, 4 semanais e 6 mensais, e um teste de restauração por mês.

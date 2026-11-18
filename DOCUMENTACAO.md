@@ -4,6 +4,7 @@
 
 API (backend) em Laravel para reservar os espaços da faculdade (quadra, laboratórios e salas) e os equipamentos desses espaços, e o front-end em Angular (pasta [`frontend/`](frontend/)), que só consome a API e tem deploy próprio.
 
+> A apresentação do projeto (problema, propósito, como rodar) fica no [`README.md`](README.md). Este arquivo foi o README até 18/11/2026 e guarda a documentação completa de desenvolvimento.
 > Este documento descreve **o que o sistema faz, como rodar, as decisões tomadas e o que vem pela frente**.
 > O registro detalhado de cada alteração, arquivo por arquivo, fica em [`implementacoes-com-claude-code.txt`](implementacoes-com-claude-code.txt).
 > Um resumo simples do que o sistema já faz e do que falta fica em [`CHECKLIST.md`](CHECKLIST.md).

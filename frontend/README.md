@@ -9,4 +9,4 @@ npm test         # testes unitários (Vitest)
 npm run build    # build de produção em dist/
 ```
 
-A documentação completa (decisões, estrutura, identidade visual e regras) fica no [`README.md`](../README.md) da raiz, seção "Front-end".
+A documentação completa (decisões, estrutura, identidade visual e regras) fica no [`DOCUMENTACAO.md`](../DOCUMENTACAO.md) da raiz, seção "Front-end".
